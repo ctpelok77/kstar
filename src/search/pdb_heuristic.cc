@@ -7,14 +7,15 @@
 #include "operator.h"
 #include <cassert>
 #include <stdlib.h>
+#include <algorithm>
 
-// AbstractState --------------------------------------------------------------
+// AbstractState ----------------------------------------------------------------------------------
 
 AbstractState::AbstractState(map<int, int> var_vals) {
     variable_values = var_vals;
 }
 
-AbstractState::AbstractState(const State &state, vector<int> pattern) {
+AbstractState::AbstractState(const State &state, const vector<int> &pattern) {
     for (size_t i = 0; i < pattern.size(); i++) {
         int var = pattern[i];
         int val = state[var];
@@ -26,7 +27,7 @@ map<int, int> AbstractState::get_variable_values() const {
     return variable_values;
 }
 
-bool AbstractState::is_goal(vector<pair<int, int> > abstract_goal) const {
+bool AbstractState::is_goal(const vector<pair<int, int> > &abstract_goal) const {
     for (size_t i = 0; i < abstract_goal.size(); i++) {
         int var = abstract_goal[i].first;
         int val = abstract_goal[i].second;
@@ -46,9 +47,9 @@ void AbstractState::dump() const {
     }
 }
 
-// AbstractOperator -----------------------------------------------------------
+// AbstractOperator -------------------------------------------------------------------------------
 
-AbstractOperator::AbstractOperator(Operator &o, vector<int> pattern) {
+AbstractOperator::AbstractOperator(const Operator &o, const vector<int> &pattern) {
     const vector<PrePost> pre_post = o.get_pre_post();
     pre_effect = vector<PreEffect>();
     for (size_t i = 0; i < pre_post.size(); i++) {
@@ -98,16 +99,18 @@ void AbstractOperator::dump() const {
     }
 }
 
-// PDBAbstraction -------------------------------------------------------------
+// PDBAbstraction ---------------------------------------------------------------------------------
 
 PDBAbstraction::PDBAbstraction(vector<int> pat) {
     pattern = pat;
-    size = 1; // number of abstract states
+    size = 1;
     for (size_t i = 0; i < pattern.size(); i++) {
         size *= g_variable_domain[pattern[i]];
     }
     distances = vector<int>(size, QUITE_A_LOT);
     back_edges = vector<vector<Edge> >(size);
+    create_pdb();
+    compute_goal_distances();
 }
 
 void PDBAbstraction::create_pdb() {
@@ -205,7 +208,214 @@ void PDBAbstraction::dump() const {
     }
 }
 
-// PDBHeuristic ---------------------------------------------------------------
+// CanonicalHeuristic -----------------------------------------------------------------------------
+
+CanonicalHeuristic::CanonicalHeuristic(vector<vector<int> > pat_coll) {
+    pattern_collection = pat_coll;
+    build_cgraph();
+    // TODO: correct call to expand(V, V)
+}
+
+
+bool CanonicalHeuristic::are_additive(int pattern1, int pattern2) const {
+    vector<int> p1 = pattern_collection[pattern1];
+    vector<int> p2 = pattern_collection[pattern2];
+
+    for (size_t i = 0; i < p1.size(); i++) {
+        for (size_t j = 0; j < p2.size(); j++) {
+            // now check which operators affect pattern1
+            bool p1_affected = false;
+            for (size_t k = 0; k < g_operators.size(); k++) {
+                const Operator &o = g_operators[k];
+                const vector<PrePost> effects = o.get_pre_post();
+                for (size_t l = 0; l < effects.size(); l++) {
+                    // every effect affect one specific variable
+                    int var = effects[l].var;
+                    // we have to check if this variable is in our pattern
+                    for (size_t m = 0; m < p1.size(); m++) {
+                        if (var == p1[m]) {
+                            // this operator affects pattern 1
+                            p1_affected = true;
+                            break;
+                        }
+                    }
+                    if (p1_affected) {
+                        break;
+                    }
+                }
+                if (p1_affected) {
+                    // check if the same operator also affects pattern 2
+                    for (size_t l = 0; l < effects.size(); l++) {
+                        int var = effects[l].var;
+                        for (size_t m = 0; m < p2.size(); m++) {
+                            if (var == p2[m]) {
+                                // this operator affects also pattern 2
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+void CanonicalHeuristic::build_cgraph() {
+    /*
+    vector<int> p0;
+    vector<int> p1;
+    vector<int> p2;
+    vector<int> p3;
+    vector<int> p4;
+    vector<int> p5;
+    vector<int> p6;
+    vector<int> p7;
+    vector<int> p8;
+    int edges[] = {1,8,0,2,8,1,3,7,8,2,4,5,6,7,3,5,3,4,6,7,3,5,7,2,3,5,6,0,1,2};
+    p0.assign(edges, edges+2);
+    cgraph.push_back(p0);
+    p1.assign(edges+2, edges+5);
+    cgraph.push_back(p1);
+    p2.assign(edges+5, edges+9);
+    cgraph.push_back(p2);
+    p3.assign(edges+9, edges+14);
+    cgraph.push_back(p3);
+    p4.assign(edges+14, edges+16);
+    cgraph.push_back(p4);
+    p5.assign(edges+16, edges+20);
+    cgraph.push_back(p5);
+    p6.assign(edges+20, edges+23);
+    cgraph.push_back(p6);
+    p7.assign(edges+23, edges+27);
+    cgraph.push_back(p7);
+    p8.assign(edges+27, edges+30);
+    cgraph.push_back(p8);
+   */
+    
+    // initialize compatibility graph
+    cgraph = vector<vector<int> >(pattern_collection.size());
+
+    for (size_t i = 0; i < pattern_collection.size(); i++) {
+        for (size_t j = i+1; j < pattern_collection.size(); j++) {
+            if (are_additive(i,j)) {
+                // if the two patterns are additive there is an edge in the compatibility graph
+                cgraph[i].push_back(j);
+                cgraph[j].push_back(i);
+            }
+        }
+    }
+}
+
+int CanonicalHeuristic::get_maxi_vertex(const vector<int> &subg, const vector<int> &cand) const {
+    // assert that subg and cand are sorted
+    // how is complexity of subg.sort() and cand.sort() if they are sorted yet?
+    int max = -1;
+    int vertex = -1;
+    
+    vector<int>::const_iterator it = subg.begin();
+    while (*it > -1 && it != subg.end()) {
+        vector<int> intersection(subg.size(), -1); // intersection [ -1, -1, ..., -1 ]
+        // for vertex u in subg get u's adjacent vertices --> cgraph[subg[i]];
+        vector<int>::iterator it2 = set_intersection(cand.begin(), cand.end(),
+            cgraph[*it].begin(), cgraph[*it].end(), intersection.begin());
+        if (int(it2 - intersection.begin()) > max) {
+            max = int(it2 - intersection.begin());
+            vertex = *it;
+        }
+        it++;
+    }
+    return vertex;
+}
+
+void CanonicalHeuristic::expand(vector<int> &subg, vector<int> &cand) {
+    if (subg[0] == -1) {
+        //cout << "clique" << endl;
+        max_cliques.push_back(q_clique);
+    }
+    else {
+        int u = get_maxi_vertex(subg, cand);
+        
+        vector<int> ext_u(cand.size(), -1); // ext_u = cand - gamma(u)
+        set_difference(cand.begin(), cand.end(), cgraph[u].begin(), cgraph[u].end(), ext_u.begin());
+        
+        vector<int>::iterator it_ext = ext_u.begin();
+        vector<int>::iterator it_cand = cand.begin();
+        
+        while (*it_ext > -1) { // while cand - gamma(u) is not empty
+            
+            int q = *it_ext; // q is a vertex in cand - gamma(u)
+            //cout << q << ",";
+            q_clique.push_back(q);
+            
+            // subg_q = subg n gamma(q)
+            vector<int> subg_q(subg.size(), -1);
+            set_intersection(subg.begin(), subg.end(), cgraph[q].begin(), cgraph[q].end(), subg_q.begin());
+            
+            // cand_q = cand n gamma(q)
+            vector<int> cand_q(cand.size(), -1);
+            set_intersection(it_cand, cand.end(), cgraph[q].begin(), cgraph[q].end(), cand_q.begin());
+            
+            expand(subg_q, cand_q);
+            
+            // remove q from cand --> cand = cand - q
+            it_cand++;
+            it_ext++;
+            
+            //cout << "back"  << endl;
+            q_clique.pop_back();
+        }
+    }
+}
+
+int CanonicalHeuristic::get_heuristic_value(const State &state) const {
+    // h^C(state) = max_{D \in max_cliques(C)} \sum_{P \in D} h^P(state)
+    int max_val = 0;
+    for (size_t i = 0; i < max_cliques.size(); i++) {
+        vector<int> clique = max_cliques[i];
+        int h_val = 0;
+        for (size_t j = 0; j < clique.size(); j++) {
+            vector<int> pattern = pattern_collection[clique[j]];
+            PDBAbstraction *pdb_abstraction = new PDBAbstraction(pattern);
+            h_val += pdb_abstraction->get_heuristic_value(state);
+        }
+        if (h_val > max_val) {
+            max_val = h_val;
+        }
+    }
+    return max_val;
+}
+
+void CanonicalHeuristic::dump() const {
+    // print compatibility graph
+    cout << "Compatibility graph" << endl;
+    for (size_t i = 0; i < cgraph.size(); i++) {
+        cout << "[ ";
+        for (size_t j = 0; j < cgraph[i].size(); j++) {
+            cout << cgraph[i][j] << " ";
+        }
+        cout << "]" << endl;
+    }
+    // print maximal cliques
+    cout << "Maximal cliques" << endl;
+    if (max_cliques.size() == 0) {
+        cout << "no max cliques";
+    }
+    else {
+        cout << "max cliques are ";
+    }
+    for (size_t i = 0; i < max_cliques.size(); i++) {
+        cout << "[ ";
+        for (size_t j = 0; j < max_cliques[i].size(); j++) {
+            cout << max_cliques[i][j] << " ";
+        }
+        cout << "] ";
+    }
+    cout << endl;
+}
+
+// PDBHeuristic -----------------------------------------------------------------------------------
 
 static ScalarEvaluatorPlugin pdb_heuristic_plugin(
     "pdb", PDBHeuristic::create);
@@ -218,8 +428,7 @@ PDBHeuristic::~PDBHeuristic() {
 
 void PDBHeuristic::verify_no_axioms_no_cond_effects() const {
     if (!g_axioms.empty()) {
-        cerr << "Heuristic does not support axioms!" << endl
-        << "Terminating." << endl;
+        cerr << "Heuristic does not support axioms!" << endl << "Terminating." << endl;
         exit(1);
     }
     for (int i = 0; i < g_operators.size(); i++) {
@@ -254,20 +463,28 @@ void PDBHeuristic::initialize() {
     vector<int> pattern(patt, patt + sizeof(patt) / sizeof(int));
     //cout << "Try creating a new PDBAbstraction" << endl << endl;
     pdb_abstraction = new PDBAbstraction(pattern);
-    //cout << "Created new PDBAbstraction. Now calling create_pdb()" << endl << endl;
-    pdb_abstraction->create_pdb();
-    //cout << "PDB created. Now searching abstract state space." << endl;
-    pdb_abstraction->compute_goal_distances();
-    pdb_abstraction->dump();
+    //pdb_abstraction->dump();
+    /*// probBlocks-6-2.pddl
+    int patt_1[2] = {10, 11}; // on(b, c), on(e, f)
+    vector<int> pattern_1(patt, patt + sizeof(patt) / sizeof(int));
+    int patt_2[2] = {9, 10}; // on(f, a), on(b, c)
+    vector<int> pattern_2(patt, patt + sizeof(patt) / sizeof(int));
+    int patt_3[2] = {8, 12}; // on(c, d), on(a, b)
+    vector<int> pattern_3(patt, patt + sizeof(patt) / sizeof(int));
+    vector<vector<int> > pattern_collection(3);
+    pattern_collection[0] = pattern_1;
+    pattern_collection[1] = pattern_2;
+    pattern_collection[2] = pattern_3
+    canonical_heuristic = new CanonicalHeuristic(pattern_collection);*/
     cout << "Done initializing." << endl;
 }
 
 int PDBHeuristic::compute_heuristic(const State &state) {
     return pdb_abstraction->get_heuristic_value(state);
+    //return canonical_heuristic->get_heuristic_value(state);
 }
 
-ScalarEvaluator *PDBHeuristic::create(const std::vector<string> &config,
-                                            int start, int &end, bool dry_run) {
+ScalarEvaluator *PDBHeuristic::create(const std::vector<string> &config, int start, int &end, bool dry_run) {
     //TODO: check what we have to do here!
     OptionParser::instance()->set_end_for_simple_config(config, start, end);
     if (dry_run)

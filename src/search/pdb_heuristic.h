@@ -13,21 +13,22 @@ public:
 };
 
 class AbstractState {
-    map<int, int> variable_values;
+    map<int, int> variable_values; // maps variable to values
 public:
-    AbstractState(map<int, int> var_vals);
-    AbstractState(const State &state, vector<int> pattern);
+    AbstractState(map<int, int> var_vals); // for construction after applying an operator
+    AbstractState(const State &state, const vector<int> &pattern); // for construction from a concrete state
     map<int, int> get_variable_values() const;
-    bool is_goal(vector<pair<int, int> > abstract_goal) const;
+    bool is_goal(const vector<pair<int, int> > &abstract_goal) const;
     void dump() const;
 };
 
 class Operator;
 typedef pair<int, pair<int, int> > PreEffect;
 class AbstractOperator {
-    vector<PreEffect> pre_effect;
+    vector<PreEffect> pre_effect; // pair<int, pair<int, int> > : variable with value before and after operator.
+        // Prevail (see operator.cc) is assumed to be non-existent, as we deal with SAS+ tasks.
 public:
-    AbstractOperator(Operator &op, vector<int> pattern);
+    AbstractOperator(const Operator &op, const vector<int> &pattern);
     bool is_applicable(const AbstractState &abstract_state) const;
     AbstractState apply_operator(const AbstractState &abstract_state) const;
     void dump() const;
@@ -40,34 +41,54 @@ struct compare {
     }
 };
 #define QUITE_A_LOT 1000000000
+// Impelements a single PDB
 class PDBAbstraction {
     vector<int> pattern;
-    size_t size;
-    vector<int> distances;
-    vector<vector<Edge > > back_edges;
-    vector<int> n_i;
+    size_t size; // number of abstract states
+    vector<int> distances; // final h-values for abstract-states
+    vector<vector<Edge > > back_edges; // contains the abstract state space in form of a graph
+    vector<int> n_i; 
     priority_queue<Node, vector<Node>, compare> pq;
-    int hash_index(const AbstractState &state) const;
-    AbstractState inv_hash_index(int index) const;
+    void create_pdb(); // builds the graph-structure and everything needed for the backward-search
+    void compute_goal_distances(); // does a dijkstra-backward-search
+    int hash_index(const AbstractState &state) const; // maps an abstract state to an index
+    AbstractState inv_hash_index(int index) const; // inverts the hash-index-function
 public:
     PDBAbstraction(vector<int> pattern);
-    void create_pdb();
-    void compute_goal_distances();
-    int get_heuristic_value(const State &state) const;
+    int get_heuristic_value(const State &state) const; // returns the precomputed h-value (optimal cost 
+        // in the abstraction induced by the pattern) for a state
+    void dump() const;
+};
+
+
+// Implements the canonical heuristic function.
+class CanonicalHeuristic {
+    vector<vector<int> > pattern_collection;
+    vector<vector<int> > cgraph; // conflict graph for the pattern collection
+    vector<vector<int> > max_cliques; // final computed max_cliques
+    vector<int> q_clique;
+    bool are_additive(int pattern1, int pattern2) const;
+    void build_cgraph();
+    int get_maxi_vertex(const vector<int> &subg, const vector<int> &cand) const; // TODO find nicer name :)
+    void expand(vector<int> &subg, vector<int> &cand); // implements the CLIQUES-algorithmn from Tomita et al
+public:
+    CanonicalHeuristic(vector<vector<int> > pat_coll);
+    int get_heuristic_value(const State &state) const; // returns the canonical heuristic value (with respect
+        // to the pattern collection) for a state
     void dump() const;
 };
 
 class PDBHeuristic : public Heuristic {
     PDBAbstraction *pdb_abstraction;
-    void verify_no_axioms_no_cond_effects() const;
+    //CanonicalHeuristic *canonical_heuristic;
+    void verify_no_axioms_no_cond_effects() const; // SAS+ tasks only
 protected:
     virtual void initialize();
     virtual int compute_heuristic(const State &state);
 public:
     PDBHeuristic();
     ~PDBHeuristic();
-    static ScalarEvaluator *create(const std::vector<std::string> &config,
-                                   int start, int &end, bool dry_run);
+    static ScalarEvaluator *create(const std::vector<std::string> &config, int start, int &end, bool dry_run);
 };
 
 #endif
