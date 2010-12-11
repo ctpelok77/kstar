@@ -38,6 +38,11 @@ added_implied_precondition_counter = 0
 
 def strips_to_sas_dictionary(groups, assert_partial):
     dictionary = {}
+
+    # sort groups to get a deterministic output
+    map(lambda g: g.sort(key=str), groups)
+    groups.sort(key=lambda x: (-len(x), str(x[0])))
+
     for var_no, group in enumerate(groups):
         for val_no, atom in enumerate(group):
             dictionary.setdefault(atom, []).append((var_no, val_no))
@@ -133,6 +138,8 @@ def translate_strips_conditions_aux(conditions, dictionary, ranges):
                             new_cond[var] = val
                             new_conds.append(new_cond)
                     flat_conds = new_conds
+            # The return value is deterministic because each dict in flat_conds
+            # only contains one entry
             return flat_conds
 
     return multiply_out(condition)
@@ -178,7 +185,7 @@ def translate_strips_operator_aux(operator, dictionary, ranges, mutex_dict,
                                                          mutex_ranges)
         if eff_condition_list is None: # Impossible condition for this effect.
             continue
-        eff_condition = [eff_cond.items()
+        eff_condition = [sorted(eff_cond.items())
                          for eff_cond in eff_condition_list]
         for var, val in dictionary[fact]:
             if condition.get(var) == val:
@@ -202,7 +209,7 @@ def translate_strips_operator_aux(operator, dictionary, ranges, mutex_dict,
         eff_condition_list = translate_strips_conditions(conditions, dictionary, ranges, mutex_dict, mutex_ranges)
         if eff_condition_list is None:
             continue
-        eff_condition = [eff_cond.items()
+        eff_condition = [sorted(eff_cond.items())
                          for eff_cond in eff_condition_list]
         for var, val in dictionary[fact]:
             none_of_those = ranges[var] - 1
@@ -351,6 +358,11 @@ def translate_strips_axiom(axiom, dictionary, ranges, mutex_dict, mutex_ranges):
 
 def translate_strips_operators(actions, strips_to_sas, ranges, mutex_dict, mutex_ranges, implied_facts):
     result = []
+
+    # TODO: Gabi sorts the actions here although I think the list of actions is deterministic
+
+    actions.sort(key=lambda a: a.name)
+
     for action in actions:
         sas_ops = translate_strips_operator(action, strips_to_sas, ranges, mutex_dict, mutex_ranges, implied_facts)
         result.extend(sas_ops)
@@ -358,6 +370,10 @@ def translate_strips_operators(actions, strips_to_sas, ranges, mutex_dict, mutex
 
 def translate_strips_axioms(axioms, strips_to_sas, ranges, mutex_dict, mutex_ranges):
     result = []
+
+    # TODO: Gabi sorts the axioms here although I think the list of axioms is deterministic
+    axioms.sort(key=lambda a: a.name)
+
     for axiom in axioms:
         sas_axioms = translate_strips_axiom(axiom, strips_to_sas, ranges, mutex_dict, mutex_ranges)
         result.extend(sas_axioms)

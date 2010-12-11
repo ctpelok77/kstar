@@ -18,6 +18,7 @@ class BalanceChecker(object):
                     predicate = eff.literal.predicate
                     self.predicates_to_add_actions.setdefault(predicate, set()).add(action)
     def get_threats(self, predicate):
+        # TODO sort?
         return self.predicates_to_add_actions.get(predicate, set())
     def are_compatible(self, add_effect1, add_effect2):
         assert not add_effect1.negated
@@ -113,13 +114,15 @@ def useful_groups(invariants, initial_facts):
                 nonempty_groups.add(group_key)
             else:
                 overcrowded_groups.add(group_key)
-    useful_groups = nonempty_groups - overcrowded_groups
+    useful_groups = list(nonempty_groups - overcrowded_groups)
+    useful_groups.sort(key=lambda (inv, params): str(inv) + str(params))
     for (invariant, parameters) in useful_groups:
-        yield [part.instantiate(parameters) for part in invariant.parts]
+        yield [part.instantiate(parameters) for part in sorted(invariant.parts)]
 
 def get_groups(task):
     with timers.timing("Finding invariants"):
         invariants = list(find_invariants(task))
+    # TODO: Gabi sorts here, but I think it is deterministic
     with timers.timing("Checking invariant weight"):
         result = list(useful_groups(invariants, task.init))
     return result
