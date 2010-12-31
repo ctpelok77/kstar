@@ -16,6 +16,7 @@ using namespace std;
 #include "state.h"
 #include "successor_generator.h"
 #include "timer.h"
+#include "heuristic.h"
 
 bool test_goal(const State &state) {
     for (int i = 0; i < g_goal.size(); i++) {
@@ -27,6 +28,9 @@ bool test_goal(const State &state) {
 }
 
 int calculate_plan_cost(const vector<const Operator *> &plan) {
+    // TODO: Refactor: this is only used by save_plan (see below)
+    //       and the SearchEngine classes and hence should maybe
+    //       be moved into the SearchEngine (along with save_plan).
     int plan_cost = 0;
     for (int i = 0; i < plan.size(); i++) {
         plan_cost += plan[i]->get_cost();
@@ -35,11 +39,13 @@ int calculate_plan_cost(const vector<const Operator *> &plan) {
 }
 
 void save_plan(const vector<const Operator *> &plan, int iter) {
+    // TODO: Refactor: this is only used by the SearchEngine classes
+    //       and hence should maybe be moved into the SearchEngine.
     ofstream outfile;
     if (iter == 0) {
         outfile.open(g_plan_filename.c_str(), ios::out);
     } else {
-        std::stringstream out;
+        ostringstream out;
         out << g_plan_filename << "." << iter;
         outfile.open(out.str().c_str(), ios::out);
     }
@@ -188,6 +194,7 @@ AxiomEvaluator *g_axiom_evaluator;
 SuccessorGenerator *g_successor_generator;
 vector<DomainTransitionGraph *> g_transition_graphs;
 CausalGraph *g_causal_graph;
+HeuristicOptions g_default_heuristic_options;
 
 Timer g_timer;
 string g_plan_filename = "sas_plan";

@@ -180,4 +180,6 @@ SearchEngine *IteratedSearch::create(
 }
 
 void IteratedSearch::save_plan_if_necessary() const {
+    // Don't need to save here, as we automatically save after
+    // each successful search iteration.
 }
