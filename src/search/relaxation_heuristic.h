@@ -15,7 +15,7 @@ struct UnaryOperator {
     const Operator *op;
     std::vector<Proposition *> precondition;
     Proposition *effect;
-    int base_cost; // 0 for axioms, 1 for regular operators
+    int base_cost;
 
     int unsatisfied_preconditions;
     int h_add_cost;
@@ -44,12 +44,6 @@ struct Proposition {
     }
 };
 
-struct hash_operator_ptr {
-    size_t operator()(const Operator *key) const {
-        return reinterpret_cast<unsigned long>(key);
-    }
-};
-
 class RelaxationHeuristic : public Heuristic {
     void build_unary_operators(const Operator &op);
     void simplify();
@@ -61,7 +55,7 @@ protected:
     virtual void initialize();
     virtual int compute_heuristic(const State &state) = 0;
 public:
-    RelaxationHeuristic();
+    RelaxationHeuristic(const HeuristicOptions &options);
     virtual ~RelaxationHeuristic();
 };
 

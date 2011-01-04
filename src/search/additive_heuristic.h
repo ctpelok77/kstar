@@ -5,13 +5,6 @@
 #include <cassert>
 #include <ext/hash_set>
 
-/*
-  TODO:
-  Some basic data structures, like UnaryOperator, Proposition, etc.,
-  are taken from "ff_heuristic.h". This needs to be refactored,
-  along with the enormous duplication between the two heuristics.
-*/
-
 class AdditiveHeuristic : public RelaxationHeuristic {
     typedef std::vector<Proposition *> Bucket;
     std::vector<Bucket> reachable_queue;
@@ -37,7 +30,7 @@ protected:
     virtual void initialize();
     virtual int compute_heuristic(const State &state);
 public:
-    AdditiveHeuristic();
+    AdditiveHeuristic(const HeuristicOptions &options);
     ~AdditiveHeuristic();
 
     static ScalarEvaluator *create(const std::vector<std::string> &config,

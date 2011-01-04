@@ -1,5 +1,6 @@
 ## Set USE_LP to 1 to enable linear programming stuff.
 USE_LP=0
+STATE_VAR_BYTES=1
 
 HEADERS = \
           axioms.h \
@@ -16,6 +17,7 @@ HEADERS = \
           heuristic.h \
           iterated_search.h \
           operator.h \
+          operator_cost.h \
           option_parser.h \
           plugin.h \
           pref_evaluator.h \
@@ -92,12 +94,12 @@ ARGS_PROFILE = --search 'astar(lmcut())' < profile-input.pre
 
 
 
-OBJECT_SUFFIX_RELEASE =
-TARGET_SUFFIX_RELEASE =
-OBJECT_SUFFIX_DEBUG   = .debug
-TARGET_SUFFIX_DEBUG   = -debug
-OBJECT_SUFFIX_PROFILE = .profile
-TARGET_SUFFIX_PROFILE = -profile
+OBJECT_SUFFIX_RELEASE = .$(STATE_VAR_BYTES)
+TARGET_SUFFIX_RELEASE = -$(STATE_VAR_BYTES)
+OBJECT_SUFFIX_DEBUG   = .$(STATE_VAR_BYTES).debug
+TARGET_SUFFIX_DEBUG   = -$(STATE_VAR_BYTES)-debug
+OBJECT_SUFFIX_PROFILE = .$(STATE_VAR_BYTES).profile
+TARGET_SUFFIX_PROFILE = -$(STATE_VAR_BYTES)-profile
 
 OBJECTS_RELEASE = $(SOURCES:%.cc=.obj/%$(OBJECT_SUFFIX_RELEASE).o)
 TARGET_RELEASE  = $(TARGET)$(TARGET_SUFFIX_RELEASE)
@@ -116,14 +118,14 @@ DEPEND = g++ -MM
 ## that are used for all three targets (release, debug, and profile).
 ## (POSTLINKOPT are options that appear *after* all object files.)
 
-CCOPT  =
+CCOPT  = -g
 CCOPT += -m32
-CCOPT += -g
-CCOPT += -Wall -W -Wno-sign-compare -Wno-deprecated -ansi -pedantic -Werror
+CCOPT +=
+CCOPT += -Wall -W -Wno-sign-compare -Wno-deprecated -ansi -pedantic -Werror -DSTATE_VAR_BYTES=$(STATE_VAR_BYTES)
 
-LINKOPT  =
+LINKOPT  = -g
 LINKOPT += -m32
-LINKOPT += -g
+LINKOPT +=
 
 POSTLINKOPT =
 
@@ -184,7 +186,7 @@ COIN_LIBS = OsiClp Clp CoinUtils Osi
 ## http://ubuntuforums.org/showthread.php?t=491455
 
 COIN_CCOPT = -I $(COIN_ROOT)/include/coin -D USE_LP -D COIN_USE_CLP
-COIN_LINKOPT = -L $(COIN_ROOT)/lib -Wl,-Bstatic $(COIN_LIBS:%=-l %) 
+COIN_LINKOPT = -L $(COIN_ROOT)/lib -Wl,-Bstatic $(COIN_LIBS:%=-l %)
 
 CCOPT += $(COIN_CCOPT)
 
