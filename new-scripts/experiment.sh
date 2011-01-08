@@ -90,10 +90,7 @@ elif [[ "$PHASE" == 8 ]]; then
         BASEDIR=~
     fi
     echo "copying reports to .public_html -- to view, run:"
-     ## TODO: we strip dashes, see above. We use sed since there
-    ##        might be multiple occurrences.
-    MODEXPNAME="$(echo "$EXPNAME" | sed -e 's/-//g')"
-    for REPORT in "$MODEXPNAME"eval-{d,p}-abs.html; do
+    for REPORT in "$EXPNAME"-eval-{d,p}-abs.html; do
         cp "reports/$REPORT" "$BASEDIR/.public_html/"
         echo "firefox $BASEURL/$REPORT &"
     done
