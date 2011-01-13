@@ -28,8 +28,8 @@ class IpcReport(Report):
         parser.add_argument('focus', choices=SCORES,# metavar='FOCUS',
                     help='the analyzed attribute (e.g. "expanded"). '
                         'The "attributes" parameter is ignored')
-        parser.add_argument('--normalize', action='store_true',
-                            help='Add a summary table with normalized values')
+        #parser.add_argument('--no-normalize', action='store_true',
+        #                    help='Do not add a summary table with normalized values')
         parser.add_argument('--squeeze', action='store_true',
                             help='Use small fonts to fit in more data')
         parser.add_argument('--no-best', action='store_false',
@@ -41,6 +41,7 @@ class IpcReport(Report):
         Report.__init__(self, parser)
         self.output_file = os.path.join(self.report_dir, self.name() + '.tex')
         self.focus_name = self.focus
+        self.normalize = True #not self.no_normalize
 
         self.score = 'score_' + self.focus
         if self.focus == 'coverage':
@@ -98,7 +99,7 @@ class IpcReport(Report):
         # Group by domain
         self.data.sort('domain', 'problem', 'config')
         domain_dict = self.data.group_dict('domain')
-        for index, (domain, group) in enumerate(domain_dict.items()):
+        for index, (domain, group) in enumerate(sorted(domain_dict.items())):
             if index:
                 self.print_between_domains()
             self.print_domain(domain, group)
@@ -218,11 +219,11 @@ class IpcReport(Report):
         print r"\begin{supertabular}{|l|%s|}" % ("r" * len(self.configs))
         domain_dict = self.data.group_dict('domain')
         for domain, group in sorted(domain_dict.items()):
-            print r"\textbf{%s}" % domain
+            num_instances = len(group.group_dict('problem'))
+            print r"\textbf{%s} {\scriptsize(%s)}" % (domain, num_instances)
             for config in self.configs:
                 score = self.total_scores[config, domain]
                 if normalize:
-                    num_instances = len(group.group_dict('problem'))
                     score = float(score) * 100 / num_instances
                 overall[config] += score
                 entry = "%.2f" % score
