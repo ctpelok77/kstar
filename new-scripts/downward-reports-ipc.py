@@ -16,6 +16,9 @@ SCORES = ['expansions', 'evaluations', 'search_time', 'total_time',
 def get_date_and_time():
     return r"\today\ \thistime"
 
+def escape(text):
+    return text.replace('_', r'\_')
+
 
 class IpcReport(Report):
     """
@@ -25,16 +28,20 @@ class IpcReport(Report):
         parser.add_argument('focus', choices=SCORES,# metavar='FOCUS',
                     help='the analyzed attribute (e.g. "expanded"). '
                         'The "attributes" parameter is ignored')
-        parser.add_argument('--normalize', action='store_true',
-                            help='Add a summary table with normalized values')
+        #parser.add_argument('--no-normalize', action='store_true',
+        #                    help='Do not add a summary table with normalized values')
         parser.add_argument('--squeeze', action='store_true',
                             help='Use small fonts to fit in more data')
         parser.add_argument('--no-best', action='store_false',
                             dest='best_value_column',
                             help='Do not add a column with the best known score')
+        parser.add_argument('--page-size', choices=['a2', 'a3', 'a4'],
+                            default='a4',
+                            help='Set the page size for the latex report')
         Report.__init__(self, parser)
         self.output_file = os.path.join(self.report_dir, self.name() + '.tex')
         self.focus_name = self.focus
+        self.normalize = True #not self.no_normalize
 
         self.score = 'score_' + self.focus
         if self.focus == 'coverage':
@@ -51,10 +58,7 @@ class IpcReport(Report):
         self.total_scores = self._compute_total_scores()
 
     def name(self):
-        name = ''
-        eval_dir = os.path.basename(self.eval_dir)
-        name += eval_dir.replace('-', '')
-        name = name.replace('eval', '')
+        name = os.path.basename(self.eval_dir)
         name += '-ipc-' + self.focus
         return name
 
@@ -63,9 +67,6 @@ class IpcReport(Report):
             return r"\tiny"
         else:
             return ""
-
-    def escape(self, text):
-        return text.replace('_', r'\_')
 
     def _compute_total_scores(self):
         total_scores = {}
@@ -98,7 +99,7 @@ class IpcReport(Report):
         # Group by domain
         self.data.sort('domain', 'problem', 'config')
         domain_dict = self.data.group_dict('domain')
-        for index, (domain, group) in enumerate(domain_dict.items()):
+        for index, (domain, group) in enumerate(sorted(domain_dict.items())):
             if index:
                 self.print_between_domains()
             self.print_domain(domain, group)
@@ -111,7 +112,8 @@ class IpcReport(Report):
             margin = "0.5cm"
         else:
             margin = "2.5cm"
-        print r"\usepackage[a4paper,landscape,margin=%s]{geometry}" % margin
+        print r"\usepackage[%spaper,landscape,margin=%s]{geometry}" % \
+                (self.page_size, margin)
         print r"\usepackage{supertabular}"
         print r"\usepackage{scrtime}"
         print r"\begin{document}"
@@ -140,11 +142,11 @@ class IpcReport(Report):
 
     def print_domain(self, domain, runs):
         print r"\section*{%s %s --- %s}" % (
-            self.escape(self.focus_name), domain, get_date_and_time())
+            escape(self.focus_name), escape(domain), get_date_and_time())
         print r"\tablehead{\hline"
         print r"\textbf{prob}"
         for config in self.configs:
-            print r"& %s\textbf{%s}" % (self._tiny_if_squeeze(), config)
+            print r"& %s\textbf{%s}" % (self._tiny_if_squeeze(), escape(config))
         if self.best_value_column:
             print r"& %s\textbf{BEST}" % self._tiny_if_squeeze()
         print r"\\ \hline}"
@@ -181,7 +183,7 @@ class IpcReport(Report):
                 else:
                     values = probgroup.get(self.focus)
                     values = filter(existing, values)
-                    best = max(values) if values else None
+                    best = min(values) if values else None
                 print r"& %s" % ("---" if best is None else best)
             print r"\\"
         print r"\hline"
@@ -207,20 +209,21 @@ class IpcReport(Report):
         overall = defaultdict(float)
 
         print r"\section*{%s %s --- %s}" % (
-            self.escape(self.focus_name), title, get_date_and_time())
-        print r"\begin{tabular}{|l|%s|}" % ("r" * len(self.configs))
-        print r"\hline"
+            escape(self.focus_name), escape(title), get_date_and_time())
+        print r"\tablehead{\hline"
         print r"\textbf{domain}"
         for config in self.configs:
-            print r"& %s\textbf{%s}" % (self._tiny_if_squeeze(), config)
-        print r"\\ \hline"
+            print r"& %s\textbf{%s}" % (self._tiny_if_squeeze(), escape(config))
+        print r"\\ \hline}"
+        print r"\tabletail{\hline}"
+        print r"\begin{supertabular}{|l|%s|}" % ("r" * len(self.configs))
         domain_dict = self.data.group_dict('domain')
         for domain, group in sorted(domain_dict.items()):
-            print r"\textbf{%s}" % domain
+            num_instances = len(group.group_dict('problem'))
+            print r"\textbf{%s} {\scriptsize(%s)}" % (domain, num_instances)
             for config in self.configs:
                 score = self.total_scores[config, domain]
                 if normalize:
-                    num_instances = len(group.group_dict('problem'))
                     score = float(score) * 100 / num_instances
                 overall[config] += score
                 entry = "%.2f" % score
@@ -235,7 +238,7 @@ class IpcReport(Report):
                 overall_score = float(overall_score) / num_domains
             print r"& \textbf{%.2f}" % overall_score
         print r"\\ \hline"
-        print r"\end{tabular}"
+        print r"\end{supertabular}"
 
     def print_footer(self):
         print r"\end{document}"
