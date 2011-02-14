@@ -111,7 +111,7 @@ def generate_problems(description):
         if suite_func is None:
             suite_func = module_dict.get("suite_%s" % suite_name.lower(), None)
         if not suite_func:
-            raise SystemExit("unknown suite: %s" % suite_funcname)
+            raise SystemExit("unknown suite: %s" % suite_name)
         for domain_name in suite_func():
             domain = Domain(domain_name)
             for problem in domain.problems[:number]:
@@ -310,22 +310,22 @@ def suite_five_per_domain():
 
 
 def select_evenly_spread(seq, num_items):
-   """Return num_items many items of seq, spread evenly.
-   If seq is shorter than num_items, include all items.
-   Otherwise, include first and last items and spread evenly in between.
-   (If num_items is 1, only include first item.)
+    """Return num_items many items of seq, spread evenly.
+    If seq is shorter than num_items, include all items.
+    Otherwise, include first and last items and spread evenly in between.
+    (If num_items is 1, only include first item.)
 
-   Example:
-   >>> select_evenly_spread("abcdef", 3)
-   ['a', 'd', 'f']
-   """
-   if len(seq) <= num_items:
-      return seq
-   if num_items == 1:
-      return [seq[0]]
-   step_size = (len(seq) - 1) / float(num_items - 1)
-   float_indices = [i * step_size for i in range(num_items)]
-   return [seq[int(round(index))] for index in float_indices]
+    Example:
+    >>> select_evenly_spread("abcdef", 3)
+    ['a', 'd', 'f']
+    """
+    if len(seq) <= num_items:
+        return seq
+    if num_items == 1:
+        return [seq[0]]
+    step_size = (len(seq) - 1) / float(num_items - 1)
+    float_indices = [i * step_size for i in range(num_items)]
+    return [seq[int(round(index))] for index in float_indices]
 
 
 if __name__ == '__main__':
