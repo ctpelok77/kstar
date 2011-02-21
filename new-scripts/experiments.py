@@ -11,9 +11,11 @@ import logging
 import math
 
 import tools
+from external.ordereddict import OrderedDict
 
 SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.abspath(__file__), '../'))
 DATA_DIR = os.path.join(SCRIPTS_DIR, 'data')
+CALLS_DIR = os.path.join(SCRIPTS_DIR, 'calls')
 
 HELP = """\
 Base module for creating fast downward experiments.
@@ -72,6 +74,9 @@ class Experiment(object):
         self.base_dir = os.path.abspath(self.base_dir)
         logging.info('Base Dir: "%s"' % self.base_dir)
 
+        # Include the experiment code
+        self.add_resource('CALLS', CALLS_DIR, 'calls')
+
     def set_property(self, name, value):
         """
         Add a key-value property to the experiment. These can be used later for
@@ -97,7 +102,6 @@ class Experiment(object):
         main directory of the experiment. The name "PLANNER" is an ID for
         this resource that can also be used to refer to it in shell scripts.
         """
-        dest = self._get_abs_path(dest)
         if not (source, dest) in self.resources:
             self.resources.append((source, dest, required))
         self.env_vars[resource_name] = dest
@@ -116,6 +120,10 @@ class Experiment(object):
         Apply all the actions to the filesystem
         """
         tools.overwrite_dir(self.base_dir)
+
+        # Make the variables absolute
+        self.env_vars = dict([(var, self._get_abs_path(path))
+                              for (var, path) in self.env_vars.items()])
 
         self._set_run_dirs()
         self._build_main_script()
@@ -173,6 +181,7 @@ class Experiment(object):
 
     def _build_resources(self):
         for source, dest, required in self.resources:
+            dest = self._get_abs_path(dest)
             logging.debug('Copying %s to %s' % (source, dest))
             try:
                 tools.copy(source, dest, required)
@@ -303,9 +312,7 @@ class Run(object):
         self.env_vars = {}
         self.new_files = []
 
-        self.command = ''
-        self.preprocess_command = ''
-        self.postprocess_command = ''
+        self.commands = OrderedDict()
 
         self.optional_output = []
         self.required_output = []
@@ -360,41 +367,19 @@ class Run(object):
         self.resources.append((source, dest, required))
         self.env_vars[resource_name] = dest
 
-    def set_command(self, command):
+    def add_command(self, name, command, kwargs=None):
         """
-        Example:
-        >>> run.set_command('$PLANNER %s <$INFILE' % options)
-
-        A bash fragment that gives the code to be run when invoking
-        this job.
-        Optionally, can use run.set_preprocess() and
-        run.set_postprocess() to specify code that should be run
-        before the main command, i.e., outside the part for which we
-        restrict runtime and memory. For example, post-processing
-        could be used to rename result files or zipping them up. The
-        postprocessing code should have some way of finding out
-        whether the command succeeded or was aborted, e.g. via some
-        environment variable.
+        Examples:
+        >>> run.add_command('translate', [run.translator.shell_name,
+                                          'domain.pddl', 'problem.pddl'])
+        >>> run.add_command('preprocess', [run.preprocessor.shell_name],
+                            {'stdin': 'output.sas'})
+        >>> run.add_command('validate', ['VALIDATE', 'DOMAIN', 'PROBLEM',
+                                         'sas_plan'])
+        command has to be a list of strings
+        kwargs is a dict that is passed to subprocess.Popen()
         """
-        self.command = command
-
-    def set_preprocess(self, command):
-        """
-        Execute a command prior tu running the main command
-
-        Example:
-        >>> run.set_preprocess('ls -la')
-        """
-        self.preprocess_command = command
-
-    def set_postprocess(self, command):
-        """
-        Execute a command directly after the main command exited
-
-        Example:
-        >>> run.set_postprocess('echo Finished')
-        """
-        self.postprocess_command = command
+        self.commands[name] = (command, kwargs or {})
 
     def declare_optional_output(self, file_glob):
         """
@@ -433,39 +418,50 @@ class Run(object):
         self._build_properties_file()
 
     def _build_run_script(self):
-        if not self.command:
-            msg = 'You have to specify a command via run.set_command()'
+        if not self.commands:
+            msg = 'Please add at least one command via run.add_command()'
             raise SystemExit(msg)
 
         self.experiment.env_vars.update(self.env_vars)
         self.env_vars = self.experiment.env_vars.copy()
+
+        run_script = open(os.path.join(DATA_DIR, 'run-template.py')).read()
+
+        def make_call(name, cmd, kwargs):
+            if not type(cmd) is list:
+                logging.error('Commands have to be lists of strings. '
+                              'The command <%s> is not a list.' % cmd)
+                sys.exit(1)
+            if not cmd:
+                logging.error('Command "%s" cannot be empty' % name)
+                sys.exit(1)
+
+            # Support running globally installed binaries
+            cmd_string = '[%s]' % ', '.join([arg if arg in self.env_vars else repr(arg) for arg in cmd])
+            kwargs_string = ', '.join('%s="%s"' % pair for pair in kwargs.items())
+            parts = [cmd_string]
+            if kwargs_string:
+                parts.append(kwargs_string)
+            call = 'retcode = Call(%s, **redirects).wait()\nsave_returncode("%s", retcode)\n'
+            return call % (', '.join(parts), name)
+
+        calls_text = '\n'.join(make_call(name, cmd, kwargs)
+                               for name, (cmd, kwargs) in self.commands.items())
 
         if self.env_vars:
             env_vars_text = ''
             for var, filename in sorted(self.env_vars.items()):
                 abs_filename = self._get_abs_path(filename)
                 rel_filename = os.path.relpath(abs_filename, self.dir)
-                env_vars_text += ('os.environ["%s"] = "%s"\n' %
-                                  (var, rel_filename))
+                env_vars_text += ('%s = "%s"\n' % (var, rel_filename))
         else:
-            env_vars_text = ('"Here you would find the declaration of '
-                             'environment variables"')
+            env_vars_text = '"Here you would find variable declarations"'
 
-        run_script = open(os.path.join(DATA_DIR, 'run-template.py')).read()
-        resources = [filename for var, filename, req in self.resources]
-        replacements = {'ENVIRONMENT_VARIABLES': env_vars_text,
-                        'RUN_COMMAND': self.command,
-                        'PREPROCESS_COMMAND': self.preprocess_command,
-                        'POSTPROCESS_COMMAND': self.postprocess_command,
-                        'TIMEOUT': str(self.experiment.timeout),
-                        'MEMORY': str(self.experiment.memory),
-                        'OPTIONAL_OUTPUT': str(self.optional_output),
-                        'REQUIRED_OUTPUT': str(self.required_output),
-                        'RESOURCES': str(resources)}
-        for orig, new in replacements.items():
-            run_script = run_script.replace('***' + orig + '***', new)
+        for old, new in [('VARIABLES', env_vars_text), ('CALLS', calls_text)]:
+            run_script = run_script.replace('"""%s"""' % old, new)
 
         self.new_files.append(('run', run_script))
+        return
 
     def _build_linked_resources(self):
         """
