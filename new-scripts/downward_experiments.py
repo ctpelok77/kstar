@@ -81,6 +81,8 @@ class DownwardRun(experiments.Run):
         # Add memory limit information in KB
         self.set_property('memory_limit', self.experiment.memory * 1024)
 
+        self.set_property('experiment_name', self.experiment.name)
+
 
 def _prepare_preprocess_run(exp, run):
     output_files = ["*.groups", "output.sas", "output"]
@@ -91,11 +93,10 @@ def _prepare_preprocess_run(exp, run):
     run.add_resource("PROBLEM", run.problem.problem_file(), "problem.pddl")
 
     run.add_command('translate', [run.translator.shell_name, 'domain.pddl',
-                                  'problem.pddl'], {'time_limit': 7200,
-                                                    'mem_limit': 4096})
+                                  'problem.pddl'], time_limit=7200,
+                                                   mem_limit=4096)
     run.add_command('preprocess', [run.preprocessor.shell_name],
-                    {'stdin': 'output.sas', 'time_limit': 7200,
-                     'mem_limit': 4096})
+                    stdin='output.sas', time_limit=7200, mem_limit=4096)
 
     ext_config = '-'.join([run.translator.rev, run.preprocessor.rev])
     run.set_property('config', ext_config)
@@ -111,12 +112,13 @@ def _prepare_search_run(exp, run, config_nick, config):
 
     run.require_resource(run.planner.shell_name)
     run.add_command('search', [run.planner.shell_name] +
-                     shlex.split(run.planner_config), {'stdin': 'output'})
+                     shlex.split(run.planner_config), stdin='output')
     run.declare_optional_output("sas_plan")
 
     # Validation
     run.require_resource('VALIDATE')
-    run.add_command('validate', ['VALIDATE', 'DOMAIN', 'PROBLEM', 'sas_plan'])
+    run.add_command('validate', ['VALIDATE', 'DOMAIN', 'PROBLEM', 'sas_plan'],
+                    abort_on_failure=False)
 
     run.set_property('commandline_config', run.planner_config)
 
