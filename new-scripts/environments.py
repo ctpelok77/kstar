@@ -29,7 +29,7 @@ class LocalEnvironment(Environment):
 
     @classmethod
     def write_main_script(cls, exp):
-        dirs = [os.path.relpath(run.dir, exp.base_dir) for run in exp.runs]
+        dirs = [os.path.relpath(run.dir, exp.path) for run in exp.runs]
         commands = ['"cd %s; ./run"' % dir for dir in dirs]
         replacements = {'COMMANDS': ',\n'.join(commands),
                         'PROCESSES': str(exp.processes),
@@ -89,7 +89,7 @@ class GkiGridEnvironment(Environment):
             script += 'if [[ $SGE_TASK_ID == %s ]]; then\n' % task_id
             for run in run_group:
                 # Change into the run dir
-                script += '  cd %s\n' % os.path.relpath(run.dir, exp.base_dir)
+                script += '  cd %s\n' % os.path.relpath(run.dir, exp.path)
                 script += '  ./run\n'
             script += 'fi\n'
 
@@ -102,7 +102,7 @@ class GkiGridEnvironment(Environment):
     def get_end_instructions(cls, exp):
         return ('You can change into the experiment directory now and submit '
                 'the experiment to the '
-                'queue by calling "qsub <%s.q>"' % exp.name)
+                'queue by calling "qsub %s.q"' % exp.name)
 
 
 class ArgoEnvironment(Environment):

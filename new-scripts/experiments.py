@@ -24,13 +24,15 @@ ENVIRONMENTS = {'local': environments.LocalEnvironment,
                 'gkigrid': environments.GkiGridEnvironment,
                 'argo': environments.ArgoEnvironment}
 
+DEFAULT_ABORT_ON_FAILURE = True
+
 
 class ExpArgParser(tools.ArgParser):
     def __init__(self, *args, **kwargs):
         tools.ArgParser.__init__(self, *args, **kwargs)
 
-        self.add_argument('-n', '--name',
-            help='name of the experiment (e.g. <initials>-<descriptive name>)')
+        self.add_argument('-p', '--path',
+            help='path of the experiment (e.g. <initials>-<descriptive name>)')
         self.add_argument(
             '-t', '--timeout', type=int, default=1800,
             help='timeout per task in seconds')
@@ -40,11 +42,6 @@ class ExpArgParser(tools.ArgParser):
         self.add_argument(
             '--shard-size', type=int, default=100,
             help='how many tasks to group into one top-level directory')
-        self.add_argument(
-            '--root-dir',
-            help='directory where the experiment should be located '
-                 '(default is the current working directory). '
-                 'The new experiment will reside in <root-dir>/<name>')
 
 
 class Experiment(object):
@@ -64,13 +61,12 @@ class Experiment(object):
         self.parser = parser or ExpArgParser()
         self.parse_args()
         assert self.environment
+        self.path = os.path.abspath(self.path)
 
-        if self.root_dir:
-            self.base_dir = os.path.join(self.root_dir, self.name)
-        else:
-            self.base_dir = self.name
-        self.base_dir = os.path.abspath(self.base_dir)
-        logging.info('Base Dir: "%s"' % self.base_dir)
+        # Derive the experiment name from the path
+        self.name = os.path.basename(self.path)
+
+        logging.info('Exp Dir: "%s"' % self.path)
 
         # Include the experiment code
         self.add_resource('CALLS', tools.CALLS_DIR, 'calls')
@@ -85,8 +81,8 @@ class Experiment(object):
         if not self.environment:
             logging.error('Unknown environment "%s"' % self.environment_type)
             sys.exit(1)
-        while not self.name:
-            self.name = raw_input('Please enter an experiment name: ').strip()
+        while not self.path:
+            self.path = raw_input('Please enter an experiment path: ').strip()
 
     def set_property(self, name, value):
         """
@@ -130,7 +126,7 @@ class Experiment(object):
         """
         Apply all the actions to the filesystem
         """
-        tools.overwrite_dir(self.base_dir)
+        tools.overwrite_dir(self.path)
 
         # Make the variables absolute
         self.env_vars = dict([(var, self._get_abs_path(path))
@@ -156,7 +152,7 @@ class Experiment(object):
         >>> _get_abs_path('mytest.q')
         /home/user/mytestjob/mytest.q
         """
-        return os.path.join(self.base_dir, rel_path)
+        return os.path.join(self.path, rel_path)
 
     def _set_run_dirs(self):
         """
@@ -176,16 +172,14 @@ class Experiment(object):
         shards = tools.divide_list(self.runs, self.shard_size)
 
         for shard_number, shard in enumerate(shards, start=1):
-            shard_dir = os.path.join(self.base_dir,
-                                     get_shard_dir(shard_number))
+            shard_dir = os.path.join(self.path, get_shard_dir(shard_number))
             tools.overwrite_dir(shard_dir)
 
             for run in shard:
                 current_run += 1
                 rel_dir = os.path.join(get_shard_dir(shard_number),
                                        run_number(current_run))
-                abs_dir = os.path.join(self.base_dir, rel_dir)
-                run.dir = abs_dir
+                run.dir = self._get_abs_path(rel_dir)
 
     def _build_main_script(self):
         """
@@ -289,8 +283,22 @@ class Run(object):
         self.resources.append((source, dest, required))
         self.env_vars[resource_name] = dest
 
-    def add_command(self, name, command, kwargs=None):
-        """
+    def add_command(self, name, command, **kwargs):
+        """Adds a command to the run.
+
+        "name" is the command's name.
+        "command" has to be a list of strings.
+
+        The items in kwargs are passed to the calls.call.Call() class. You can
+        find the valid keys there.
+
+        kwargs can also contain a value for "abort_on_failure" which makes the
+        run abort if the command does not return 0.
+
+        The remaining items in kwargs are passed to subprocess.Popen()
+        The allowed parameters can be found at
+        http://docs.python.org/library/subprocess.html
+
         Examples:
         >>> run.add_command('translate', [run.translator.shell_name,
                                           'domain.pddl', 'problem.pddl'])
@@ -298,10 +306,12 @@ class Run(object):
                             {'stdin': 'output.sas'})
         >>> run.add_command('validate', ['VALIDATE', 'DOMAIN', 'PROBLEM',
                                          'sas_plan'])
-        command has to be a list of strings
-        kwargs is a dict that is passed to subprocess.Popen()
+
         """
-        self.commands[name] = (command, kwargs or {})
+        assert type(name) is str, 'The command name must be a string'
+        assert type(command) in (tuple, list), 'The command must be a list'
+        name = name.replace(' ', '_')
+        self.commands[name] = (command, kwargs)
 
     def declare_optional_output(self, file_glob):
         """
@@ -350,6 +360,8 @@ class Run(object):
         run_script = open(os.path.join(tools.DATA_DIR, 'run-template.py')).read()
 
         def make_call(name, cmd, kwargs):
+            abort_on_failure = kwargs.pop('abort_on_failure',
+                                          DEFAULT_ABORT_ON_FAILURE)
             if not type(cmd) is list:
                 logging.error('Commands have to be lists of strings. '
                               'The command <%s> is not a list.' % cmd)
@@ -372,10 +384,11 @@ class Run(object):
             if kwargs_string:
                 parts.append(kwargs_string)
             call = ('retcode = Call(%s, **redirects).wait()\n'
-                    'save_returncode("%s", retcode)\n'
-                    'if not retcode == 0:\n'
-                    '    sys.exit("%s returned %%s" %% retcode)\n')
-            return call % (', '.join(parts), name, name)
+                    'save_returncode("%s", retcode)\n') % (', '.join(parts), name)
+            if abort_on_failure:
+                call += ('if not retcode == 0:\n'
+                         '    sys.exit("%s returned %%s" %% retcode)\n' % name)
+            return call
 
         calls_text = '\n'.join(make_call(name, cmd, kwargs)
                                for name, (cmd, kwargs) in self.commands.items())
