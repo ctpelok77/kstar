@@ -3,6 +3,7 @@ Example configurations taken from
 http://alfons.informatik.uni-freiburg.de/downward/PlannerUsage
 """
 import sys
+import os
 import logging
 from collections import defaultdict
 
@@ -461,6 +462,16 @@ def issue154b():
 
 
 
+# Used for debugging purposes
+multiple_plans = """\
+--heuristic "hlm,hff=lm_ff_syn(lm_rhw(reasonable_orders=false,lm_cost_type=2,cost_type=2))" \
+--heuristic "hadd=add()" \
+--search "iterated([lazy_greedy([hadd]),\
+lazy_wastar([hff,hlm],preferred=[hff,hlm],w=2)],\
+repeat_last=false)"\
+"""
+
+
 def get_configs(configs_strings):
     """
     Parses configs_strings and returns a list of tuples of the form
@@ -475,6 +486,7 @@ def get_configs(configs_strings):
     for config_string in configs_strings:
         if ':' in config_string:
             config_file, config_name = config_string.split(':')
+            config_file = os.path.abspath(config_file)
         else:
             # Check if this module has the config
             config_file, config_name = __file__, config_string

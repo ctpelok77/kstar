@@ -34,12 +34,6 @@ class ExpArgParser(tools.ArgParser):
         self.add_argument('-p', '--path',
             help='path of the experiment (e.g. <initials>-<descriptive name>)')
         self.add_argument(
-            '-t', '--timeout', type=int, default=1800,
-            help='timeout per task in seconds')
-        self.add_argument(
-            '-m', '--memory', type=int, default=2048,
-            help='memory limit per task in MB')
-        self.add_argument(
             '--shard-size', type=int, default=100,
             help='how many tasks to group into one top-level directory')
 
@@ -144,6 +138,26 @@ class Experiment(object):
         if self.end_instructions:
             logging.info(self.end_instructions)
 
+    @property
+    def compact_exp_path(self):
+        """
+        Return the relative path if path is a subdir of the cwd else return
+        the absolute path.
+        """
+        assert os.path.isabs(self.path)
+        relpath = os.path.relpath(self.path)
+        is_subpath = not relpath.startswith('../')
+        if is_subpath:
+            return relpath
+        return self.path
+
+    @property
+    def compact_main_script_path(self):
+        """Return the path to the run script in a compact form."""
+        compact_path = self.compact_exp_path
+        prefix = "" if os.path.isabs(compact_path) else "./"
+        return os.path.join(prefix, compact_path, "run")
+
     def _get_abs_path(self, rel_path):
         """
         Return absolute dir by applying rel_path to the experiment's base dir
@@ -246,10 +260,6 @@ class Run(object):
         Example:
         >>> run.set_property('domain', 'gripper')
         """
-        # id parts can only be strings
-        if name == 'id':
-            assert type(value) == list
-            value = map(str, value)
         self.properties[name] = value
 
     def require_resource(self, resource_name):
@@ -448,6 +458,16 @@ class Run(object):
                 logging.error(msg % (source, dest, err))
 
     def _build_properties_file(self):
+        # Check correctness of id property
+        run_id = self.properties.get('id')
+        if run_id is None:
+            logging.error('Each run must have an id')
+            sys.exit(1)
+        if not type(run_id) is list:
+            logging.error('id must be a list, but %s is not' % run_id)
+            sys.exit(1)
+        self.properties['id'] = [str(item) for item in run_id]
+
         self.properties.filename = self._get_abs_path('properties')
         self.properties.write()
 

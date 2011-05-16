@@ -21,6 +21,14 @@ PREPROCESSED_TASKS_DIR = os.path.join(tools.SCRIPTS_DIR, 'preprocessed-tasks')
 tools.makedirs(PREPROCESSED_TASKS_DIR)
 
 
+LIMIT_TRANSLATE_TIME = 7200
+LIMIT_TRANSLATE_MEMORY = 8192
+LIMIT_PREPROCESS_TIME = 7200
+LIMIT_PREPROCESS_MEMORY = 8192
+LIMIT_SEARCH_TIME = 1800
+LIMIT_SEARCH_MEMORY = 2048
+
+
 def _get_configs(planner_rev, config_list):
     """
     Turn the list of config names from the command line into a list of
@@ -79,7 +87,7 @@ class DownwardRun(experiments.Run):
         self.set_property('problem', self.problem_name)
 
         # Add memory limit information in KB
-        self.set_property('memory_limit', self.experiment.memory * 1024)
+        self.set_property('memory_limit', LIMIT_SEARCH_MEMORY * 1024)
 
         self.set_property('experiment_name', self.experiment.name)
 
@@ -93,10 +101,13 @@ def _prepare_preprocess_run(exp, run):
     run.add_resource("PROBLEM", run.problem.problem_file(), "problem.pddl")
 
     run.add_command('translate', [run.translator.shell_name, 'domain.pddl',
-                                  'problem.pddl'], time_limit=7200,
-                                                   mem_limit=4096)
+                                  'problem.pddl'],
+                    time_limit=LIMIT_TRANSLATE_TIME,
+                    mem_limit=LIMIT_TRANSLATE_MEMORY)
     run.add_command('preprocess', [run.preprocessor.shell_name],
-                    stdin='output.sas', time_limit=7200, mem_limit=4096)
+                    stdin='output.sas',
+                    time_limit=LIMIT_PREPROCESS_TIME,
+                    mem_limit=LIMIT_PREPROCESS_MEMORY)
 
     ext_config = '-'.join([run.translator.rev, run.preprocessor.rev])
     run.set_property('config', ext_config)
@@ -112,13 +123,15 @@ def _prepare_search_run(exp, run, config_nick, config):
 
     run.require_resource(run.planner.shell_name)
     run.add_command('search', [run.planner.shell_name] +
-                     shlex.split(run.planner_config), stdin='output')
+                              shlex.split(run.planner_config), stdin='output',
+                    time_limit=LIMIT_SEARCH_TIME,
+                    mem_limit=LIMIT_SEARCH_MEMORY)
     run.declare_optional_output("sas_plan")
 
     # Validation
     run.require_resource('VALIDATE')
-    run.add_command('validate', ['VALIDATE', 'DOMAIN', 'PROBLEM', 'sas_plan'],
-                    abort_on_failure=False)
+    run.require_resource('DOWNWARD_VALIDATE')
+    run.add_command('validate', ['DOWNWARD_VALIDATE', 'VALIDATE'])
 
     run.set_property('commandline_config', run.planner_config)
 
@@ -194,8 +207,9 @@ class DownwardExperiment(experiments.Experiment):
         if self.environment == environments.LocalEnvironment:
             self.end_instructions = ('Preprocess experiment has been created. '
                 'Before you can create the search experiment you have to run\n'
-                './%(exp_name)s/run\n'
-                './resultfetcher.py %(exp_name)s' % {'exp_name': self.name})
+                '%(run_script)s\n'
+                './resultfetcher.py %(exp_path)s' % {'run_script': self.compact_main_script_path,
+                    'exp_path': self.compact_exp_path})
 
         # Set the eval directory already here, we don't want the results to land
         # in the default testname-eval
@@ -224,9 +238,12 @@ class DownwardExperiment(experiments.Experiment):
             code_subdir = os.path.dirname(planner.rel_dest)
             self.add_resource('UNUSEDNAME', src_path,
                             os.path.join(code_subdir, bin))
+
         validate = os.path.join(planner.exe_dir, '..', 'validate')
-        if os.path.exists(validate):
-            self.add_resource('VALIDATE', validate, 'validate')
+        self.add_resource('VALIDATE', validate, 'validate')
+
+        downward_validate = os.path.join(tools.SCRIPTS_DIR, 'downward-validate.py')
+        self.add_resource('DOWNWARD_VALIDATE', downward_validate, 'downward-validate')
 
     def _get_configs(self, rev):
         return _get_configs(rev, self.configs)
