@@ -16,29 +16,31 @@
 using namespace std;
 
 PDBCollectionHeuristic::PDBCollectionHeuristic(const Options &opts)
-    : Heuristic(opts), cost_type(opts.get<int>("cost_type")) {
+    : Heuristic(opts) {
     const vector<vector<int> > &pattern_collection(opts.get_list<vector<int> >("patterns"));
     Timer timer;
     size = 0;
     pattern_databases.reserve(pattern_collection.size());
-    for (int i = 0; i < pattern_collection.size(); ++i) {
-        Options options;
-        options.set<int>("cost_type", cost_type);
-        options.set<vector<int> >("pattern", pattern_collection[i]);
-        pattern_databases.push_back(new PDBHeuristic(options, false));
-        size += pattern_databases.back()->get_size();
-    }
+    for (int i = 0; i < pattern_collection.size(); ++i)
+        _add_pattern(pattern_collection[i]);
     cout << pattern_collection.size() << " pdbs constructed." << endl;
     cout << "Construction time for all pdbs: " << timer << endl;
-    precompute_additive_vars();
-    precompute_max_cliques();
+    compute_additive_vars();
+    compute_max_cliques();
 }
 
 PDBCollectionHeuristic::~PDBCollectionHeuristic() {
-    // TODO: check correctness - apparently this destructor is never called anyways
-    /*for (size_t i = 0; i < pattern_databases.size(); ++i) {
+    for (size_t i = 0; i < pattern_databases.size(); ++i) {
         delete pattern_databases[i];
-    }*/
+    }
+}
+
+void PDBCollectionHeuristic::_add_pattern(const vector<int> &pattern) {
+    Options opts;
+    opts.set<int>("cost_type", cost_type);
+    opts.set<vector<int> >("pattern", pattern);
+    pattern_databases.push_back(new PDBHeuristic(opts, false));
+    size += pattern_databases.back()->get_size();
 }
 
 bool PDBCollectionHeuristic::are_pattern_additive(const vector<int> &patt1, const vector<int> &patt2) const {
@@ -52,11 +54,12 @@ bool PDBCollectionHeuristic::are_pattern_additive(const vector<int> &patt1, cons
     return true;
 }
 
-void PDBCollectionHeuristic::precompute_max_cliques() {
+void PDBCollectionHeuristic::compute_max_cliques() {
     // initialize compatibility graph
+    max_cliques.clear();
     vector<vector<int> > cgraph;
     cgraph.resize(pattern_databases.size());
-    
+
     for (size_t i = 0; i < pattern_databases.size(); ++i) {
         for (size_t j = i + 1; j < pattern_databases.size(); ++j) {
             if (are_pattern_additive(pattern_databases[i]->get_pattern(),pattern_databases[j]->get_pattern())) {
@@ -67,11 +70,11 @@ void PDBCollectionHeuristic::precompute_max_cliques() {
         }
     }
     //cout << "built cgraph." << endl;
-    
+
     vector<vector<int> > max_cliques_cgraph;
     max_cliques_cgraph.reserve(pattern_databases.size());
-    compute_max_cliques(cgraph, max_cliques_cgraph);
-    
+    ::compute_max_cliques(cgraph, max_cliques_cgraph);
+
     for (size_t i = 0; i < max_cliques_cgraph.size(); ++i) {
         vector<PDBHeuristic *> clique;
         clique.reserve(max_cliques_cgraph[i].size());
@@ -80,11 +83,11 @@ void PDBCollectionHeuristic::precompute_max_cliques() {
         }
         max_cliques.push_back(clique);
     }
-    
+
     //dump(cgraph);
 }
 
-void PDBCollectionHeuristic::precompute_additive_vars() {
+void PDBCollectionHeuristic::compute_additive_vars() {
     int num_vars = g_variable_domain.size();
     are_additive.resize(num_vars, vector<bool>(num_vars, true));
     for (size_t k = 0; k < g_operators.size(); ++k) {
@@ -102,34 +105,75 @@ void PDBCollectionHeuristic::initialize() {
 }
 
 int PDBCollectionHeuristic::compute_heuristic(const State &state) {
-    int max_val = -1;
+    int max_h = -1;
     for (size_t i = 0; i < max_cliques.size(); ++i) {
         const vector<PDBHeuristic *> &clique = max_cliques[i];
-        int h_val = 0;
+        int clique_h = 0;
         for (size_t j = 0; j < clique.size(); ++j) {
             clique[j]->evaluate(state);
             if (clique[j]->is_dead_end())
                 return -1;
-            int h = clique[j]->get_heuristic();
-            h_val += h;
+            clique_h += clique[j]->get_heuristic();
         }
-        max_val = max(max_val, h_val);
+        max_h = max(max_h, clique_h);
     }
-    return max_val;
+    return max_h;
 }
 
-void PDBCollectionHeuristic::add_new_pattern(const vector<int> &pattern) {
-    Options opts;
-    opts.set<int>("cost_type", cost_type);
-    opts.set<vector<int> >("pattern", pattern);
-    pattern_databases.push_back(new PDBHeuristic(opts, false));
-    size += pattern_databases.back()->get_size();
-    max_cliques.clear();
-    precompute_max_cliques();
+void PDBCollectionHeuristic::add_pattern(const vector<int> &pattern) {
+    add_pattern(pattern);
+    compute_max_cliques();
 }
+
 
 void PDBCollectionHeuristic::get_max_additive_subsets(const vector<int> &new_pattern,
                                                       vector<vector<PDBHeuristic *> > &max_additive_subsets) {
+    /*
+      We compute additive pattern sets S with the property that we could
+      add the new pattern P to S and still have an additive pattern set.
+
+      Ideally, we would like to return all *maximal* sets S with this
+      property (w.r.t. set inclusion), but we don't currently
+      guarantee this. (What we guarantee is that all maximal such sets
+      are *included* in the result, but the result could contain
+      duplicates or sets that are subsets of other sets in the
+      result.)
+
+      We currently implement this as follows:
+
+      * Consider all maximal additive subsets of the current collection.
+      * For each additive subset S, take the subset S' that contains
+        those patterns that are additive with the new pattern P.
+      * Include the subset S' in the result.
+
+      As an optimization, we actually only include S' in the result if
+      it is non-empty. However, this is wrong if *all* subsets we get
+      are empty, so we correct for this case at the end.
+
+      This may include dominated elements and duplicates in the result.
+      To avoid this, we could instead use the following algorithm:
+
+      * Let N (= neighbours) be the set of patterns in our current
+        collection that are additive with the new pattern P.
+      * Let G_N be the compatibility graph of the current collection
+        restricted to set N (i.e. drop all non-neighbours and their
+        incident edges.)
+      * Return the maximal cliques of G_N.
+
+      One nice thing about this alternative algorithm is that we could
+      also use it to incrementally compute the new set of maximal additive
+      pattern sets after adding the new pattern P:
+
+      G_N_cliques = max_cliques(G_N)   // as above
+      new_max_cliques = (old_max_cliques \setminus G_N_cliques) \union
+                        { clique \union {P} | clique in G_N_cliques}
+
+      That is, the new set of maximal cliques is exactly the set of
+      those "old" cliques that we cannot extend by P
+      (old_max_cliques \setminus G_N_cliques) and all
+      "new" cliques including P.
+      */
+
     for (size_t i = 0; i < max_cliques.size(); ++i) {
         // take all patterns which are additive to new_pattern
         vector<PDBHeuristic *> subset;
@@ -142,6 +186,11 @@ void PDBCollectionHeuristic::get_max_additive_subsets(const vector<int> &new_pat
         if (!subset.empty()) {
             max_additive_subsets.push_back(subset);
         }
+    }
+    if (max_additive_subsets.empty()) {
+        // If nothing was additive with the new variable, then
+        // the only additive subset is the empty set.
+        max_additive_subsets.push_back(vector<PDBHeuristic *>());
     }
 }
 
@@ -188,6 +237,9 @@ static ScalarEvaluator *_parse(OptionParser &parser) {
         cout << "]" << endl;
     }
     cout << endl;
+    // TODO: Distinguish the case that no collection was specified by
+    // the user from the case that an empty collection was explicitly
+    // specified by the user (see issue236).
     if (parser.dry_run() && !pattern_collection.empty()) {
         // check if there are duplicates of patterns
         for (size_t i = 0; i < pattern_collection.size(); ++i) {
@@ -225,6 +277,7 @@ static ScalarEvaluator *_parse(OptionParser &parser) {
     if (parser.dry_run())
         return 0;
 
+    // TODO: See above (issue236).
     if (pattern_collection.empty()) {
         // Simple selection strategy. Take all goal variables as patterns.
         for (size_t i = 0; i < g_goal.size(); ++i) {
