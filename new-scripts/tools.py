@@ -9,6 +9,12 @@ import logging
 from external import argparse
 from external.configobj import ConfigObj
 
+# Patch configobj's unrepr method. Our version is much faster, but depends on
+# Python 2.6.
+import external.configobj
+from ast import literal_eval as unrepr
+external.configobj.unrepr = unrepr
+
 
 LOG_LEVEL = None
 
@@ -77,12 +83,14 @@ def makedirs(dir):
 def overwrite_dir(dir):
     if os.path.exists(dir):
         if not os.path.exists(os.path.join(dir, 'run')):
-            msg = 'The experiment directory "%s" ' % dir
+            msg = 'The directory "%s" ' % dir
             msg += 'is not empty, do you want to overwrite it? (Y/N): '
             answer = raw_input(msg).upper().strip()
             if not answer == 'Y':
                 sys.exit('Aborted')
         shutil.rmtree(dir)
+    # We use the os.makedirs method instead of our own here to check if the dir
+    # has really been properly deleted.
     os.makedirs(dir)
 
 
@@ -173,7 +181,7 @@ def run_command(cmd, env=None):
 class Properties(ConfigObj):
     def __init__(self, *args, **kwargs):
         kwargs['unrepr'] = True
-        ConfigObj.__init__(self, *args, **kwargs)
+        ConfigObj.__init__(self, *args, interpolation=False, **kwargs)
 
 
 def fast_updatetree(src, dst):
