@@ -1,28 +1,18 @@
 #include "landmark_count_heuristic.h"
 
-#include "h_m_landmarks.h"
-#include "landmarks_graph_rpg_exhaust.h"
-#include "landmarks_graph_rpg_sasp.h"
-#include "landmarks_graph_rpg_search.h"
-#include "landmarks_graph_zhu_givan.h"
-
-#include "../globals.h"
-#include "../operator.h"
-#include "../option_parser.h"
 #include "../plugin.h"
-#include "../search_engine.h"
 #include "../successor_generator.h"
-#include "../timer.h"
 
 #include <cmath>
+#include <ext/hash_map>
 #include <limits>
 
-
 using namespace std;
+using namespace __gnu_cxx;
 
 LandmarkCountHeuristic::LandmarkCountHeuristic(const Options &opts)
     : Heuristic(opts),
-      lgraph(*opts.get<LandmarksGraph *>("lm_graph")),
+      lgraph(*opts.get<LandmarkGraph *>("lm_graph")),
       exploration(lgraph.get_exploration()),
       lm_status_manager(lgraph) {
     cout << "Initializing landmarks count heuristic..." << endl;
@@ -122,7 +112,7 @@ int LandmarkCountHeuristic::get_heuristic_value(const State &state) {
             if (state[g_goal[i].first] != g_goal[i].second) {
                 //cout << "missing goal prop " << g_variable_name[g_goal[i].first] << " : "
                 //<< g_goal[i].second << endl;
-                LandmarkNode *node_p = lgraph.landmark_reached(g_goal[i]);
+                LandmarkNode *node_p = lgraph.get_landmark(g_goal[i]);
                 assert(node_p != NULL);
                 if (node_p->min_cost != 0)
                     all_costs_are_zero = false;
@@ -158,11 +148,11 @@ int LandmarkCountHeuristic::compute_heuristic(const State &state) {
         || !generate_helpful_actions(state, reached_lms)) {
         assert(exploration != NULL);
         set_exploration_goals(state);
+
         // Use FF to plan to a landmark leaf
-        int dead_end = ff_search_lm_leaves(ff_search_disjunctive_lms, state,
-                                           reached_lms);
-        if (dead_end) {
-            assert(dead_end == DEAD_END);
+        vector<pair<int, int> > leaves;
+        collect_lm_leaves(ff_search_disjunctive_lms, reached_lms, leaves);
+        if (!exploration->plan_for_disj(leaves, state)) {
             exploration->exported_ops.clear();
             return DEAD_END;
         }
@@ -193,16 +183,6 @@ void LandmarkCountHeuristic::collect_lm_leaves(bool disjunctive_lms,
             }
         }
     }
-}
-
-int LandmarkCountHeuristic::ff_search_lm_leaves(bool disjunctive_lms,
-                                                const State &state, LandmarkSet &reached_lms) {
-    vector<pair<int, int> > leaves;
-    collect_lm_leaves(disjunctive_lms, reached_lms, leaves);
-    if (exploration->plan_for_disj(leaves, state) == DEAD_END) {
-        return DEAD_END;
-    } else
-        return 0;
 }
 
 bool LandmarkCountHeuristic::check_node_orders_disobeyed(LandmarkNode &node,
@@ -237,7 +217,7 @@ bool LandmarkCountHeuristic::generate_helpful_actions(const State &state,
                 continue;
             const pair<int, int> varval = make_pair(prepost[j].var,
                                                     prepost[j].post);
-            LandmarkNode *lm_p = lgraph.landmark_reached(varval);
+            LandmarkNode *lm_p = lgraph.get_landmark(varval);
             if (lm_p != 0 && landmark_is_interesting(state, reached, *lm_p)) {
                 if (lm_p->disjunctive) {
                     ha_disj.push_back(all_operators[i]);
@@ -304,7 +284,7 @@ void LandmarkCountHeuristic::convert_lms(LandmarkSet &lms_set,
 
 
 static ScalarEvaluator *_parse(OptionParser &parser) {
-    parser.add_option<LandmarksGraph *>("lm_graph");
+    parser.add_option<LandmarkGraph *>("lm_graph");
     parser.add_option<bool>("admissible", false, "get admissible estimate");
     parser.add_option<bool>("optimal", false, "optimal cost sharing");
     parser.add_option<bool>("pref", false, "identify preferred operators");
@@ -312,7 +292,7 @@ static ScalarEvaluator *_parse(OptionParser &parser) {
     Heuristic::add_options_to_parser(parser);
     Options opts = parser.parse();
 
-    if (!parser.dry_run() && opts.get<LandmarksGraph *>("lm_graph") == 0)
+    if (!parser.dry_run() && opts.get<LandmarkGraph *>("lm_graph") == 0)
         parser.error("landmark graph could not be constructed");
 
     if (parser.dry_run())
