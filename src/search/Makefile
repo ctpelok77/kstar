@@ -21,7 +21,6 @@ HEADERS = \
           operator.h \
           operator_cost.h \
           option_parser.h \
-          plugin.h \
           pref_evaluator.h \
           relaxation_heuristic.h \
           search_engine.h \
@@ -79,7 +78,6 @@ HEADERS += landmarks/exploration.h \
            landmarks/landmark_graph.h \
            landmarks/landmark_factory_rpg_exhaust.h \
            landmarks/landmark_factory_rpg_sasp.h \
-           landmarks/landmark_factory_rpg_search.h \
            landmarks/landmark_factory_zhu_givan.h \
            landmarks/util.h \
            landmarks/landmark_factory.h
@@ -135,7 +133,7 @@ CCOPT += -Wall -W -Wno-sign-compare -Wno-deprecated -ansi -pedantic -Werror -DST
 ## The following line is a HACK to cross-compile a 64-bit executable
 ## on a 32-bit Ubuntu machine (it also needs the -m32 to be changed to
 ## -m64, of course.) See http://stackoverflow.com/questions/4643197/missing-include-bits-cconfig-h-when-cross-compiling-64-bit-program-on-32-bit.
-CCOPT += -I/usr/include/c++/4.4/i686-linux-gnu
+CCOPT += -I/usr/include/c++/4.4/i686-linux-gnu -Iext
 
 LINKOPT  = -g
 LINKOPT += -m32
@@ -275,10 +273,14 @@ Makefile.depend: $(SOURCES) $(HEADERS)
 	    cat Makefile.temp0 >> Makefile.temp; \
 	done
 	rm -f Makefile.temp0 Makefile.depend
-	sed -e "s@\(.*\)\.o:\(.*\)@.obj/\1$(OBJECT_SUFFIX_RELEASE).o:\2@" Makefile.temp >> Makefile.depend
-	sed -e "s@\(.*\)\.o:\(.*\)@.obj/\1$(OBJECT_SUFFIX_DEBUG).o:\2@" Makefile.temp >> Makefile.depend
-	sed -e "s@\(.*\)\.o:\(.*\)@.obj/\1$(OBJECT_SUFFIX_PROFILE).o:\2@" Makefile.temp >> Makefile.depend
+	sed -e "s@\(.*\)\.o:\(.*\)@.obj/\1$(OBJECT_SUFFIX_RELEASE).o:\2@" Makefile.temp >> Makefile.temp0
+	sed -e "s@\(.*\)\.o:\(.*\)@.obj/\1$(OBJECT_SUFFIX_DEBUG).o:\2@" Makefile.temp >> Makefile.temp0
+	sed -e "s@\(.*\)\.o:\(.*\)@.obj/\1$(OBJECT_SUFFIX_PROFILE).o:\2@" Makefile.temp >> Makefile.temp0
 	rm -f Makefile.temp
+	sed -e "s@\(.*\)\.$(STATE_VAR_BYTES)\.\(.*\)@\1.1.\2@" Makefile.temp0 >> Makefile.depend
+	sed -e "s@\(.*\)\.$(STATE_VAR_BYTES)\.\(.*\)@\1.2.\2@" Makefile.temp0 >> Makefile.depend
+	sed -e "s@\(.*\)\.$(STATE_VAR_BYTES)\.\(.*\)@\1.4.\2@" Makefile.temp0 >> Makefile.depend
+	rm -f Makefile.temp0
 
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(MAKECMDGOALS),distclean)

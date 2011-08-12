@@ -29,8 +29,9 @@ class LandmarkCountHeuristic : public Heuristic {
 
     void collect_lm_leaves(bool disjunctive_lms, LandmarkSet &result, vector<
                                pair<int, int> > &leaves);
-    int ff_search_lm_leaves(bool disjunctive_lms, const State &state,
-                            LandmarkSet &result);
+    bool ff_search_lm_leaves(bool disjunctive_lms, const State &state,
+                             LandmarkSet &result);
+    // returns true iff relaxed reachable and marks relaxed operators
 
     bool check_node_orders_disobeyed(LandmarkNode &node,
                                      const LandmarkSet &reached) const;
@@ -49,9 +50,7 @@ class LandmarkCountHeuristic : public Heuristic {
 protected:
     virtual int compute_heuristic(const State &state);
 public:
-    LandmarkCountHeuristic(const HeuristicOptions &options, LandmarkGraph &lm_graph,
-                           bool use_preferred_operators, bool admissible,
-                           bool optimal, bool use_action_landmarks);
+    LandmarkCountHeuristic(const Options &opts);
     ~LandmarkCountHeuristic() {
     }
     virtual bool reach_state(const State &parent_state, const Operator &op,
@@ -59,8 +58,7 @@ public:
     virtual bool dead_ends_are_reliable() const {
         return true;
     }
-    static ScalarEvaluator *create(const std::vector<string> &config, int start,
-                                   int &end, bool dry_run);
+
     virtual void reset();
 };
 

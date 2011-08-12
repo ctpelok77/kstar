@@ -16,23 +16,16 @@
 using namespace std;
 
 
-static ScalarEvaluatorPlugin merge_and_shrink_heuristic_plugin(
-    "mas", MergeAndShrinkHeuristic::create);
-
-
-MergeAndShrinkHeuristic::MergeAndShrinkHeuristic(int max_abstract_states_,
-                                                 int max_abstract_states_before_merge_, int abstraction_count_,
-                                                 MergeStrategy merge_strategy_, ShrinkStrategy shrink_strategy_,
-                                                 bool use_label_simplification_, bool use_expensive_statistics_,
-                                                 double merge_mixing_parameter_)
-    : Heuristic(HeuristicOptions()) /* HACK! Should be properly parsed. */,
-      max_abstract_states(max_abstract_states_),
-      max_abstract_states_before_merge(max_abstract_states_before_merge_),
-      abstraction_count(abstraction_count_), merge_strategy(
-          merge_strategy_), shrink_strategy(shrink_strategy_),
-      use_label_simplification(use_label_simplification_),
-      use_expensive_statistics(use_expensive_statistics_),
-      merge_mixing_parameter(merge_mixing_parameter_) {
+MergeAndShrinkHeuristic::MergeAndShrinkHeuristic(const Options &opts)
+    : Heuristic(opts),
+      max_abstract_states(opts.get<int>("max_states")),
+      max_abstract_states_before_merge(opts.get<int>("max_states_before_merge")),
+      abstraction_count(opts.get<int>("count")),
+      merge_strategy(MergeStrategy(opts.get_enum("merge_strategy"))),
+      shrink_strategy(ShrinkStrategy(opts.get_enum("shrink_strategy"))),
+      use_label_simplification(opts.get<bool>("simplify_labels")),
+      use_expensive_statistics(opts.get<bool>("expensive_statistics")),
+      merge_mixing_parameter(opts.get<double>("merge_mixing_parameter")) {
     assert(max_abstract_states_before_merge > 0);
     assert(max_abstract_states >= max_abstract_states_before_merge);
 }
@@ -538,84 +531,105 @@ int MergeAndShrinkHeuristic::compute_heuristic(const State &state) {
     return cost;
 }
 
-ScalarEvaluator *MergeAndShrinkHeuristic::create(
-    const std::vector<string> &config, int start, int &end, bool dry_run) {
+static ScalarEvaluator *_parse(OptionParser &parser) {
+    // TODO: better documentation what each parameter does
+    parser.add_option<int>("max_states", "maximum abstraction size", OptionFlags(false));
+    parser.add_option<int>("max_states_before_merge",
+                           "maximum abstraction size for factors of synchronized product", OptionFlags(false));
+    parser.add_option<int>("count", 1, "nr of abstractions to build");
+    vector<string> merge_strategies;
+    merge_strategies.push_back("MERGE_LINEAR_CG_GOAL_LEVEL");
+    merge_strategies.push_back("MERGE_LINEAR_CG_GOAL_RANDOM");
+    merge_strategies.push_back("MERGE_LINEAR_GOAL_CG_LEVEL");
+    merge_strategies.push_back("MERGE_LINEAR_RANDOM");
+    merge_strategies.push_back("MERGE_DFP");
+    merge_strategies.push_back("MERGE_LINEAR_LEVEL");
+    merge_strategies.push_back("MERGE_LINEAR_REVERSE_LEVEL");
+    merge_strategies.push_back("MERGE_LEVEL_THEN_INVERSE");
+    merge_strategies.push_back("MERGE_INVERSE_THEN_LEVEL");
+    parser.add_enum_option("merge_strategy", merge_strategies,
+                           "MERGE_LINEAR_CG_GOAL_LEVEL",
+                           "merge strategy");
+    vector<string> shrink_strategies;
+    shrink_strategies.push_back("SHRINK_HIGH_F_LOW_H");
+    shrink_strategies.push_back("SHRINK_LOW_F_LOW_H");
+    shrink_strategies.push_back("SHRINK_HIGH_F_HIGH_H");
+    shrink_strategies.push_back("SHRINK_RANDOM");
+    shrink_strategies.push_back("SHRINK_DFP");
+    shrink_strategies.push_back("SHRINK_BISIMULATION");
+    shrink_strategies.push_back("SHRINK_BISIMULATION_NO_MEMORY_LIMIT");
+    shrink_strategies.push_back("SHRINK_DFP_ENABLE_GREEDY_BISIMULATION");
+    shrink_strategies.push_back("SHRINK_DFP_ENABLE_FURTHER_LABEL_REDUCTION");
+    shrink_strategies.push_back("SHRINK_DFP_ENABLE_GREEDY_THEN_LABEL_REDUCTION");
+    shrink_strategies.push_back("SHRINK_DFP_ENABLE_LABEL_REDUCTION_THEN_GREEDY");
+    shrink_strategies.push_back("SHRINK_DFP_ENABLE_LABEL_REDUCTION_AND_GREEDY_CHOOSE_MAX");
+    shrink_strategies.push_back("SHRINK_GREEDY_BISIMULATION_NO_MEMORY_LIMIT");
+    shrink_strategies.push_back("SHRINK_BISIMULATION_REDUCING_ALL_LABELS_NO_MEMORY_LIMIT");
+    shrink_strategies.push_back("SHRINK_GREEDY_BISIMULATION_REDUCING_ALL_LABELS_NO_MEMORY_LIMIT");
+    parser.add_enum_option("shrink_strategy", shrink_strategies,
+                           "SHRINK_HIGH_F_LOW_H",
+                           "shrink strategy");
+    parser.add_option<bool>("simplify_labels", true, "enable label simplification");
+    parser.add_option<bool>("expensive_statistics", false, "show statistics on \"unique unlabeled edges\" (WARNING: "
+                            "these are *very* slow -- check the warning in the output)");
+    parser.add_option<double>("merge_mixing_parameter", -1.0, "merge mixing parameter");
+    Heuristic::add_options_to_parser(parser);
+    Options opts = parser.parse();
+    if (parser.help_mode())
+        return 0;
+
+    //read values from opts for processing.
+    MergeStrategy merge_strategy = MergeStrategy(opts.get_enum("merge_strategy"));
+    ShrinkStrategy shrink_strategy = ShrinkStrategy(opts.get_enum("shrink_strategy"));
+    double merge_mixing_parameter = opts.get<double>("merge_mixing_parameter");
+
     int max_states = -1;
     int max_states_before_merge = -1;
-    int abstraction_count = 1;
-    int merge_strategy = MERGE_LINEAR_CG_GOAL_LEVEL;
-    int shrink_strategy = SHRINK_HIGH_F_LOW_H;
-    bool use_label_simplification = true;
-    bool use_expensive_statistics = false;
-    double merge_mixing_parameter = -1.0;
 
-    // "<name>()" or "<name>(<options>)"
-    if (config.size() > start + 2 && config[start + 1] == "(") {
-        end = start + 2;
-
-        // TODO: better documentation what each parameter does
-        if (config[end] != ")") {
-            NamedOptionParser option_parser;
-            option_parser.add_int_option("max_states", &max_states,
-                                         "maximum abstraction size");
-            option_parser.add_int_option("max_states_before_merge",
-                                         &max_states_before_merge,
-                                         "maximum abstraction size for factors of synchronized product");
-            option_parser.add_int_option("count", &abstraction_count,
-                                         "nr of abstractions to build");
-            option_parser.add_int_option("merge_strategy", &merge_strategy,
-                                         "merge strategy");
-            option_parser.add_int_option("shrink_strategy", &shrink_strategy,
-                                         "shrink strategy");
-            option_parser.add_bool_option("simplify_labels",
-                                          &use_label_simplification, "enable label simplification");
-            option_parser.add_bool_option("expensive_statistics",
-                                          &use_expensive_statistics,
-                                          "show statistics on \"unique unlabeled edges\" (WARNING: "
-                                          "these are *very* slow -- check the warning in the output)");
-            option_parser.add_double_option("merge_mixing_parameter",
-                                            &merge_mixing_parameter, "merge mixing parameter");
-            option_parser.parse_options(config, end, end, dry_run);
-            end++;
+    if (opts.contains("max_states")) {
+        max_states = opts.get<int>("max_states");
+        if (max_states < 1) {
+            cerr << "error: abstraction size must be at least 1" << endl;
+            exit(2);
         }
-        if (config[end] != ")")
-            throw ParseError(end);
-    } else {     // "<name>"
-        end = start;
+    }
+
+    if (opts.contains("max_states_before_merge")) {
+        max_states_before_merge = opts.get<int>("max_states_before_merge");
+        if (max_states_before_merge < 1) {
+            cerr << "error: abstraction size before merge must be at least 1"
+                 << endl;
+            exit(2);
+        }
     }
 
     if (max_states == -1 && max_states_before_merge == -1) {
-        // None of the two options specified: set default limit
-        max_states = 50000;
-    }
-
-    // If exactly one of the max_states options has been set, set the other
-    // so that it imposes no further limits.
-    if (max_states_before_merge == -1) {
+        // Neither option has been explicitly set: use default.
+        max_states = max_states_before_merge = 50000;
+    } else if (max_states_before_merge == -1) {
+        // Set a value that imposes no further limit given
+        // the value of max_states.
         max_states_before_merge = max_states;
     } else if (max_states == -1) {
+        // Set a value that imposes no further limit given
+        // the value of max_states_before_merge.
         int n = max_states_before_merge;
         max_states = n * n;
-        if (max_states < 0 || max_states / n != n)         // overflow
+        if (max_states / n != n) // Handle overflow.
             max_states = numeric_limits<int>::max();
     }
 
     if (max_states_before_merge > max_states) {
-        cerr << "warning: max_states_before_merge exceeds max_states, "
-             << "correcting." << endl;
+        if (!parser.dry_run()) { // Only print the warning once.
+            cerr << "warning: max_states_before_merge exceeds max_states, "
+                 << "correcting." << endl;
+        }
         max_states_before_merge = max_states;
     }
 
-    if (max_states < 1) {
-        cerr << "error: abstraction size must be at least 1" << endl;
-        exit(2);
-    }
-
-    if (max_states_before_merge < 1) {
-        cerr << "error: abstraction size before merge must be at least 1"
-             << endl;
-        exit(2);
-    }
+    assert(max_states >= 1);
+    assert(max_states_before_merge >= 1);
+    assert(max_states >= max_states_before_merge);
 
     if (merge_strategy < 0 || merge_strategy >= MAX_MERGE_STRATEGY) {
         cerr << "error: unknown merge strategy: " << merge_strategy << endl;
@@ -634,15 +648,17 @@ ScalarEvaluator *MergeAndShrinkHeuristic::create(
         exit(2);
     }
 
-    if (dry_run) {
+    //write values back:
+    opts.set<int>("max_states", max_states);
+    opts.set<int>("max_states_before_merge", max_states_before_merge);
+
+
+    if (parser.dry_run()) {
         return 0;
     } else {
-        MergeAndShrinkHeuristic *result = new MergeAndShrinkHeuristic(
-            max_states, max_states_before_merge, abstraction_count,
-            static_cast<MergeStrategy> (merge_strategy),
-            static_cast<ShrinkStrategy> (shrink_strategy),
-            use_label_simplification, use_expensive_statistics,
-            merge_mixing_parameter);
+        MergeAndShrinkHeuristic *result = new MergeAndShrinkHeuristic(opts);
         return result;
     }
 }
+
+static Plugin<ScalarEvaluator> _plugin("mas", _parse);
