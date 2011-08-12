@@ -16,18 +16,15 @@
 
 using namespace __gnu_cxx;
 
-LandmarkGraph::LandmarkGraph(Options &options, Exploration *explor)
-    : exploration(explor), landmarks_count(0), conj_lms(0) {
-    reasonable_orders = options.reasonable_orders;
-    only_causal_landmarks = options.only_causal_landmarks;
-    disjunctive_landmarks = options.disjunctive_landmarks;
-    conjunctive_landmarks = options.conjunctive_landmarks;
-    no_orders = options.no_orders;
-    if (options.lm_cost_type < 0 || options.lm_cost_type >= MAX_OPERATOR_COST) {
-        cerr << "Illegal action cost type" << endl;
-        exit(2);
-    }
-    lm_cost_type = static_cast<OperatorCost>(options.lm_cost_type);
+LandmarkGraph::LandmarkGraph(const Options &opts)
+    : exploration(opts.get<Exploration *>("explor")),
+      landmarks_count(0), conj_lms(0) {
+    reasonable_orders = opts.get<bool>("reasonable_orders");
+    only_causal_landmarks = opts.get<bool>("only_causal_landmarks");
+    disjunctive_landmarks = opts.get<bool>("disjunctive_landmarks");
+    conjunctive_landmarks = opts.get<bool>("conjunctive_landmarks");
+    no_orders = opts.get<bool>("no_orders");
+    lm_cost_type = static_cast<OperatorCost>(opts.get_enum("lm_cost_type"));
     generate_operators_lookups();
 }
 
@@ -103,7 +100,7 @@ void LandmarkGraph::count_costs() {
 
 bool LandmarkGraph::simple_landmark_exists(const pair<int, int> &lm) const {
     hash_map<pair<int, int>, LandmarkNode *, hash_int_pair>::const_iterator it =
-    simple_lms_to_nodes.find(lm);
+        simple_lms_to_nodes.find(lm);
     assert(it == simple_lms_to_nodes.end() || !it->second->disjunctive);
     return it != simple_lms_to_nodes.end();
 }
@@ -121,7 +118,7 @@ bool LandmarkGraph::disj_landmark_exists(const set<pair<int, int> > &lm) const {
     for (set<pair<int, int> >::const_iterator it = lm.begin(); it != lm.end(); ++it) {
         const pair<int, int> &prop = *it;
         hash_map<pair<int, int>, LandmarkNode *, hash_int_pair>::const_iterator
-        it2 = disj_lms_to_nodes.find(prop);
+            it2 = disj_lms_to_nodes.find(prop);
         if (it2 != disj_lms_to_nodes.end())
             return true;
     }
@@ -134,7 +131,7 @@ bool LandmarkGraph::exact_same_disj_landmark_exists(const set<pair<int, int> > &
     for (set<pair<int, int> >::const_iterator it = lm.begin(); it != lm.end(); ++it) {
         const pair<int, int> &prop = *it;
         hash_map<pair<int, int>, LandmarkNode *, hash_int_pair>::const_iterator
-        it2 = disj_lms_to_nodes.find(prop);
+            it2 = disj_lms_to_nodes.find(prop);
         if (it2 == disj_lms_to_nodes.end())
             return false;
         else {
@@ -194,13 +191,13 @@ LandmarkNode &LandmarkGraph::landmark_add_conjunctive(const set<pair<int, int> >
 
 void LandmarkGraph::rm_landmark_node(LandmarkNode *node) {
     for (hash_map<LandmarkNode *, edge_type, hash_pointer>::iterator it =
-        node->parents.begin(); it != node->parents.end(); it++) {
+             node->parents.begin(); it != node->parents.end(); it++) {
         LandmarkNode &parent = *(it->first);
         parent.children.erase(node);
         assert(parent.children.find(node) == parent.children.end());
     }
     for (hash_map<LandmarkNode *, edge_type, hash_pointer>::iterator it =
-        node->children.begin(); it != node->children.end(); it++) {
+             node->children.begin(); it != node->children.end(); it++) {
         LandmarkNode &child = *(it->first);
         child.parents.erase(node);
         assert(child.parents.find(node) == child.parents.end());
@@ -221,15 +218,24 @@ void LandmarkGraph::rm_landmark_node(LandmarkNode *node) {
     assert(nodes.find(node) == nodes.end());
 }
 
+LandmarkNode &LandmarkGraph::make_disj_node_simple(pair<int, int> lm) {
+    LandmarkNode &node = get_disj_lm_node(lm);
+    node.disjunctive = false;
+    for (int i = 0; i < node.vars.size(); i++)
+        disj_lms_to_nodes.erase(make_pair(node.vars[i], node.vals[i]));
+    simple_lms_to_nodes.insert(make_pair(lm, &node));
+    return node;
+}
+
 void LandmarkGraph::set_landmark_ids() {
     ordered_nodes.resize(landmarks_count);
     int id = 0;
     for (set<LandmarkNode *>::iterator node_it =
-        nodes.begin(); node_it != nodes.end(); node_it++) {
+             nodes.begin(); node_it != nodes.end(); node_it++) {
         LandmarkNode *lmn = *node_it;
-    lmn->assign_id(id);
-    ordered_nodes[id] = lmn;
-    id++;
+        lmn->assign_id(id);
+        ordered_nodes[id] = lmn;
+        id++;
     }
 }
 
@@ -242,18 +248,18 @@ void LandmarkGraph::dump_node(const LandmarkNode *node_p) const {
     for (unsigned int i = 0; i < node_p->vars.size(); i++) {
         pair<int, int> node_prop = make_pair(node_p->vars[i], node_p->vals[i]);
         hash_map<pair<int, int>, pair<string, vector<string> >, hash_int_pair>::const_iterator
-        it = var_val_to_predicate_args.find(node_prop);
+            it = var_val_to_predicate_args.find(node_prop);
         if (it != var_val_to_predicate_args.end()) {
             cout << it->second.first << " ";
             for (size_t j = 0; j < it->second.second.size(); ++j) {
                 cout << it->second.second[j] << " ";
             }
             cout << "("
-            << g_variable_name[node_prop.first] << "(" << node_prop.first << ")"
-            << "->" << node_prop.second << ")";
+                 << g_variable_name[node_prop.first] << "(" << node_prop.first << ")"
+                 << "->" << node_prop.second << ")";
         } else {
             cout << g_variable_name[node_prop.first] << " (" << node_prop.first << ") "
-            << "->" << node_prop.second;
+                 << "->" << node_prop.second;
         }
         if (i < node_p->vars.size() - 1)
             cout << ", ";
@@ -271,93 +277,87 @@ void LandmarkGraph::dump() const {
     set<LandmarkNode *, LandmarkNodeComparer> nodes2(nodes.begin(), nodes.end());
 
     for (set<LandmarkNode *>::const_iterator it = nodes2.begin(); it
-        != nodes2.end(); it++) {
+         != nodes2.end(); it++) {
         LandmarkNode *node_p = *it;
         dump_node(node_p);
         for (hash_map<LandmarkNode *, edge_type, hash_pointer>::const_iterator
-            parent_it = node_p->parents.begin(); parent_it
-            != node_p->parents.end(); parent_it++) {
+             parent_it = node_p->parents.begin(); parent_it
+             != node_p->parents.end(); parent_it++) {
             const edge_type &edge = parent_it->second;
             const LandmarkNode *parent_p = parent_it->first;
             cout << "\t\t<-_";
             switch (edge) {
-                case necessary:
-                    cout << "nec ";
-                    break;
-                case greedy_necessary:
-                    cout << "gn  ";
-                    break;
-                case natural:
-                    cout << "nat ";
-                    break;
-                case reasonable:
-                    cout << "r   ";
-                    break;
-                case obedient_reasonable:
-                    cout << "o_r ";
-                    break;
+            case necessary:
+                cout << "nec ";
+                break;
+            case greedy_necessary:
+                cout << "gn  ";
+                break;
+            case natural:
+                cout << "nat ";
+                break;
+            case reasonable:
+                cout << "r   ";
+                break;
+            case obedient_reasonable:
+                cout << "o_r ";
+                break;
             }
             dump_node(parent_p);
         }
         for (hash_map<LandmarkNode *, edge_type, hash_pointer>::const_iterator
-            child_it = node_p->children.begin(); child_it
-            != node_p->children.end(); child_it++) {
+             child_it = node_p->children.begin(); child_it
+             != node_p->children.end(); child_it++) {
             const edge_type &edge = child_it->second;
             const LandmarkNode *child_p = child_it->first;
             cout << "\t\t->_";
             switch (edge) {
-                case necessary:
-                    cout << "nec ";
-                    break;
-                case greedy_necessary:
-                    cout << "gn  ";
-                    break;
-                case natural:
-                    cout << "nat ";
-                    break;
-                case reasonable:
-                    cout << "r   ";
-                    break;
-                case obedient_reasonable:
-                    cout << "o_r ";
-                    break;
+            case necessary:
+                cout << "nec ";
+                break;
+            case greedy_necessary:
+                cout << "gn  ";
+                break;
+            case natural:
+                cout << "nat ";
+                break;
+            case reasonable:
+                cout << "r   ";
+                break;
+            case obedient_reasonable:
+                cout << "o_r ";
+                break;
             }
             dump_node(child_p);
         }
+        cout << endl;
     }
     cout << "Landmark graph end." << endl;
 }
 
-LandmarkGraph::Options::Options()
-    : reasonable_orders(false),
-      only_causal_landmarks(false),
-      disjunctive_landmarks(true),
-      conjunctive_landmarks(true),
-      no_orders(false),
-      lm_cost_type(NORMAL) {
-}
-
-void LandmarkGraph::Options::add_option_to_parser(NamedOptionParser &option_parser) {
-    heuristic_options.add_option_to_parser(option_parser);
-    // TODO: this is an ugly hack, which we need to pass the cost_type parameter to the
-    // Exploration class, which is generated by the LandmarkGraph's create method
-
-    option_parser.add_bool_option("reasonable_orders",
-                                  &reasonable_orders,
-                                  "generate reasonable orders");
-    option_parser.add_bool_option("only_causal_landmarks",
-                                  &only_causal_landmarks,
-                                  "keep only causal landmarks");
-    option_parser.add_bool_option("disjunctive_landmarks",
-                                  &disjunctive_landmarks,
-                                  "keep disjunctive landmarks");
-    option_parser.add_bool_option("conjunctive_landmarks",
-                                  &conjunctive_landmarks,
-                                  "keep conjunctive landmarks");
-    option_parser.add_bool_option("no_orders",
-                                  &no_orders,
-                                  "discard all orderings");
-    option_parser.add_int_option("lm_cost_type",
-                                 &lm_cost_type,
-                                 "landmark action cost adjustment type");
+void LandmarkGraph::add_options_to_parser(OptionParser &parser) {
+    Heuristic::add_options_to_parser(parser);
+    parser.add_option<bool>("reasonable_orders",
+                            false,
+                            "generate reasonable orders");
+    parser.add_option<bool>("only_causal_landmarks",
+                            false,
+                            "keep only causal landmarks");
+    parser.add_option<bool>("disjunctive_landmarks",
+                            true,
+                            "keep disjunctive landmarks");
+    parser.add_option<bool>("conjunctive_landmarks",
+                            true,
+                            "keep conjunctive landmarks");
+    parser.add_option<bool>("no_orders",
+                            false,
+                            "discard all orderings");
+    vector<string> cost_types;
+    cost_types.push_back("NORMAL");
+    cost_types.push_back("ONE");
+    cost_types.push_back("PLUSONE");
+    parser.add_enum_option("lm_cost_type",
+                           cost_types,
+                           "NORMAL",
+                           "landmark action cost adjustment");
 }

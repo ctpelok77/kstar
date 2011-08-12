@@ -17,12 +17,8 @@
 
 using namespace __gnu_cxx;
 
-static LandmarkGraph *create(const std::vector<std::string> &config, int start,
-                             int &end, bool dry_run);
-static LandmarkGraphPlugin plugin("lm_rhw", create);
-    
-LandmarkFactoryRpgSasp::LandmarkFactoryRpgSasp(LandmarkGraph::Options &options, Exploration *exploration)
-    : LandmarkFactory(options, exploration)  {
+LandmarkFactoryRpgSasp::LandmarkFactoryRpgSasp(const Options &opts)
+    : LandmarkFactory(opts) {
 }
 
 void LandmarkFactoryRpgSasp::get_greedy_preconditions_for_lm(
@@ -88,7 +84,7 @@ void LandmarkFactoryRpgSasp::get_greedy_preconditions_for_lm(
 }
 
 int LandmarkFactoryRpgSasp::min_cost_for_landmark(LandmarkNode *bp, vector<vector<
-                                                                          int> > &lvl_var) {
+                                                                               int> > &lvl_var) {
     int min_cost = numeric_limits<int>::max();
     // For each proposition in bp...
     for (unsigned int k = 0; k < bp->vars.size(); k++) {
@@ -108,7 +104,7 @@ int LandmarkFactoryRpgSasp::min_cost_for_landmark(LandmarkNode *bp, vector<vecto
 }
 
 void LandmarkFactoryRpgSasp::found_simple_lm_and_order(const pair<int, int> a,
-                                                  LandmarkNode &b, edge_type t) {
+                                                       LandmarkNode &b, edge_type t) {
     LandmarkNode *new_lm;
     if (lm_graph->simple_landmark_exists(a)) {
         new_lm = &lm_graph->get_simple_lm_node(a);
@@ -120,12 +116,12 @@ void LandmarkFactoryRpgSasp::found_simple_lm_and_order(const pair<int, int> a,
     if (lm_graph->disj_landmark_exists(a_set)) {
         // Simple landmarks are more informative than disjunctive ones,
         // change disj. landmark into simple
-        
+
         // old: call to methode
-        //LandmarkNode &node = lm_graph->make_disj_node_simple(a);
+        LandmarkNode &node = lm_graph->make_disj_node_simple(a);
 
         /* TODO: Problem: Schon diese jetzige Implementierung ist nicht mehr korrekt,
-        da rm_landmark_noden nicht nur bei allen children die parents-zeiger auf sich selbst
+        da rm_landmark_node nicht nur bei allen children die parents-zeiger auf sich selbst
         löscht, sondern auch bei allen parents die children-zeiger auf sich selbst. Ein
         einfaches Speichern aller Attribute von node funktioniert also nicht - entweder man
         muss dann manuell bei den parents des alten node alle children-Zeiger neu setzen auf
@@ -135,11 +131,11 @@ void LandmarkFactoryRpgSasp::found_simple_lm_and_order(const pair<int, int> a,
         */
         // TODO: avoid copy constructor, save attributes locally and assign to new lm
         // new: replace by new program logic
-        LandmarkNode &node2 = lm_graph->get_disj_lm_node(a);
+        /*LandmarkNode &node2 = lm_graph->get_disj_lm_node(a);
         LandmarkNode node(node2);
         lm_graph->rm_landmark_node(&node2);
-        lm_graph->landmark_add_simple(a);
-        
+        lm_graph->landmark_add_simple(a);*/
+
         node.vars.clear();
         node.vals.clear();
         node.vars.push_back(a.first);
@@ -167,7 +163,7 @@ void LandmarkFactoryRpgSasp::found_simple_lm_and_order(const pair<int, int> a,
 }
 
 void LandmarkFactoryRpgSasp::found_disj_lm_and_order(const set<pair<int, int> > a,
-                                                LandmarkNode &b, edge_type t) {
+                                                     LandmarkNode &b, edge_type t) {
     bool simple_lm_exists = false;
     pair<int, int> lm_prop;
     for (set<pair<int, int> >::iterator it = a.begin(); it != a.end(); ++it) {
@@ -232,8 +228,8 @@ void LandmarkFactoryRpgSasp::compute_shared_preconditions(
 }
 
 void LandmarkFactoryRpgSasp::compute_disjunctive_preconditions(vector<set<pair<int,
-                                                                          int> > > &disjunctive_pre, vector<vector<int> > &lvl_var,
-                                                          LandmarkNode *bp) {
+                                                                               int> > > &disjunctive_pre, vector<vector<int> > &lvl_var,
+                                                               LandmarkNode *bp) {
     /* Compute disjunctive preconditions from all operators than can potentially
      achieve landmark bp, given lvl_var (reachability in relaxed planning graph).
      A disj. precondition is a set of facts which contains one precondition fact
@@ -301,7 +297,7 @@ void LandmarkFactoryRpgSasp::generate_landmarks() {
     while (!open_landmarks.empty()) {
         LandmarkNode *bp = open_landmarks.front();
         open_landmarks.pop_front();
-        // assert(bp->forward_orders.empty());
+        assert(bp->forward_orders.empty());
 
         if (!bp->is_true_in_state(*g_initial_state)) {
             // Backchain from landmark bp and compute greedy necessary predecessors.
@@ -378,7 +374,7 @@ void LandmarkFactoryRpgSasp::approximate_lookahead_orders(
 }
 
 bool LandmarkFactoryRpgSasp::domain_connectivity(const pair<int, int> &landmark,
-                                            const hash_set<int> &exclude) {
+                                                 const hash_set<int> &exclude) {
     /* Tests whether in the domain transition graph of the LM variable, there is
      a path from the initial state value to the LM value, without passing through
      any value in "exclude". If not, that means that one of the values in "exclude"
@@ -470,31 +466,19 @@ void LandmarkFactoryRpgSasp::add_lm_forward_orders() {
     }
 }
 
-LandmarkGraph *create(const std::vector<string> &config, int start, int &end, bool dry_run) {
-    LandmarkGraph::Options common_options;
+static LandmarkGraph *_parse(OptionParser &parser) {
+    LandmarkGraph::add_options_to_parser(parser);
 
-    if (config.size() > start + 2 && config[start + 1] == "(") {
-        end = start + 2;
-        if (config[end] != ")") {
-            NamedOptionParser option_parser;
-            common_options.add_option_to_parser(option_parser);
+    Options opts = parser.parse();
 
-            option_parser.parse_options(config, end, end, dry_run);
-            end++;
-        }
-        if (config[end] != ")")
-            throw ParseError(end);
-    } else {
-        end = start;
-    }
-
-    if (dry_run) {
+    if (parser.dry_run()) {
         return 0;
     } else {
-        LandmarkFactoryRpgSasp lm_graph_factory(
-            common_options,
-            new Exploration(common_options.heuristic_options));
+        opts.set<Exploration *>("explor", new Exploration(opts));
+        LandmarkFactoryRpgSasp lm_graph_factory(opts);
         LandmarkGraph *graph = lm_graph_factory.compute_lm_graph();
         return graph;
     }
 }
+
+static Plugin<LandmarkGraph> _plugin("lm_rhw", _parse);

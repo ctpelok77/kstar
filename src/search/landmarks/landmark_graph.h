@@ -122,26 +122,15 @@ typedef __gnu_cxx::hash_set<LandmarkNode *, hash_pointer> LandmarkSet;
 
 class LandmarkGraph {
 public:
-    struct Options {
-        bool reasonable_orders;
-        bool only_causal_landmarks;
-        bool disjunctive_landmarks;
-        bool conjunctive_landmarks;
-        bool no_orders;
-        HeuristicOptions heuristic_options;
-        int lm_cost_type;
+    static void add_options_to_parser(OptionParser &parser);
 
-        Options();
-        void add_option_to_parser(NamedOptionParser &option_parser);
-    };
-    
     // ------------------------------------------------------------------------------
     // methods needed only by non-landmarkgraph-factories
-    inline int cost_of_landmarks() const { return landmarks_cost; }
+    inline int cost_of_landmarks() const {return landmarks_cost; }
     void count_costs();
     LandmarkNode *get_lm_for_index(int);
-    int get_needed_cost() const { return needed_cost; }
-    int get_reached_cost() const { return reached_cost; }
+    int get_needed_cost() const {return needed_cost; }
+    int get_reached_cost() const {return reached_cost; }
     LandmarkNode *get_landmark(const pair<int, int> &prop) const;
 
     // ------------------------------------------------------------------------------
@@ -151,19 +140,19 @@ public:
     }
     inline const Operator &get_operator_for_lookup_index(int op_no) const {
         const Operator &op = (op_no < g_operators.size()) ?
-        g_operators[op_no] : g_axioms[op_no - g_operators.size()];
+                             g_operators[op_no] : g_axioms[op_no - g_operators.size()];
         return op;
     }
     inline int number_of_landmarks() const {
         assert(landmarks_count == nodes.size());
         return landmarks_count;
     }
-    Exploration *get_exploration() const { return exploration; }
-    bool is_using_reasonable_orderings() const { return reasonable_orders; }
+    Exploration *get_exploration() const {return exploration; }
+    bool is_using_reasonable_orderings() const {return reasonable_orders; }
 
     // ------------------------------------------------------------------------------
     // methods needed only by landmarkgraph-factories
-    LandmarkGraph(Options &options, Exploration *explor);
+    LandmarkGraph(const Options &opts);
     virtual ~LandmarkGraph() {}
 
     inline LandmarkNode &get_simple_lm_node(const pair<int, int> &a) const {
@@ -180,11 +169,11 @@ public:
         return operators_eff_lookup[eff.first][eff.second];
     }
 
-    bool use_orders() const { return !no_orders; } // only needed by HMLandmark
-    bool use_only_causal_landmarks() const { return only_causal_landmarks; }
-    bool use_disjunctive_landmarks() const { return disjunctive_landmarks; }
-    bool use_conjunctive_landmarks() const { return conjunctive_landmarks; }
-    
+    bool use_orders() const {return !no_orders; }  // only needed by HMLandmark
+    bool use_only_causal_landmarks() const {return only_causal_landmarks; }
+    bool use_disjunctive_landmarks() const {return disjunctive_landmarks; }
+    bool use_conjunctive_landmarks() const {return conjunctive_landmarks; }
+
     int number_of_disj_landmarks() const {
         return landmarks_count - (simple_lms_to_nodes.size() + conj_lms);
     }
@@ -192,22 +181,22 @@ public:
         return conj_lms;
     }
     int number_of_edges() const;
-    
+
     // HACK! (Temporary accessor needed for LandmarkFactorySasp.)
     OperatorCost get_lm_cost_type() const {
         return lm_cost_type;
     }
-    
+
     bool simple_landmark_exists(const pair<int, int> &lm) const; // not needed by HMLandmark
     bool disj_landmark_exists(const set<pair<int, int> > &lm) const; // not needed by HMLandmark
     bool landmark_exists(const pair<int, int> &lm) const; // not needed by HMLandmark
     bool exact_same_disj_landmark_exists(const set<pair<int, int> > &lm) const;
-    
+
     LandmarkNode &landmark_add_simple(const pair<int, int> &lm);
     LandmarkNode &landmark_add_disjunctive(const set<pair<int, int> > &lm);
     LandmarkNode &landmark_add_conjunctive(const set<pair<int, int> > &lm);
     void rm_landmark_node(LandmarkNode *node);
-
+    LandmarkNode &make_disj_node_simple(std::pair<int, int> lm); // only needed by LandmarkFactorySasp
     void set_landmark_ids();
     void set_landmark_cost(int cost) {
         landmarks_cost = cost;
@@ -215,7 +204,7 @@ public:
     void insert_var_val_to_predicate_args(const std::pair<int, int> &var_val,
                                           const std::pair<string, std::vector<string> > &predicates) {
         var_val_to_predicate_args.insert(std::make_pair(var_val, predicates));
-    };
+    }
     void dump_node(const LandmarkNode *node_p) const;
     void dump() const;
 private:

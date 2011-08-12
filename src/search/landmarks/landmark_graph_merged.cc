@@ -6,15 +6,9 @@
 
 using namespace __gnu_cxx;
 
-static LandmarkGraph *create(const std::vector<std::string> &config, int start,
-                             int &end, bool dry_run);
-static LandmarkGraphPlugin plugin("lm_merged", create);
-
-LandmarkGraphMerged::LandmarkGraphMerged(
-    LandmarkGraph::Options &options, Exploration *exploration,
-    const vector<LandmarkGraph *> &lm_graphs_)
-    : LandmarkFactory(options, exploration) ,
-      lm_graphs(lm_graphs_) {
+LandmarkGraphMerged::LandmarkGraphMerged(const Options &opts)
+    : LandmarkFactory(opts),
+      lm_graphs(opts.get_list<LandmarkGraph *>("lm_graphs")) {
 }
 
 LandmarkGraphMerged::~LandmarkGraphMerged() {
@@ -27,15 +21,6 @@ LandmarkNode *LandmarkGraphMerged::get_matching_landmark(const LandmarkNode &lm)
             return &lm_graph->get_simple_lm_node(lm_fact);
         else
             return 0;
-        
-        /* old version of the code. TODO: check whether this is correctly changed!
-        hash_map<pair<int, int>, LandmarkNode *, hash_int_pair>::const_iterator it =
-            lm_graph->simple_lms_to_nodes.find(lm_fact);
-        if (it != simple_lms_to_nodes.end()) {
-            return it->second;
-        } else {
-            return 0;
-        }*/
     } else if (lm.disjunctive) {
         set<pair<int, int> > lm_facts;
         for (int j = 0; j < lm.vars.size(); j++) {
@@ -45,15 +30,6 @@ LandmarkNode *LandmarkGraphMerged::get_matching_landmark(const LandmarkNode &lm)
             return &lm_graph->get_disj_lm_node(make_pair(lm.vars[0], lm.vals[0]));
         else
             return 0;
-        
-        /* old version of the code. TODO: check whether this is correctly changed!
-        if (lm_graph->exact_same_disj_landmark_exists(lm_facts)) {
-            hash_map<pair<int, int>, LandmarkNode *, hash_int_pair>::const_iterator it =
-            lm_graph->disj_lms_to_nodes.find(make_pair(lm.vars[0], lm.vals[0]));
-            return it->second;
-        } else {
-            return 0;
-        }*/
     } else if (lm.conjunctive) {
         cerr << "Don't know how to handle conjunctive landmarks yet" << endl;
         abort();
@@ -86,10 +62,16 @@ void LandmarkGraphMerged::generate_landmarks() {
             const LandmarkNode &node = **it;
             if (node.disjunctive) {
                 set<pair<int, int> > lm_facts;
+                bool exists = false;
                 for (int j = 0; j < node.vars.size(); j++) {
-                    lm_facts.insert(make_pair(node.vars[j], node.vals[j]));
+                    pair<int, int> lm_fact = make_pair(node.vars[j], node.vals[j]);
+                    if (lm_graph->landmark_exists(lm_fact)) {
+                        exists = true;
+                        break;
+                    }
+                    lm_facts.insert(lm_fact);
                 }
-                if (!lm_graph->disj_landmark_exists(lm_facts)) {
+                if (!exists) {
                     LandmarkNode &new_node = lm_graph->landmark_add_disjunctive(lm_facts);
                     new_node.in_goal = node.in_goal;
                 }
@@ -116,52 +98,33 @@ void LandmarkGraphMerged::generate_landmarks() {
                     if (to) {
                         edge_add(*from, *to, e_type);
                     } else {
-                        cout << "No to" << endl;
+                        cout << "Discarded to ordering" << endl;
                     }
                 }
             } else {
-                cout << "No from" << endl;
+                cout << "Discarded from ordering" << endl;
             }
         }
     }
 }
 
 
-LandmarkGraph *create(const std::vector<string> &config, int start, int &end, bool dry_run) {
-    LandmarkGraph::Options common_options;
+static LandmarkGraph *_parse(OptionParser &parser) {
+    parser.add_list_option<LandmarkGraph *>("lm_graphs");
+    LandmarkGraph::add_options_to_parser(parser);
+    Options opts = parser.parse();
 
-    vector<LandmarkGraph *> lm_graphs_;
-    OptionParser::instance()->parse_landmark_graph_list(config, start + 2,
-                                                        end, false, lm_graphs_,
-                                                        dry_run);
+    opts.verify_list_non_empty<LandmarkGraph *>("lm_graphs");
 
-    if (lm_graphs_.empty()) {
-        throw ParseError(end);
-    }
-    end++;
-
-    if (config[end] != ")") {
-        end++;
-        NamedOptionParser option_parser;
-
-        common_options.add_option_to_parser(option_parser);
-
-        option_parser.parse_options(config, end, end, dry_run);
-        end++;
-    }
-    if (config[end] != ")") {
-        throw ParseError(end);
-    }
-
-
-    if (dry_run) {
+    if (parser.dry_run()) {
         return 0;
     } else {
-        LandmarkGraphMerged lm_graph_factory(
-            common_options,
-            new Exploration(common_options.heuristic_options),
-            lm_graphs_);
+        opts.set<Exploration *>("explor", new Exploration(opts));
+        LandmarkGraphMerged lm_graph_factory(opts);
         LandmarkGraph *graph = lm_graph_factory.compute_lm_graph();
         return graph;
     }
 }
+
+static Plugin<LandmarkGraph> _plugin(
+    "lm_merged", _parse);
