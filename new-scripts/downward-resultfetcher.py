@@ -149,11 +149,14 @@ ITERATIVE_PATTERNS = [
     ('initial_h_value',
         re.compile(r'Initial state h value: (\d+)'), int),
     ('plan_length', re.compile(r'Plan length: (\d+)'), int),
+    # We cannot include " \[t=.+s\]" in the regex, because older versions don't
+    # have this information in the log.
     ('search_time',
-        re.compile(r'Actual search time: (.+)s \[t=.+s\]'), float)
+        re.compile(r'Actual search time: (.+?)s'), float)
     ]
 
 CUMULATIVE_PATTERNS = [
+    # This time we parse the cumulative values
     _get_states_pattern('dead_ends', 'Dead ends:'),
     _get_states_pattern('evaluations', 'Evaluated'),
     _get_states_pattern('expansions', 'Expanded'),
@@ -161,9 +164,6 @@ CUMULATIVE_PATTERNS = [
     ('search_time', re.compile(r'^Search time: (.+)s$'), float),
     ('total_time', re.compile(r'^Total time: (.+)s$'), float),
     ('memory', re.compile(r'Peak memory: (.+) KB'), int),
-    ('landmarks', re.compile(r'Discovered (\d+) landmarks'), int),
-    ('landmarks_generation_time',
-        re.compile(r'Landmarks generation time: (.+)s'), float),
     ]
 
 
@@ -207,10 +207,9 @@ def get_iterative_results(content, props):
     for name, items in values.items():
         props[name + '_all'] = items
 
-    if values['cost']:
-        props['cost'] = values['cost'][-1]
-    if values['plan_length']:
-        props['plan_length'] = values['plan_length'][-1]
+    for attr in ['cost', 'plan_length']:
+        if values[attr]:
+            props[attr] = min(values[attr])
 
 
 def get_cumulative_results(content, props):
@@ -386,6 +385,12 @@ def add_preprocess_functions(eval):
     eval.add_function(translator_mutex_groups_total_size, file='all.groups')
 
 
+def add_search_parsing(eval):
+    eval.add_pattern('landmarks', r'Discovered (\d+?) landmarks', type=int)
+    eval.add_pattern('landmarks_generation_time',
+                     r'Landmarks generation time: (.+)s', type=float)
+
+
 def add_search_functions(eval):
     #eval.add_function(completely_explored)
     eval.add_function(get_iterative_results)
@@ -416,6 +421,7 @@ def build_fetcher(parser=FetchOptionParser()):
             add_preprocess_parsing(eval)
             add_preprocess_functions(eval)
     if not eval.no_search:
+        add_search_parsing(eval)
         add_search_functions(eval)
 
     eval.add_function(check_min_values)
