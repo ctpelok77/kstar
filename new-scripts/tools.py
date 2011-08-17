@@ -5,9 +5,13 @@ import subprocess
 import re
 import traceback
 import logging
+import contextlib
+import time
+import math
 
 from external import argparse
 from external.configobj import ConfigObj
+from external.datasets import DataSet
 
 # Patch configobj's unrepr method. Our version is much faster, but depends on
 # Python 2.6.
@@ -24,6 +28,7 @@ SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(SCRIPTS_DIR)
 DATA_DIR = os.path.join(SCRIPTS_DIR, 'data')
 CALLS_DIR = os.path.join(SCRIPTS_DIR, 'calls')
+REPORTS_DIR = os.path.join(SCRIPTS_DIR, 'reports')
 
 
 def setup_logging(level):
@@ -44,8 +49,6 @@ def setup_logging(level):
     # add the handler to the root logger
     root_logger.addHandler(console)
     root_logger.setLevel(level)
-
-setup_logging(logging.INFO)
 
 
 def prod(values):
@@ -69,6 +72,11 @@ def divide_list(seq, size):
     return [seq[i:i + size] for i  in range(0, len(seq), size)]
 
 
+def round_to_next_power_of_ten(i):
+    assert i > 0
+    return 10**math.ceil(math.log10(i))
+
+
 def makedirs(dir):
     """
     mkdir variant that does not complain when the dir already exists
@@ -82,16 +90,22 @@ def makedirs(dir):
 
 def overwrite_dir(dir):
     if os.path.exists(dir):
-        if not os.path.exists(os.path.join(dir, 'run')):
-            msg = 'The directory "%s" ' % dir
-            msg += 'is not empty, do you want to overwrite it? (Y/N): '
-            answer = raw_input(msg).upper().strip()
-            if not answer == 'Y':
-                sys.exit('Aborted')
+        msg = 'The directory "%s" ' % dir
+        msg += 'is not empty, do you want to overwrite it? (Y/N): '
+        answer = raw_input(msg).upper().strip()
+        if not answer == 'Y':
+            sys.exit('Aborted')
         shutil.rmtree(dir)
     # We use the os.makedirs method instead of our own here to check if the dir
     # has really been properly deleted.
     os.makedirs(dir)
+
+
+def remove(filename):
+    try:
+        os.remove(filename)
+    except OSError:
+        pass
 
 
 def natural_sort(alist):
@@ -101,13 +115,13 @@ def natural_sort(alist):
         if text.isdigit():
             return int(text)
         else:
-            return text
+            return text.lower()
 
     def extract_numbers(text):
         parts = re.split("([0-9]+)", text)
         return map(to_int_if_number, parts)
 
-    alist.sort(key=extract_numbers)
+    return sorted(alist, key=extract_numbers)
 
 
 def listdir(path):
@@ -183,6 +197,13 @@ class Properties(ConfigObj):
         kwargs['unrepr'] = True
         ConfigObj.__init__(self, *args, interpolation=False, **kwargs)
 
+    def get_dataset(self):
+        data = DataSet()
+        for run_id, run in sorted(self.items()):
+            run['id-string'] = run_id
+            data.append(**run)
+        return data
+
 
 def fast_updatetree(src, dst):
     """
@@ -252,6 +273,34 @@ def csv(string):
     return string.split(',')
 
 
+class RawDescriptionAndArgumentDefaultsHelpFormatter(argparse.HelpFormatter):
+    """
+    Help message formatter which retains any formatting in descriptions and adds
+    default values to argument help.
+    """
+    def _fill_text(self, text, width, indent):
+        return ''.join([indent + line for line in text.splitlines(True)])
+
+    def _get_help_string(self, action):
+        help = action.help
+        if '%(default)' not in action.help:
+            if action.default is not argparse.SUPPRESS:
+                defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
+                if action.option_strings or action.nargs in defaulting_nargs:
+                    help += ' (default: %(default)s)'
+        return help
+
+    def _format_args(self, action, default_metavar):
+        """
+        We want to show "[environment-specific options]" instead of "...".
+        """
+        get_metavar = self._metavar_formatter(action, default_metavar)
+        if action.nargs == argparse.PARSER:
+            return '%s [environment-specific options]' % get_metavar(1)
+        else:
+            return argparse.HelpFormatter._format_args(self, action, default_metavar)
+
+
 class ArgParser(argparse.ArgumentParser):
     def __init__(self, add_log_option=True, *args, **kwargs):
         argparse.ArgumentParser.__init__(self, *args, formatter_class=
@@ -289,29 +338,30 @@ class ArgParser(argparse.ArgumentParser):
         return string
 
 
-class RawDescriptionAndArgumentDefaultsHelpFormatter(argparse.HelpFormatter):
-    """
-    Help message formatter which retains any formatting in descriptions and adds
-    default values to argument help.
-    """
-    def _fill_text(self, text, width, indent):
-        return ''.join([indent + line for line in text.splitlines(True)])
+# Parse the log-level and set it
+ArgParser(add_help=False).parse_known_args()
 
-    def _get_help_string(self, action):
-        help = action.help
-        if '%(default)' not in action.help:
-            if action.default is not argparse.SUPPRESS:
-                defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
-                if action.option_strings or action.nargs in defaulting_nargs:
-                    help += ' (default: %(default)s)'
-        return help
 
-    def _format_args(self, action, default_metavar):
-        """
-        We want to show "[environment-specific options]" instead of "...".
-        """
-        get_metavar = self._metavar_formatter(action, default_metavar)
-        if action.nargs == argparse.PARSER:
-            return '%s [environment-specific options]' % get_metavar(1)
-        else:
-            return argparse.HelpFormatter._format_args(self, action, default_metavar)
+class Timer(object):
+    def __init__(self):
+        self.start_time = time.time()
+        self.start_clock = self._clock()
+
+    def _clock(self):
+        times = os.times()
+        return times[0] + times[1]
+
+    def __str__(self):
+        return "[%.3fs CPU, %.3fs wall-clock]" % (
+            self._clock() - self.start_clock,
+            time.time() - self.start_time)
+
+
+@contextlib.contextmanager
+def timing(text):
+    timer = Timer()
+    logging.info("%s..." % text)
+    sys.stdout.flush()
+    yield
+    logging.info("%s: %s" % (text, timer))
+    sys.stdout.flush()
