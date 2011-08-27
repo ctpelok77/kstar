@@ -59,15 +59,15 @@ HEADERS += hm_heuristic.h
 HEADERS += lm_cut_heuristic.h
 HEADERS += max_heuristic.h
 
-# HEADERS += mas_heuristic.h \
-#            abstraction.h \
-#            operator_registry.h \
-#            variable_order_finder.h
-
-HEADERS += raz_mas_heuristic.h \
-           raz_abstraction.h \
-           raz_operator_registry.h \
-           raz_variable_order_finder.h
+HEADERS += merge_and_shrink/abstraction.h \
+           merge_and_shrink/label_reducer.h \
+           merge_and_shrink/merge_and_shrink_heuristic.h \
+           merge_and_shrink/shrink_bisimulation.h \
+           merge_and_shrink/shrink_bucket_based.h \
+           merge_and_shrink/shrink_fh.h \
+           merge_and_shrink/shrink_random.h \
+           merge_and_shrink/shrink_strategy.h \
+           merge_and_shrink/variable_order_finder.h \
 
 HEADERS += landmarks/exploration.h \
            landmarks/h_m_landmarks.h \
@@ -77,11 +77,11 @@ HEADERS += landmarks/exploration.h \
            landmarks/landmark_status_manager.h \
            landmarks/landmark_graph_merged.h \
            landmarks/landmark_graph.h \
+           landmarks/landmark_factory.h \
            landmarks/landmark_factory_rpg_exhaust.h \
            landmarks/landmark_factory_rpg_sasp.h \
            landmarks/landmark_factory_zhu_givan.h \
            landmarks/util.h \
-           landmarks/landmark_factory.h
 
 HEADERS += learning/AODE.h \
            learning/classifier.h \
@@ -160,7 +160,7 @@ POSTLINKOPT =
 ## NOTE: This precludes some uses of exceptions.
 ##        For details, see man gcc on -static-libgcc.
 
-CCOPT_RELEASE  = -O3 -fomit-frame-pointer
+CCOPT_RELEASE  = -O3 -DNDEBUG -fomit-frame-pointer
 CCOPT_DEBUG    = -O3
 CCOPT_PROFILE  = -O3 -pg
 

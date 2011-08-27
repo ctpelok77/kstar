@@ -4,9 +4,10 @@
 #include "operator.h"
 #include "plugin.h"
 #include "priority_queue.h"
-#include "raz_variable_order_finder.h"
 #include "state.h"
 #include "timer.h"
+
+#include "merge_and_shrink/variable_order_finder.h"
 
 #include <algorithm>
 #include <cassert>
