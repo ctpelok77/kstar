@@ -195,9 +195,8 @@ def run_command(cmd, env=None):
     """
     Runs command cmd and returns the output
     """
-    logging.info('Running command "%s"' % cmd)
-    if type(cmd) == str:
-        cmd = cmd.split()
+    assert type(cmd) is list
+    logging.info('Running command: %s' % ' '.join(cmd))
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env)
     output = p.communicate()[0].strip()
     return output
@@ -283,14 +282,29 @@ def csv(string):
     return string.split(',')
 
 
+def get_terminal_size():
+    import struct
+    try:
+        import fcntl, termios
+    except ImportError:
+        return (None, None)
+
+    try:
+        data = fcntl.ioctl(sys.stdout.fileno(), termios.TIOCGWINSZ, 4 * '00')
+        height, width = struct.unpack('4H',data)[:2]
+        return (height, width)
+    except Exception:
+        return (None, None)
+
+
 class RawDescriptionAndArgumentDefaultsHelpFormatter(argparse.HelpFormatter):
     """
     Help message formatter which retains any formatting in descriptions and adds
     default values to argument help.
     """
     def __init__(self, prog, **kwargs):
-        # If we ever want to use the whole terminal width, we can set it here.
-        width = None
+        # Use the whole terminal width
+        height, width = get_terminal_size()
         argparse.HelpFormatter.__init__(self, prog, width=width, **kwargs)
 
     def _fill_text(self, text, width, indent):
