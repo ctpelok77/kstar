@@ -256,8 +256,11 @@ def check_memory(content, props):
     Set "memory" to the max value if it was exceeded and "-1 KB" was reported
     """
     memory = props.get('memory')
-    memory_limit = props.get('memory_limit', None)
+    memory_limit = props.get('limit_search_memory', None)
     if memory == -1:
+        if memory_limit is not None:
+            # Turn into KB
+            memory_limit *= 1024
         props['memory'] = memory_limit
 
 
@@ -280,7 +283,8 @@ def scores(content, props):
         score = min_score + (1 - min_score) * (raw_score / best_raw_score)
         return round(score * 100, 2)
 
-    max_memory = props.get('memory_limit') or 2048 * 1024
+    # Maximum memory in KB
+    max_memory = (props.get('limit_search_memory') or 2048) * 1024
 
     props.update({'score_expansions': log_score(props.get('expansions'),
                     min_bound=100, max_bound=1000000, min_score=0.0),
@@ -417,17 +421,17 @@ def add_search_functions(eval):
     eval.add_function(scores)
 
 
-def ipc_score(problem_runs):
-    min_length = tools.minimum(run.get('cost') for run in problem_runs)
+def quality(problem_runs):
+    min_cost = tools.minimum(run.get('cost') for run in problem_runs)
     for run in problem_runs:
-        length = run.get('cost')
-        if length is None:
+        cost = run.get('cost')
+        if cost is None:
             quality = 0.0
-        elif length == 0:
-            assert min_length == 0
+        elif cost == 0:
+            assert min_cost == 0
             quality = 1.0
         else:
-            quality = min_length / length
+            quality = min_cost / cost
         run['quality'] = round(quality, 4)
 
 
@@ -630,7 +634,7 @@ def build_fetcher(parser=FetchOptionParser()):
 
     eval.add_function(check_min_values)
     eval.set_check(check)
-    eval.postprocess_functions.append(ipc_score)
+    eval.postprocess_functions.append(quality)
 
     return eval
 

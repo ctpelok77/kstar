@@ -81,18 +81,18 @@ CXXFLAGS  = ${DEPENDFLAGS} -ansi -Wall
 # FORTRAN compiler
 
 FC     := f77
-FFLAGS  = 
+FFLAGS  =
 
 # C/C++/Eiffel/FORTRAN linker
 
 LINKER    := g++ -g -static -static-libgcc
-LDFLAGS    = 
-LOADLIBES := 
+LDFLAGS    =
+LOADLIBES :=
 
 # Java compiler
 
 JAVAC  := javac
-JFLAGS  = 
+JFLAGS  =
 JAR    := jar
 
 %.class : %.java
