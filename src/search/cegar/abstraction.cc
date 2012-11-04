@@ -13,7 +13,6 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <new>
 #include <set>
 #include <sstream>
 #include <utility>
@@ -23,13 +22,9 @@ using namespace std;
 
 namespace cegar_heuristic {
 
-void no_memory () {
-    cout << "Failed to allocate memory!" << endl;
-    g_cegar_abstraction->handle_no_memory();
-}
-
 Abstraction::Abstraction()
     : pick(RANDOM),
+      rng(2012),
       queue(new AdaptiveQueue<AbstractState *>()),
       expansions(0),
       deviations(0),
@@ -48,11 +43,11 @@ Abstraction::Abstraction()
       log_h(false),
       probability_for_random_start(0),
       memory_released(false),
-      average_operator_cost(get_average_operator_cost()),
-      memory_buffer(new char [10 * 1024 * 1024]) {
+      average_operator_cost(get_average_operator_cost()) {
     assert(!g_operators.empty());
 
-    set_new_handler(no_memory);
+    assert(!g_memory_buffer);
+    g_memory_buffer = new char [10 * 1024 * 1024];
 
     single = new AbstractState();
     for (int i = 0; i < g_operators.size(); ++i) {
@@ -392,7 +387,7 @@ void Abstraction::sample_state(State &current_state) const {
     // calculate length of random walk accoring to a binomial distribution
     int length = 0;
     for (int j = 0; j < n; ++j) {
-        double random = g_rng(); // [0..1)
+        double random = rng(); // [0..1)
         if (random < p)
             ++length;
     }
@@ -405,7 +400,7 @@ void Abstraction::sample_state(State &current_state) const {
         if (applicable_ops.empty()) {
             break;
         } else {
-            int random = g_rng.next(applicable_ops.size()); // [0..applicable_os.size())
+            int random = rng.next(applicable_ops.size()); // [0..applicable_os.size())
             assert(applicable_ops[random]->is_applicable(current_state));
             current_state = State(current_state, *applicable_ops[random]);
             // if current state is dead-end, then restart with initial state
@@ -427,7 +422,7 @@ bool Abstraction::find_and_break_complete_solution() {
 
 bool Abstraction::find_and_break_solution() {
     // Return true iff we found a *complete* concrete solution.
-    if (probability_for_random_start == 0 || g_rng() >= probability_for_random_start) {
+    if (probability_for_random_start == 0 || rng() >= probability_for_random_start) {
         // Start with initial state.
         return find_and_break_complete_solution();
     } else {
@@ -541,7 +536,7 @@ int Abstraction::pick_condition(AbstractState &state,
         return 0;
     }
     int cond = -1;
-    int random_cond = g_rng.next(conditions.size());
+    int random_cond = rng.next(conditions.size());
     if (pick == FIRST) {
         cond = 0;
     } else if (pick == RANDOM) {
@@ -726,7 +721,7 @@ int Abstraction::get_num_states_online() const {
 }
 
 bool Abstraction::may_keep_refining() const {
-    return (memory_buffer &&
+    return (g_memory_buffer &&
             (is_online() || get_num_states() < max_states_offline) &&
             (!is_online() || get_num_states_online() < max_states_online) &&
             (max_time == INFINITY || is_online() || g_timer() < max_time));
@@ -738,30 +733,16 @@ void Abstraction::release_memory() {
     vector<int>().swap(cg_partial_ordering);
     delete queue;
     queue = 0;
-    if (memory_buffer)
-        delete_memory_buffer();
+    if (g_memory_buffer) {
+        delete[] g_memory_buffer;
+        g_memory_buffer = 0;
+    }
     set<AbstractState *>::iterator it;
     for (it = states.begin(); it != states.end(); ++it) {
         AbstractState *state = *it;
         state->release_memory();
     }
     memory_released = true;
-}
-
-void Abstraction::delete_memory_buffer() {
-    assert(memory_buffer);
-    cout << "Delete memory buffer" << endl;
-    delete[] memory_buffer;
-    memory_buffer = 0;
-}
-
-void Abstraction::handle_no_memory() {
-    if (memory_buffer) {
-        delete_memory_buffer();
-    } else {
-        cout << "Memory buffer already released -> Exiting" << endl;
-        exit(1);
-    }
 }
 
 long Abstraction::get_size() const {
