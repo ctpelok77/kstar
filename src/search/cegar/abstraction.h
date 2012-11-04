@@ -2,6 +2,7 @@
 #define CEGAR_ABSTRACTION_H
 
 #include "../priority_queue.h"
+#include "../rng.h"
 #include "../state.h"
 
 #include "../ext/gtest/include/gtest/gtest_prod.h"
@@ -63,6 +64,7 @@ private:
 
     // How to pick the next fact to refine for in there are multiple facts.
     PickStrategy pick;
+    mutable RandomNumberGenerator rng;
     int pick_condition(AbstractState &state,
                        const std::vector<std::pair<int, int> > &conditions) const;
 
@@ -125,8 +127,6 @@ private:
 
     bool memory_released;
     double average_operator_cost;
-    // Reserve some space that can be released when no memory is left.
-    char *memory_buffer;
 
 public:
     Abstraction();
@@ -149,9 +149,6 @@ public:
 
     void release_memory();
     bool has_released_memory() const {return memory_released; }
-    // If memory_buffer is still present, delete it otherwise halt.
-    void handle_no_memory();
-    void delete_memory_buffer();
 
     // Settings.
     void set_max_states_offline(int states) {max_states_offline = states; }
