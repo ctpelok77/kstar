@@ -4,7 +4,7 @@
 #include "globals.h"
 #include "segmented_vector.h"
 #include "state.h"
-#include "state_handle.h"
+#include "state_id.h"
 #include "state_registry.h"
 
 #include <cassert>
@@ -32,8 +32,8 @@ public:
           default_value(default_value_) {
     }
 
-    Entry &operator[](const StateHandle &state_handle) {
-        int state_id = state_handle.get_id();
+    Entry &operator[](const StateID &id) {
+        int state_id = id.value;
         size_t virtual_size = state_registry.size();
         assert(state_id >= 0 && state_id < virtual_size);
         if (entries.size() < virtual_size) {
@@ -42,8 +42,8 @@ public:
         return entries[state_id];
     }
 
-    const Entry &operator[](const StateHandle &state_handle) const {
-        int state_id = state_handle.get_id();
+    const Entry &operator[](const StateID &id) const {
+        int state_id = id.value;
         assert(state_id >= 0 && state_id < state_registry.size());
         if (state_id >= entries.size()) {
             return default_value;
