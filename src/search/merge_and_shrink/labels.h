@@ -1,5 +1,5 @@
-#ifndef LABEL_REDUCTION_H
-#define LABEL_REDUCTION_H
+#ifndef MERGE_AND_SHRINK_LABEL_REDUCTION_H
+#define MERGE_AND_SHRINK_LABEL_REDUCTION_H
 
 #include "../operator_cost.h"
 
@@ -41,7 +41,7 @@ public:
     }
 };
 
-#endif // LABEL_REDUCTION_H
+#endif
 
 
 /*void OperatorLabel::update_root(Label *new_root) {

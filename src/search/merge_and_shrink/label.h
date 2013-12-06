@@ -1,5 +1,5 @@
-#ifndef LABEL_H
-#define LABEL_H
+#ifndef MERGE_AND_SHRINK_LABEL_H
+#define MERGE_AND_SHRINK_LABEL_H
 
 #include "../operator.h"
 
