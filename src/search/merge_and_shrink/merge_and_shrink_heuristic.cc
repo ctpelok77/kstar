@@ -1,6 +1,7 @@
 #include "merge_and_shrink_heuristic.h"
 
 #include "abstraction.h"
+#include "labels.h"
 #include "shrink_fh.h"
 #include "variable_order_finder.h"
 
@@ -24,6 +25,7 @@ MergeAndShrinkHeuristic::MergeAndShrinkHeuristic(const Options &opts)
 }
 
 MergeAndShrinkHeuristic::~MergeAndShrinkHeuristic() {
+    delete labels;
 }
 
 void MergeAndShrinkHeuristic::dump_options() const {
@@ -79,6 +81,37 @@ void MergeAndShrinkHeuristic::warn_on_unusual_options() const {
     }
 }
 
+EquivalenceRelation MergeAndShrinkHeuristic::compute_outside_equivalence(const Abstraction *abstraction,
+                                                                         const vector<Abstraction *> &all_abstractions) const {
+    /*Returns an equivalence relation over operators s.t. o ~ o'
+    iff o and o' are locally equivalent in all transition systems
+    T' \neq T. (They may or may not be locally equivalent in T.) */
+    cout << "compute outside equivalence for " << abstraction->tag() << endl;
+
+    vector<pair<int, int> > labeled_label_nos;
+    labeled_label_nos.reserve(labels->get_size());
+    for (int label_no = 0; label_no < labels->get_size(); ++label_no) {
+        labeled_label_nos.push_back(make_pair(0, label_no));
+    }
+    // start with the relation where all labels are equivalent
+    EquivalenceRelation relation = EquivalenceRelation::from_labels<int>(labeled_label_nos.size(), labeled_label_nos);
+    for (size_t i = 0; i < all_abstractions.size(); ++i) {
+        if (!all_abstractions[i])
+            continue;
+        Abstraction *abs = all_abstractions[i];
+        if (abs != abstraction) {
+            cout << "computing local equivalence for " << abs->tag() << endl;
+            if (!abs->is_label_reduced()) {
+                cout << "need to normalize" << endl;
+                abs->normalize(false);
+            }
+            EquivalenceRelation next_relation = all_abstractions[i]->compute_local_equivalence_relation();
+            relation.refine(next_relation);
+        }
+    }
+    return relation;
+}
+
 Abstraction *MergeAndShrinkHeuristic::build_abstraction() {
     // TODO: We're leaking memory here in various ways. Fix this.
     //       Don't forget that build_atomic_abstractions also
@@ -86,7 +119,8 @@ Abstraction *MergeAndShrinkHeuristic::build_abstraction() {
 
     vector<Abstraction *> atomic_abstractions;
     Abstraction::build_atomic_abstractions(
-        is_unit_cost_problem(), get_cost_type(), atomic_abstractions);
+        is_unit_cost_problem(), atomic_abstractions, labels);
+    vector<Abstraction *> all_abstractions(atomic_abstractions);
 
     cout << "Shrinking atomic abstractions..." << endl;
     for (size_t i = 0; i < atomic_abstractions.size(); ++i) {
@@ -100,9 +134,9 @@ Abstraction *MergeAndShrinkHeuristic::build_abstraction() {
 
     VariableOrderFinder order(merge_strategy);
 
-    int var_no = order.next();
-    cout << "First variable: #" << var_no << endl;
-    Abstraction *abstraction = atomic_abstractions[var_no];
+    int var_first = order.next();
+    cout << "First variable: #" << var_first << endl;
+    Abstraction *abstraction = atomic_abstractions[var_first];
     abstraction->statistics(use_expensive_statistics);
 
     while (!order.done()) {
@@ -112,8 +146,9 @@ Abstraction *MergeAndShrinkHeuristic::build_abstraction() {
 
         // TODO: When using nonlinear merge strategies, make sure not
         // to normalize multiple parts of a composite. See issue68.
+        EquivalenceRelation relation = compute_outside_equivalence(abstraction, all_abstractions);
         if (shrink_strategy->reduce_labels_before_shrinking()) {
-            abstraction->normalize(use_label_reduction);
+            abstraction->normalize(use_label_reduction, &relation);
             other_abstraction->normalize(false);
         }
 
@@ -134,7 +169,7 @@ Abstraction *MergeAndShrinkHeuristic::build_abstraction() {
         abstraction->statistics(use_expensive_statistics);
         other_abstraction->statistics(use_expensive_statistics);
 
-        abstraction->normalize(use_label_reduction);
+        abstraction->normalize(use_label_reduction, &relation);
         abstraction->statistics(use_expensive_statistics);
 
         // Don't label-reduce the atomic abstraction -- see issue68.
@@ -142,7 +177,8 @@ Abstraction *MergeAndShrinkHeuristic::build_abstraction() {
         other_abstraction->statistics(use_expensive_statistics);
 
         Abstraction *new_abstraction = new CompositeAbstraction(
-            is_unit_cost_problem(), get_cost_type(),
+            is_unit_cost_problem(),
+            labels,
             abstraction, other_abstraction);
 
         abstraction->release_memory();
@@ -150,6 +186,9 @@ Abstraction *MergeAndShrinkHeuristic::build_abstraction() {
 
         abstraction = new_abstraction;
         abstraction->statistics(use_expensive_statistics);
+
+        all_abstractions[var_first] = abstraction;
+        all_abstractions[var_no] = 0;
     }
 
     abstraction->compute_distances();
@@ -174,6 +213,7 @@ void MergeAndShrinkHeuristic::initialize() {
     verify_no_axioms_no_cond_effects();
 
     cout << "Building abstraction..." << endl;
+    labels = new Labels(cost_type);
     final_abstraction = build_abstraction();
     if (!final_abstraction->is_solvable()) {
         cout << "Abstract problem is unsolvable!" << endl;
