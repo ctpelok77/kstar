@@ -124,6 +124,14 @@ HEADERS += pdbs/canonical_pdbs_heuristic.h \
            pdbs/util.h \
            pdbs/zero_one_pdbs_heuristic.h \
 
+HEADERS += cegar/cegar_heuristic.h \
+           cegar/abstract_state.h \
+           cegar/values.h \
+           cegar/abstraction.h \
+           cegar/split_tree.h \
+           cegar/task.h \
+           cegar/utils.h \
+
 SHELL = /bin/bash
 
 SOURCES = planner.cc $(HEADERS:%.h=%.cc)

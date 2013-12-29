@@ -51,17 +51,52 @@ Operator::Operator(istream &in, bool axiom) {
     marker1 = marker2 = false;
 }
 
+void Operator::rename_fact(int variable, int before, int after) {
+    for (int i = 0; i < prevail.size(); ++i) {
+        Prevail &pre = prevail[i];
+        if (pre.var == variable && pre.prev == before) {
+            pre.prev = after;
+            return;
+        }
+    }
+    for (int i = 0; i < pre_post.size(); ++i) {
+        PrePost &prepost = pre_post[i];
+        assert(prepost.cond.empty());
+        if (prepost.var == variable) {
+            if (prepost.pre == before) {
+                prepost.pre = after;
+                return;
+            } else if (prepost.post == before) {
+                prepost.post = after;
+                return;
+            }
+        }
+    }
+}
+
 void Prevail::dump() const {
-    cout << g_variable_name[var] << ": " << prev;
+    cout << g_variable_name[var] << ": " << var << "=" << prev;
 }
 
 void PrePost::dump() const {
-    cout << g_variable_name[var] << ": " << pre << " => " << post;
+    cout << g_variable_name[var] << ": " << var << "=" << pre << " => " << post;
     if (!cond.empty()) {
         cout << " if";
         for (int i = 0; i < cond.size(); i++) {
             cout << " ";
             cond[i].dump();
+        }
+    }
+}
+
+void Operator::keep_single_effect(int var) {
+    for(vector<PrePost>::iterator it = pre_post.begin(); it != pre_post.end();) {
+        if (it->var != var) {
+            if (it->pre != -1)
+                prevail.push_back(Prevail(it->var, it->pre));
+            it = pre_post.erase(it);
+        } else {
+            ++it;
         }
     }
 }
