@@ -1,5 +1,6 @@
 #include "abstraction.h"
 
+#include "label.h"
 #include "labels.h"
 #include "merge_and_shrink_heuristic.h" // needed for ShrinkStrategy type;
 // TODO: move that type somewhere else?
@@ -392,41 +393,30 @@ void CompositeAbstraction::apply_abstraction_to_lookup_table(
     }
 }
 
-void Abstraction::normalize(bool reduce_labels, const EquivalenceRelation *relation) {
-    // Apply label reduction and remove duplicate transitions.
+void Abstraction::normalize() {
+    // This method normalizes all labels and transitions. Labels are normalized
+    // if transitions of labels that have been reduced via label reduction are
+    // correctly ordered with their new labels.
+    // Remove duplicate transitions.
 
-    cout << tag() << "normalizing ";
-
-    if (reduce_labels) {
-        if (are_labels_reduced) {
-            cout << "without label reduction (already reduced)" << endl;
-        } else {
-            cout << "with label reduction" << endl;
-            labels->reduce_labels(relevant_labels, varset, relation);
-            are_labels_reduced = true;
-        }
-    } else {
-        cout << "without label reduction" << endl;
-    }
+    cout << tag() << "normalizing" << endl;
 
     typedef vector<pair<AbstractStateRef, int> > StateBucket;
 
-    /* First, partition by target state. Also replace operators by
-       their canonical representatives via label reduction and clear
+    // TODO: come up with a good way of updating relevant_labels here
+    //vector<const Label*>().swap(relevant_labels);
+    //hash_set<int> relevant_labels_;
+
+    /* First, partition by target state. Possibly replace labels by
+       their new label which they are mapped to via label reduction and clear
        away the transitions that have been processed. */
-    // TODO: update comment
     vector<StateBucket> target_buckets(num_states);
     assert(transitions_consistent());
     for (int label_no = 0; label_no < num_labels; label_no++) {
         vector<AbstractTransition> &transitions = transitions_by_label[label_no];
         if (!transitions.empty()) {
-            int reduced_label_no;
-            // Note: at least use the label reduction from previous label
-            // reductions on other abstractions in order to make sure that the
-            // new labels are used rather than the old ones.
-            // We thus do *not* only use reduced labels if reduce_labels is true,
-            // but always, in order to guarantee consistent labels.
-            reduced_label_no = labels->get_reduced_label_no(label_no);
+            int reduced_label_no = labels->get_reduced_label_no(label_no);
+            //relevant_labels_.insert(reduced_label_no);
             for (int i = 0; i < transitions.size(); i++) {
                 const AbstractTransition &t = transitions[i];
                 target_buckets[t.target].push_back(
@@ -435,10 +425,15 @@ void Abstraction::normalize(bool reduce_labels, const EquivalenceRelation *relat
             vector<AbstractTransition> ().swap(transitions);
         }
     }
-    // NOTE: for the same reasons as we call "get_reduced_label_no" above even
-    // if reduce_labels is false, we have to update num_labels here to guarantee
-    // usage of consistent labels.
-    num_labels = labels->get_size();
+    /*vector<int> rel_lab;
+    for (hash_set<int>::iterator it = relevant_labels_.begin();
+         it != relevant_labels_.end(); ++it) {
+        rel_lab.push_back(*it);
+    }
+    ::sort(rel_lab.begin(), rel_lab.end());
+    for (size_t i = 0; i < rel_lab.size(); ++i) {
+        relevant_labels.push_back(labels->get_label_by_index(rel_lab[i]));
+    }*/
 
     // Second, partition by src state.
     vector<StateBucket> src_buckets(num_states);
@@ -466,6 +461,9 @@ void Abstraction::normalize(bool reduce_labels, const EquivalenceRelation *relat
                 op_bucket.push_back(trans);
         }
     }
+
+    // Abstraction has been normalized, restore invariant
+    num_labels = labels->get_size();
 }
 
 struct TransitionSignature {
@@ -528,14 +526,14 @@ EquivalenceRelation Abstraction::compute_local_equivalence_relation() const {
         const vector<AbstractTransition> &transitions = transitions_by_label[label_no];
         vector<pair<int, int> > sorted_trans;
         sorted_trans.reserve(transitions.size());
-        cout << "trans for label " << label_no << endl;
+        /*cout << "trans for label " << label_no << endl;
         for (size_t j = 0; j < transitions.size(); ++j) {
             const AbstractTransition &trans = transitions[j];
             sorted_trans.push_back(make_pair(trans.src, trans.target));
             cout << trans.src << "->" << trans.target << endl;
         }
         ::sort(sorted_trans.begin(), sorted_trans.end());
-        cout << "transition sig for label " << label_no << endl;
+        cout << "transition sig for label " << label_no << endl;*/
         TransitionSignature signature(sorted_trans, labels->get_label_by_index(label_no)->get_cost());
         if (!labels_by_transitions.count(signature)) {
             transition_signatures.push_back(signature);
@@ -611,10 +609,6 @@ void Abstraction::build_atomic_abstractions(bool is_unit_cost,
             Abstraction *abs = result[var];
             AbstractTransition trans(value, value);
             abs->transitions_by_label[label_no].push_back(trans);
-            if (abs->tag() == "Atomic abstraction #3: ") {
-                cout << "add trans for abs " << abs->tag() << " and label " << label_no << endl;
-                cout << trans.src << "->" << trans.target << endl;
-            }
 
             if (abs->relevant_labels.empty()
                 || abs->relevant_labels.back() != label)
@@ -637,10 +631,6 @@ void Abstraction::build_atomic_abstractions(bool is_unit_cost,
             for (int value = pre_value_min; value < pre_value_max; value++) {
                 AbstractTransition trans(value, post_value);
                 abs->transitions_by_label[label_no].push_back(trans);
-                if (abs->tag() == "Atomic abstraction #3: ") {
-                    cout << "add trans for abs " << abs->tag() << " and label " << label_no << endl;
-                    cout << trans.src << "->" << trans.target << endl;
-                }
             }
             if (abs->relevant_labels.empty()
                 || abs->relevant_labels.back() != label)
@@ -888,17 +878,6 @@ void Abstraction::apply_abstraction(
     vector<int>().swap(goal_distances);
     vector<bool>().swap(goal_states);
 
-    if (tag() == "Atomic abstraction #3: ") {
-        cout << "trans by label before shrink:" << endl;
-        for (size_t i = 0; i < transitions_by_label.size(); ++i) {
-            const vector<AbstractTransition> &transitions = transitions_by_label[i];
-            cout << "trans for abs " << tag() << " and label " << i << endl;
-            for (size_t j = 0; j < transitions.size(); ++j) {
-                cout << abstraction_mapping[transitions[j].src] << "->" << abstraction_mapping[transitions[j].target] << endl;
-            }
-        }
-    }
-
     vector<vector<AbstractTransition> > new_transitions_by_label(
         transitions_by_label.size());
     assert(transitions_consistent());
@@ -940,17 +919,6 @@ void Abstraction::apply_abstraction(
     if (must_clear_distances) {
         cout << tag() << "simplification was not f-preserving!" << endl;
         clear_distances();
-    }
-
-    if (tag() == "Atomic abstraction #3: ") {
-        cout << "trans by label after shrink:" << endl;
-        for (size_t i = 0; i < transitions_by_label.size(); ++i) {
-            const vector<AbstractTransition> &transitions = transitions_by_label[i];
-            cout << "trans for abs " << tag() << " and label " << i << endl;
-            for (size_t j = 0; j < transitions.size(); ++j) {
-                cout << transitions[j].src << "->" << transitions[j].target << endl;
-            }
-        }
     }
 }
 
