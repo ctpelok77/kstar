@@ -2,7 +2,6 @@
 #define MERGE_AND_SHRINK_ABSTRACTION_H
 
 #include "equivalence_relation.h"
-#include "label.h"
 #include "shrink_strategy.h"
 
 #include "../operator_cost.h"
@@ -121,8 +120,8 @@ public:
     bool is_in_varset(int var) const;
 
     void compute_distances();
-    void normalize(bool reduce_labels, const EquivalenceRelation *relation = 0);
-    EquivalenceRelation compute_local_equivalence_relation() const;
+    void normalize();
+	EquivalenceRelation compute_local_equivalence_relation() const;
     void release_memory();
 
     void dump_transitions_sizes() const;
@@ -154,6 +153,14 @@ public:
     // The following methods are shrink_bisimulation-exclusive
     int get_num_labels() const;
     const std::vector<AbstractTransition> &get_transitions_for_label(int label_no) const;
+
+    // The following two getters serve LabelReducer
+    const std::vector<const Label *> &get_relevant_labels() const {
+        return relevant_labels;
+    }
+    const std::vector<int> &get_varset() const {
+        return varset;
+    }
 };
 
 class AtomicAbstraction : public Abstraction {
