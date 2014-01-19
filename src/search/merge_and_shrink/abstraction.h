@@ -1,6 +1,7 @@
 #ifndef MERGE_AND_SHRINK_ABSTRACTION_H
 #define MERGE_AND_SHRINK_ABSTRACTION_H
 
+#include "equivalence_relation.h"
 #include "shrink_strategy.h"
 
 #include "../operator_cost.h"
@@ -8,8 +9,9 @@
 #include <ext/slist>
 #include <vector>
 
+class Label;
+class Labels;
 class State;
-class Operator;
 
 struct AbstractTransition {
     AbstractStateRef src;
@@ -42,11 +44,21 @@ class Abstraction {
     static const int DISTANCE_UNKNOWN = -2;
 
     const bool is_unit_cost;
-    const OperatorCost cost_type;
-
-    std::vector<const Operator *> relevant_operators;
+    // There should only be one instance of Labels at runtime. It is created
+    // and managed by MergeAndShrinkHeuristic. All abstraction instances have
+    // a copy of the object required for normalization.
+    const Labels *labels;
+    // The set of relevant labels will *never* be updated after label reduction
+    // and may thus contain non-leaf labels. Make sure to always consider the
+    // mapped labels of relevant labels.
+    std::vector<const Label *> relevant_labels;
     int num_states;
-    std::vector<std::vector<AbstractTransition> > transitions_by_op;
+    std::vector<std::vector<AbstractTransition> > transitions_by_label;
+    // The number of labels that this abstraction is "aware of", i.e. that have
+    // been incorporated into transitions_by_label. Whenever new labels are
+    // generated through label reduction, we do *not* update all abstractions
+    // immediately.
+    int num_labels;
 
     std::vector<int> init_distances;
     std::vector<int> goal_distances;
@@ -57,7 +69,7 @@ class Abstraction {
     int max_g;
     int max_h;
 
-    bool are_labels_reduced;
+    bool normalized;
 
     mutable int peak_memory;
 
@@ -79,7 +91,7 @@ protected:
                                                        AbstractStateRef> &abstraction_mapping) = 0;
     virtual int memory_estimate() const;
 public:
-    Abstraction(bool is_unit_cost, OperatorCost cost_type);
+    Abstraction(bool is_unit_cost, Labels *labels);
     virtual ~Abstraction();
 
     // Two methods to identify the abstraction in output.
@@ -88,9 +100,8 @@ public:
     virtual std::string description() const = 0;
     std::string tag() const;
 
-    static void build_atomic_abstractions(
-        bool is_unit_cost, OperatorCost cost_type,
-        std::vector<Abstraction *> &result);
+    static void build_atomic_abstractions(bool is_unit_cost,
+        std::vector<Abstraction *> &result, Labels *labels);
     bool is_solvable() const;
 
     int get_cost(const State &state) const;
@@ -106,9 +117,16 @@ public:
     bool is_in_varset(int var) const;
 
     void compute_distances();
-    void normalize(bool reduce_labels);
+    bool is_normalized() const;
+    void normalize();
+    EquivalenceRelation *compute_local_equivalence_relation() const;
     void release_memory();
 
+    // For debugging purposes.
+    // sorted_unique() is currently also used to determine whether an
+    // abstraction is normalized or not after construction (composite abstraction)
+    // and shrinking (apply_abstraction)
+    bool sorted_unique() const;
     void dump() const;
 
     // The following methods exist for the benefit of shrink strategies.
@@ -128,15 +146,19 @@ public:
         return goal_distances[state];
     }
 
-    int get_num_ops() const {
-        return transitions_by_op.size();
-    }
+    // This method should be private but is public for shrink_bisimulation
+    int get_label_cost_by_index(int label_no) const;
+    // The following methods are shrink_bisimulation-exclusive
+    int get_num_labels() const;
+    const std::vector<AbstractTransition> &get_transitions_for_label(int label_no) const;
 
-    const std::vector<AbstractTransition> &get_transitions_for_op(int op_no) const {
-        return transitions_by_op[op_no];
+    // The following two getters serve the m&s heuristic for label reduction
+    const std::vector<const Label *> &get_relevant_labels() const {
+        return relevant_labels;
     }
-
-    int get_cost_for_op(int op_no) const;
+    const std::vector<int> &get_varset() const {
+        return varset;
+    }
 };
 
 class AtomicAbstraction : public Abstraction {
@@ -149,7 +171,7 @@ protected:
     virtual AbstractStateRef get_abstract_state(const State &state) const;
     virtual int memory_estimate() const;
 public:
-    AtomicAbstraction(bool is_unit_cost, OperatorCost cost_type, int variable);
+    AtomicAbstraction(bool is_unit_cost, Labels *labels, int variable);
     virtual ~AtomicAbstraction();
 };
 
@@ -163,8 +185,7 @@ protected:
     virtual AbstractStateRef get_abstract_state(const State &state) const;
     virtual int memory_estimate() const;
 public:
-    CompositeAbstraction(
-        bool is_unit_cost, OperatorCost cost_type,
+    CompositeAbstraction(bool is_unit_cost, Labels *labels,
         Abstraction *abs1, Abstraction *abs2);
     virtual ~CompositeAbstraction();
 };
