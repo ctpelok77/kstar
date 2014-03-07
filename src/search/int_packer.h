@@ -16,7 +16,7 @@ class IntPacker {
     std::vector<PackedInt> packed_ints;
     int packed_size;
 
-    void calculate_packed_size(const std::vector<int> &ranges);
+    void pack_bins(const std::vector<int> &ranges);
 
     // No implementation to prevent default construction.
     IntPacker();

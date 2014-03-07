@@ -241,15 +241,12 @@ void read_everything(istream &in) {
     read_metric(in);
     read_variables(in);
     read_mutexes(in);
-    g_initial_state_data.reserve(g_variable_domain.size());
+    g_initial_state_data.resize(g_variable_domain.size());
     check_magic(in, "begin_state");
     for (int i = 0; i < g_variable_domain.size(); i++) {
-        int val;
-        in >> val;
-        g_initial_state_data.push_back(val);
+        in >> g_initial_state_data[i];
     }
     check_magic(in, "end_state");
-    // TODO: this is an exact copy of g_initial_state_data, do we still need it?
     g_default_axiom_values = g_initial_state_data;
 
     read_goal(in);
