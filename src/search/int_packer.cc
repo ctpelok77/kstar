@@ -6,20 +6,16 @@
 #include <iostream>
 using namespace std;
 
-void set_bits(PackedStateEntry &mask, unsigned int from, const unsigned int to) {
-    for (; from < to; ++from) {
-        mask |= (1 << from);
-    }
+void set_bits(PackedStateEntry &mask, unsigned int from, unsigned int to) {
+    assert (from <= to);
+    mask |= (PackedStateEntry(1) << to) - (PackedStateEntry(1) << from);
 }
 
-int bits_needed(int num_values) {
-    unsigned int bits_needed = 0;
-    num_values--;
-    do {
-        num_values >>= 1;
-        ++bits_needed;
-    } while (num_values);
-    return bits_needed;
+int get_needed_bits(int num_values) {
+    unsigned int num_bits = 0;
+    while (num_values > 1U << num_bits)
+        ++num_bits;
+    return num_bits;
 }
 
 int get_max_fitting_bits(const vector<vector<int> > &ints_by_needed_bits,
@@ -36,7 +32,7 @@ int get_max_fitting_bits(const vector<vector<int> > &ints_by_needed_bits,
 IntPacker::IntPacker(const vector<int> &ranges)
     : packed_ints(),
       packed_size(0) {
-    calculate_packed_size(ranges);
+    pack_bins(ranges);
 }
 
 IntPacker::~IntPacker() {
@@ -53,7 +49,7 @@ void IntPacker::set(PackedStateEntry *buffer, int pos, int value) const {
     buffer[packed_int.index] = (before & packed_int.clear_mask) | (value << packed_int.shift);
 }
 
-void IntPacker::calculate_packed_size(const vector<int> &ranges) {
+void IntPacker::pack_bins(const vector<int> &ranges) {
     assert(packed_ints.empty());
     int num_ints = ranges.size();
     packed_ints.resize(num_ints);
@@ -61,10 +57,8 @@ void IntPacker::calculate_packed_size(const vector<int> &ranges) {
     int bits_per_entry = sizeof(PackedStateEntry) * 8;
     vector<vector<int> > ints_by_needed_bits(bits_per_entry + 1);
     for (size_t pos = 0; pos < num_ints; ++pos) {
-        int bits = bits_needed(ranges[pos]);
-        if (bits >= bits_per_entry) {
-            ABORT("range is too big.");
-        }
+        int bits = get_needed_bits(ranges[pos]);
+        assert(bits < bits_per_entry);
         ints_by_needed_bits[bits].push_back(pos);
     }
     // Greedy strategy: always add the largest fitting int.
