@@ -1,47 +1,37 @@
 #ifndef MERGE_AND_SHRINK_LABEL_REDUCER_H
 #define MERGE_AND_SHRINK_LABEL_REDUCER_H
 
-#include "../globals.h"
-#include "../operator.h"
-#include "../operator_cost.h"
+#include "label.h"
+#include "labels.h"
 
 #include <cassert>
 #include <vector>
 
-class OperatorSignature;
+class Abstraction;
+class EquivalenceRelation;
+class LabelSignature;
 
 class LabelReducer {
-    std::vector<const Operator *> reduced_label_by_index;
-    inline int get_op_index(const Operator *op) const;
-
-    int num_pruned_vars;
-    int num_labels;
-    int num_reduced_labels;
-
-    OperatorSignature build_operator_signature(
-        const Operator &op, OperatorCost cost_type,
+    bool test;
+    // old label reduction
+    LabelSignature build_label_signature(const Label &label,
         const std::vector<bool> &var_is_used) const;
+    int reduce_old(const std::vector<int> &abs_vars,
+                   std::vector<Label *> &labels) const;
+
+    // exact label reduction
+    EquivalenceRelation *compute_outside_equivalence(int abs_index,
+                                                     const std::vector<Abstraction *> &all_abstractions,
+                                                     const std::vector<Label *> &labels,
+                                                     std::vector<EquivalenceRelation *> &local_equivalence_relations) const;
+    int reduce_exactly(const EquivalenceRelation *relation, std::vector<Label *> &labels) const;
 public:
-    LabelReducer(
-        const std::vector<const Operator *> &relevant_operators,
-        const std::vector<int> &pruned_vars,
-        OperatorCost cost_type);
-    ~LabelReducer();
-    inline const Operator *get_reduced_label(const Operator *op) const;
-    void statistics() const;
+    LabelReducer() {}
+    void reduce_labels(int abs_index,
+                       const std::vector<Abstraction *> &all_abstractions,
+                       std::vector<Label* > &labels,
+                       const LabelReduction &label_reduction,
+                       const std::vector<int> &variable_order) const;
 };
-
-inline int LabelReducer::get_op_index(const Operator *op) const {
-    int op_index = op - &*g_operators.begin();
-    assert(op_index >= 0 && op_index < g_operators.size());
-    return op_index;
-}
-
-inline const Operator *LabelReducer::get_reduced_label(
-    const Operator *op) const {
-    const Operator *reduced_label = reduced_label_by_index[get_op_index(op)];
-    assert(reduced_label);
-    return reduced_label;
-}
 
 #endif
