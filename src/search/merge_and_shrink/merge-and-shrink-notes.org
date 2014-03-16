@@ -1,0 +1,154 @@
+* main code
+
+  1212 abstraction.cc
+   195 abstraction.h
+    55 label.cc
+    72 label.h
+   328 label_reducer.cc
+    41 label_reducer.h
+   109 labels.cc
+    52 labels.h
+   314 merge_and_shrink_heuristic.cc
+    32 merge_and_shrink_heuristic.h
+
+* merge strategies
+
+=> also check methods in abstraction.cc that were previously skipped:
+- Abstraction::compute_label_ranks
+
+    71 linear_merge_strategy.cc
+    24 linear_merge_strategy.h
+    10 merge_strategy.cc
+    24 merge_strategy.h
+   171 non_linear_merge_strategy.cc
+    26 non_linear_merge_strategy.h
+
+* shrink strategies
+
+   456 shrink_bisimulation.cc
+    53 shrink_bisimulation.h
+   106 shrink_bucket_based.cc
+    53 shrink_bucket_based.h
+   189 shrink_fh.cc
+    60 shrink_fh.h
+    50 shrink_random.cc
+    19 shrink_random.h
+   171 shrink_strategy.cc
+    92 shrink_strategy.h
+
+* utilities
+
+   158 equivalence_relation.cc
+   147 equivalence_relation.h
+   126 variable_order_finder.cc
+    31 variable_order_finder.h
+
+* General TODOs for now
+
+- CompositeAbstraction (constructor): swapping loops does not guarantee
+  sorting of transitions.
+- After we've started merging, the fixed-point variable order for
+  label reduction doesn't really talk about variables any more but
+  also about merged abstractions. Take this into account when thinking
+  about this variable order. One possible idea we could try in the
+  future would be to take into account the size of the transition
+  systems when deciding what to combine.
+- Abstraction::apply_abstraction_mapping: how can this remain private? Using
+  "friend" for classes that abstract abstractions seems not to be a good way.
+
+* General TODOs for later
+
+- To reduce memory, we might combine the representation of the
+  transitions of locally equivalent labels. That is, if label1 and
+  label2 have the same transitions, don't store "label1: transition1,
+  ...; label2: transition1, ...", but instead store "{label1, label2}:
+  transition1, ...".
+- Replace all the estimated memory stuff with actual memory
+  measurements (or maybe better for now: add actual memory
+  measurements)?
+- Split the representation of the abstraction function and
+  heuristic from the transition systems so that we can throw away the
+  transition systems after constructing them?
+
+* General TODOs for the "big refactoring"
+
+- Make names of classes, variables etc. more consistent with the
+  papers. For example, Abstraction => TransitionSystem. Also clean up
+  the documentation.
+
+- Reconsider what we understand by "normalized", e.g. define the notion of a
+  "valid state" of an abstraction as:
+  - Transitions are sorted (by labels, by states) and there are no
+    duplicates.
+  - All labels are incorporated
+  - Distances are computed and stored
+  - Maybe: locally equivalent labels are computed and stored (we then could
+    store the transitions for locally equivalent labels only once. We could
+    even consider dropping '(ir)relevant labels' and making self loops
+    explicit in this case.
+
+- Transition systems should always be valid (see above), i.e. immediately after
+  shrinking, after label reduction and after construction. We could have
+  private methods apply_abstraction, apply_label_mapping. The only remaining
+  public (non-const) methods could be release_memory.
+
+- Split pruning of irrelevant states off from compute_distances and do not use
+  a shrink strategy for it. Instead, we could have a private method
+  discard_states or similar that does the pruning.
+
+- Get rid of unused labels rather than having a tree-like structure for the set
+  of all labels. This should be possible under the assumption that abstractions
+  are always in a valid state.
+
+- Some thoughts on the order in which things could be done in the merge-and-
+  shrink main loop:
+  - build atomic abstractions
+  - compute distances
+  - apply label reduction
+  - main loop:
+    - choose two abstractions
+    - shrink (make sure state is valid!)
+    - merge
+    - compute distances
+    - apply label reduction
+
+  where apply label reduction means to determine combinable labels, to combine
+  labels and to apply the label mapping in all abstractions (valid state!)
+
+- Main loop: use new indices in all_abstractions (reserve 2*#abs - 1). This
+  also makes sure that we do not choose indices at which we expect an atomic
+  abstraction for example, but find a composite abstraction.
+
+- Abstraction::compute_local_equivalence_relation():
+  make computation faster through sorting transitions (O(n log n)) or hashing
+  (O(n)). Sorting is probably better, because we do not need to consider all
+  transitions in the best case.
+
+- Abstraction::apply_abstraction: possibly consider the special case that
+  nothing is actually being shrunk and then leave the method.
+
+- Can we get rid of "shrink_atomic" (and the related block before the merge
+  and shrink main loop)?
+
+- VariableOrderFinder: Move one level up in the code base?
+
+- LabelReducer: the caching of local equivalence relations of labels could be
+  stored in the abstractions rather than the label reducer
+
+- LabelReducer could be integrated (back) into Labels after we got rid of the
+  old label reduction method. There is a strong inter depedence between both
+  classes, as the label reducer creates new labels and Labels should handle
+  such operations.
+
+- LabelReducer::reduce_labels(...): get rid of the abs_index parameter and
+  determine internally with what abstraction to start (if using a label
+  reduction method which does several iterations of reductions). For example,
+  we could always take the "largest" abstraction in terms of variables
+  included in it. This should then reflect the same behavior as with the old
+  label reduction, at least when using non-linear merge strategies.
+
+* TODOs for rest of the code:
+
+- Only use help_mode() when the behaviour should differ from
+  dry_run() (dry_run() is also set in help mode).
+
