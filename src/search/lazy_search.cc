@@ -16,7 +16,7 @@ LazySearch::LazySearch(const Options &opts)
     : SearchEngine(opts),
       open_list(opts.get<OpenList<OpenListEntryLazy> *>("open")),
       reopen_closed_nodes(opts.get<bool>("reopen_closed")),
-      succ_mode(pref_first),
+      succ_order(static_cast<SuccOrder>(opts.get_enum("succ_order"))),
       current_state(g_initial_state()),
       current_predecessor_id(StateID::no_state),
       current_operator(NULL),
@@ -69,23 +69,28 @@ void LazySearch::get_successor_operators(vector<const Operator *> &ops) {
             heur->get_preferred_operators(preferred_operators);
     }
 
-    if (succ_mode == pref_first) {
+    if (succ_order == pref_first || succ_order == shuffled_pref_first) {
         for (int i = 0; i < preferred_operators.size(); i++) {
             if (!preferred_operators[i]->is_marked()) {
                 ops.push_back(preferred_operators[i]);
                 preferred_operators[i]->mark();
             }
         }
+        if (succ_order == shuffled_pref_first)
+            random_shuffle(ops.begin(), ops.end());
+        int num_pref_ops = ops.size();
 
         for (int i = 0; i < all_operators.size(); i++)
             if (!all_operators[i]->is_marked())
                 ops.push_back(all_operators[i]);
+        if (succ_order == shuffled_pref_first)
+            random_shuffle(ops.begin() + num_pref_ops, ops.end());
     } else {
         for (int i = 0; i < preferred_operators.size(); i++)
             if (!preferred_operators[i]->is_marked())
                 preferred_operators[i]->mark();
         ops.swap(all_operators);
-        if (succ_mode == shuffled)
+        if (succ_order == shuffled)
             random_shuffle(ops.begin(), ops.end());
     }
 }
@@ -198,6 +203,18 @@ void LazySearch::statistics() const {
     search_progress.print_statistics();
 }
 
+
+static void _add_succ_order_options(OptionParser &parser) {
+    vector<string> options;
+    options.push_back("ORIGINAL");
+    options.push_back("PREF_FIRST");
+    options.push_back("SHUFFLED");
+    options.push_back("SHUFFLED_PREF_FIRST");
+    parser.add_enum_option("succ_order",
+                           options, "PREF_FIRST",
+                           "ordering of applicable operators");
+}
+
 static SearchEngine *_parse(OptionParser &parser) {
     parser.document_synopsis("Lazy best first search", "");
     Plugin<OpenList<OpenListEntryLazy > >::register_open_lists();
@@ -207,6 +224,7 @@ static SearchEngine *_parse(OptionParser &parser) {
     parser.add_list_option<Heuristic *>(
         "preferred",
         "use preferred operators of these heuristics", "[]");
+    _add_succ_order_options(parser);
     SearchEngine::add_options_to_parser(parser);
     Options opts = parser.parse();
 
@@ -269,6 +287,7 @@ static SearchEngine *_parse_greedy(OptionParser &parser) {
         "boost value for alternation queues that are restricted "
         "to preferred operator nodes",
         OptionParser::to_str(DEFAULT_LAZY_BOOST));
+    _add_succ_order_options(parser);
     SearchEngine::add_options_to_parser(parser);
     Options opts = parser.parse();
 
@@ -358,6 +377,7 @@ static SearchEngine *_parse_weighted_astar(OptionParser &parser) {
                            "boost value for preferred operator open lists",
                            OptionParser::to_str(DEFAULT_LAZY_BOOST));
     parser.add_option<int>("w", "heuristic weight", "1");
+    _add_succ_order_options(parser);
     SearchEngine::add_options_to_parser(parser);
     Options opts = parser.parse();
 
