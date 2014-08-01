@@ -1389,7 +1389,8 @@ c_problem_body :
 |    c_goal_spec c_problem_body     {$$=$2; $$->the_goal= $1;}
 |	 c_constraints_probdef c_problem_body 
 									{$$=$2; $$->constraints = $1;}
-|    c_metric_spec c_problem_body   {$$=$2; $$->metric= $1;}
+|    c_metric_spec c_problem_body   {$$=$2; if($$->metric == 0) {$$->metric= $1;}
+											else {$$->metric->add($1);}}
 |    c_length_spec c_problem_body   {$$=$2; $$->length= $1;}
 |   /* Empty */                     {$$=new problem;}
 ;

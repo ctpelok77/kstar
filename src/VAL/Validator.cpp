@@ -1325,7 +1325,6 @@ void Validator::computeMetric(const State * s,vector<double> & v) const
 vector<double> Validator::finalValue() const
 {
 	vector<double> value(metric?metric->opt.size():1);
-	bool doneSL = false;
 	
 	if(metric && !(makespanDefault && durative))
 	{
@@ -1344,7 +1343,6 @@ vector<double> Validator::finalValue() const
 	else if(stepLength) 
 	{
 		value[0] = stepcount;  // Default is step count.
-		doneSL = true;
 	}
 	else 
 	{
@@ -1374,7 +1372,6 @@ vector<double> Validator::finalValue() const
 		};
 	};
 	
-//  	if(stepLengthDefault && !doneSL)
  	if(stepLengthDefault)
 	{
 		value.push_back(stepcount);
@@ -3161,7 +3158,7 @@ pair<const plan_step *,pair<bool,bool> > PlanRepair::repairPlanOneAction(const p
 {
 
  const plan_step * nextFlawedAction = 0;
- bool planRepaired = false, goalSatisfied = false;
+ bool planRepaired = false;
  bool actionFixed = false;
  string actionName = getName(firstAction);
  double actionTime = firstAction->start_time;
@@ -3212,7 +3209,7 @@ pair<const plan_step *,pair<bool,bool> > PlanRepair::repairPlanOneAction(const p
 
 
             if(planRepairValidator->getErrorLog().getConditions().size() == 0)
-            {  if(planRepairValidator->checkGoal(theGoal)) goalSatisfied = true;
+            {  // if(planRepairValidator->checkGoal(theGoal)) goalSatisfied = true;
                     //cout << "Satisfied "<< actionName << " at time "<<actionTime<<"\n";
                actionFixed = true; planRepaired = true; break;
             };
