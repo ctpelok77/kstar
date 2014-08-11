@@ -422,7 +422,7 @@ jdepend:
 
 ./Analysis.o: ./Analyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h
 
-./CausalGraph.o: ./Cascader.h ./CausalGraph.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./CausalGraph.o: ./Cascader.h ./CausalGraph.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
 ./DYNA.o: ./DYNATranslator.h ./VisitController.h ./WriteController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h
 
@@ -442,9 +442,9 @@ jdepend:
 
 ./FuncExp.o: ./Environment.h ./FuncExp.h ./Ownership.h ./Polynomial.h ./Proposition.h ./RobustAnalyse.h ./State.h ./StateObserver.h ./Utils.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./random.h ./sStack.h
 
-./HowAnalyser.o: ./AbstractGraph.h ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./HowAnalyser.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./HowAnalyser.o: ./AbstractGraph.h ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./HowAnalyser.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
-./HowWhatWhenMain.o: ./AbstractGraph.h ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./HowAnalyser.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./HowWhatWhenMain.o: ./AbstractGraph.h ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./HowAnalyser.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
 ./InstPropLinker.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./InstPropLinker.h ./Ownership.h ./Polynomial.h ./Proposition.h ./SimpleEval.h ./TypedAnalyser.h ./VisitController.h ./instantiation.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
@@ -456,15 +456,15 @@ jdepend:
 
 ./Ownership.o: ./Action.h ./Environment.h ./Events.h ./Exceptions.h ./FuncExp.h ./Ownership.h ./Plan.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./State.h ./StateObserver.h ./TrajectoryConstraints.h ./Utils.h ./Validator.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
-./PartialPlan.o: ./Action.h ./Cascader.h ./Environment.h ./Events.h ./Exceptions.h ./FastEnvironment.h ./FuncAnalysis.h ./FuncExp.h ./Ownership.h ./PartialPlan.h ./Plan.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./SearchSpace.h ./SimpleEval.h ./State.h ./StateObserver.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TrajectoryConstraints.h ./TypedAnalyser.h ./Utils.h ./Validator.h ./VisitController.h ./graphconstruct.h ./instantiation.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./PartialPlan.o: ./Action.h ./Cascader.h ./Environment.h ./Events.h ./Exceptions.h ./FastEnvironment.h ./FuncAnalysis.h ./FuncExp.h ./Ownership.h ./PartialPlan.h ./Plan.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./SearchSpace.h ./SimpleEval.h ./State.h ./StateObserver.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TrajectoryConstraints.h ./TypedAnalyser.h ./Utils.h ./Validator.h ./VisitController.h ./graphconstruct.h ./instantiation.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
-./PinguPlanGenerator.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./PinguPlanGenerator.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./PinguPlanGenerator.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./PinguPlanGenerator.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
-./PingusTranslator.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./PinguPlanGenerator.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./PingusTranslator.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./PinguPlanGenerator.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
 ./Plan.o: ./Action.h ./Environment.h ./Events.h ./Exceptions.h ./FuncExp.h ./Ownership.h ./Plan.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./RobustAnalyse.h ./State.h ./StateObserver.h ./TrajectoryConstraints.h ./Utils.h ./Validator.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
-./PlanRec.o: ./AbstractGraph.h ./Action.h ./Cascader.h ./CausalGraph.h ./Environment.h ./Events.h ./Exceptions.h ./FastEnvironment.h ./FuncAnalysis.h ./FuncExp.h ./GoalHypSpace.h ./HowAnalyser.h ./LaTeXSupport.h ./Ownership.h ./Plan.h ./PlanExecutionTracker.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./RobustAnalyse.h ./State.h ./StateObserver.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TrajectoryConstraints.h ./TypedAnalyser.h ./Utils.h ./Validator.h ./VisitController.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./PlanRec.o: ./AbstractGraph.h ./Action.h ./Cascader.h ./CausalGraph.h ./Environment.h ./Events.h ./Exceptions.h ./FastEnvironment.h ./FuncAnalysis.h ./FuncExp.h ./GoalHypSpace.h ./HowAnalyser.h ./LaTeXSupport.h ./Ownership.h ./Plan.h ./PlanExecutionTracker.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./RobustAnalyse.h ./State.h ./StateObserver.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TrajectoryConstraints.h ./TypedAnalyser.h ./Utils.h ./Validator.h ./VisitController.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
 ./Polynomial.o: ./Environment.h ./Exceptions.h ./Ownership.h ./Polynomial.h ./Proposition.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h
 
@@ -480,23 +480,23 @@ jdepend:
 
 ./RobustAnalyse.o: ./Action.h ./Environment.h ./Events.h ./Exceptions.h ./FuncExp.h ./LaTeXSupport.h ./Ownership.h ./Plan.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./RobustAnalyse.h ./State.h ./StateObserver.h ./TrajectoryConstraints.h ./Utils.h ./Validator.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./random.h ./sStack.h ./tDistribution.h ./typecheck.h
 
-./SASActions.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./SASActions.h ./SimpleEval.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./ToFunction.h ./TypedAnalyser.h ./VisitController.h ./instantiation.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./SASActions.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./SASActions.h ./SimpleEval.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./ToFunction.h ./TypedAnalyser.h ./VisitController.h ./instantiation.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
-./SearchSpace.o: ./Action.h ./Cascader.h ./Environment.h ./Events.h ./Exceptions.h ./FastEnvironment.h ./FuncAnalysis.h ./FuncExp.h ./Ownership.h ./PartialPlan.h ./Plan.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./SearchSpace.h ./SimpleEval.h ./State.h ./StateObserver.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TrajectoryConstraints.h ./TypedAnalyser.h ./Utils.h ./Validator.h ./VisitController.h ./graphconstruct.h ./instantiation.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./SearchSpace.o: ./Action.h ./Cascader.h ./Environment.h ./Events.h ./Exceptions.h ./FastEnvironment.h ./FuncAnalysis.h ./FuncExp.h ./Ownership.h ./PartialPlan.h ./Plan.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./SearchSpace.h ./SimpleEval.h ./State.h ./StateObserver.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TrajectoryConstraints.h ./TypedAnalyser.h ./Utils.h ./Validator.h ./VisitController.h ./graphconstruct.h ./instantiation.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
 ./SimpleEval.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./SimpleEval.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
 ./State.o: ./Action.h ./Environment.h ./Events.h ./Exceptions.h ./FuncExp.h ./LaTeXSupport.h ./Ownership.h ./Plan.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./RobustAnalyse.h ./State.h ./StateObserver.h ./TrajectoryConstraints.h ./Utils.h ./Validator.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
-./TIM.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./TIM.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
-./TIMMain.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./SimpleEval.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./instantiation.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./TIMMain.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./SimpleEval.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./instantiation.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
-./TimSupport.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./Partitions.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/assert.h /usr/include/string.h
+./TimSupport.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./Partitions.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
-./ToFnMain.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./SASActions.h ./SimpleEval.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./ToFunction.h ./TypedAnalyser.h ./VisitController.h ./instantiation.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./ToFnMain.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./SASActions.h ./SimpleEval.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./ToFunction.h ./TypedAnalyser.h ./VisitController.h ./instantiation.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
-./ToFunction.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./SASActions.h ./SimpleEval.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./ToFunction.h ./TypedAnalyser.h ./VisitController.h ./instantiation.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./ToFunction.o: ./Cascader.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./SASActions.h ./SimpleEval.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./ToFunction.h ./TypedAnalyser.h ./VisitController.h ./instantiation.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
 ./TrajectoryConstraints.o: ./Action.h ./Environment.h ./Events.h ./Exceptions.h ./FuncExp.h ./Ownership.h ./Plan.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./State.h ./StateObserver.h ./TrajectoryConstraints.h ./Utils.h ./Validator.h ./VisitController.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
@@ -512,13 +512,13 @@ jdepend:
 
 ./Validator.o: ./Action.h ./Environment.h ./Events.h ./Exceptions.h ./FuncExp.h ./Ownership.h ./Plan.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./RobustAnalyse.h ./State.h ./StateObserver.h ./TrajectoryConstraints.h ./Utils.h ./Validator.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./random.h ./sStack.h ./typecheck.h
 
-./dynaMain.o: ./Action.h ./Cascader.h ./DebugWriteController.h ./Environment.h ./Events.h ./Exceptions.h ./FastEnvironment.h ./FuncAnalysis.h ./FuncExp.h ./Ownership.h ./PartialPlan.h ./Plan.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./SearchSpace.h ./SimpleEval.h ./State.h ./StateObserver.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TrajectoryConstraints.h ./TypedAnalyser.h ./Utils.h ./Validator.h ./VisitController.h ./WriteController.h ./graphconstruct.h ./instantiation.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./dynaMain.o: ./Action.h ./Cascader.h ./DebugWriteController.h ./Environment.h ./Events.h ./Exceptions.h ./FastEnvironment.h ./FuncAnalysis.h ./FuncExp.h ./Ownership.h ./PartialPlan.h ./Plan.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./SearchSpace.h ./SimpleEval.h ./State.h ./StateObserver.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TrajectoryConstraints.h ./TypedAnalyser.h ./Utils.h ./Validator.h ./VisitController.h ./WriteController.h ./graphconstruct.h ./instantiation.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
 ./graphconstruct.o: ./Action.h ./Cascader.h ./Environment.h ./Evaluator.h ./Events.h ./Exceptions.h ./FastEnvironment.h ./FuncAnalysis.h ./FuncExp.h ./InstPropLinker.h ./Ownership.h ./Plan.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./SimpleEval.h ./State.h ./StateObserver.h ./TrajectoryConstraints.h ./TypedAnalyser.h ./Utils.h ./Validator.h ./VisitController.h ./graphconstruct.h ./instantiation.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
-./instantiation.o: ./Cascader.h ./DebugWriteController.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./SimpleEval.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./WriteController.h ./instantiation.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./instantiation.o: ./Cascader.h ./DebugWriteController.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./SimpleEval.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./WriteController.h ./instantiation.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
-./instantiationMain.o: ./Cascader.h ./DebugWriteController.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./SimpleEval.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./WriteController.h ./instantiation.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h /usr/include/string.h
+./instantiationMain.o: ./Cascader.h ./DebugWriteController.h ./Environment.h ./FastEnvironment.h ./FuncAnalysis.h ./SimpleEval.h ./TIM.h ./TIMUtilities.h ./TimSupport.h ./TypedAnalyser.h ./VisitController.h ./WriteController.h ./instantiation.h ./macros.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
 ./main.o: ./Action.h ./Environment.h ./Events.h ./Exceptions.h ./FuncExp.h ./LaTeXSupport.h ./Ownership.h ./Plan.h ./Polynomial.h ./Proposition.h ./RepairAdvice.h ./RobustAnalyse.h ./State.h ./StateObserver.h ./TrajectoryConstraints.h ./Utils.h ./Validator.h ./macros.h ./main.h ./parse_error.h ./ptree.h ./sStack.h ./typecheck.h
 
