@@ -55,7 +55,7 @@
 #include <iostream>
 #include <fstream>
 
-//needed on windows for the defenition of time()
+// Needed on Windows for time().
 #include <time.h>
 
 #include "ptree.h"
