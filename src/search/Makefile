@@ -41,6 +41,7 @@ HEADERS = \
           axioms.h \
           causal_graph.h \
           combining_evaluator.h \
+          const_evaluator.h\
           domain_transition_graph.h \
           eager_search.h \
           enforced_hill_climbing_search.h \
@@ -81,6 +82,7 @@ HEADERS = \
           open_lists/pareto_open_list.h \
           open_lists/standard_scalar_open_list.h \
           open_lists/tiebreaking_open_list.h \
+          open_lists/typed_open_list.h \
           \
           lp_solver_interface.h \
 
