@@ -8,13 +8,15 @@
 
 #include "globals.h"
 #include "state.h"
+#include "utilities.h"
+
 
 struct Condition {
     int var;
     int val;
     explicit Condition(std::istream &in);
     Condition(int variable, int value) : var(variable), val(value) {
-        assert(var >= 0 && var < g_variable_name.size());
+        assert(in_bounds(var, g_variable_name));
         assert(val >= 0 && val < g_variable_domain[var]);
     }
 
@@ -42,7 +44,7 @@ struct Effect {
         : var(variable), val(value), conditions(conds) {}
 
     bool does_fire(const State &state) const {
-        for (int i = 0; i < conditions.size(); ++i)
+        for (size_t i = 0; i < conditions.size(); ++i)
             if (!conditions[i].is_applicable(state))
                 return false;
         return true;
@@ -71,7 +73,7 @@ public:
     const std::vector<Effect> &get_effects() const {return effects; }
 
     bool is_applicable(const State &state) const {
-        for (int i = 0; i < preconditions.size(); ++i)
+        for (size_t i = 0; i < preconditions.size(); ++i)
             if (!preconditions[i].is_applicable(state))
                 return false;
         return true;
