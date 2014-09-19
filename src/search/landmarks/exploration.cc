@@ -1,7 +1,7 @@
 #include "exploration.h"
+#include "../global_operator.h"
+#include "../global_state.h"
 #include "../globals.h"
-#include "../operator.h"
-#include "../state.h"
 #include "../utilities.h"
 
 #include <cassert>
@@ -116,11 +116,11 @@ void Exploration::set_additional_goals(const std::vector<pair<int, int> > &add_g
     heuristic_recomputation_needed = true;
 }
 
-void Exploration::build_unary_operators(const Operator &op) {
+void Exploration::build_unary_operators(const GlobalOperator &op) {
     // Note: changed from the original to allow sorting of operator conditions
     int base_cost = get_adjusted_cost(op);
-    const vector<Condition> &preconditions = op.get_preconditions();
-    const vector<Effect> &effects = op.get_effects();
+    const vector<GlobalCondition> &preconditions = op.get_preconditions();
+    const vector<GlobalEffect> &effects = op.get_effects();
     vector<ExProposition *> precondition;
     vector<pair<int, int> > precondition_var_vals1;
 
@@ -134,7 +134,7 @@ void Exploration::build_unary_operators(const Operator &op) {
         assert(in_bounds(effects[i].var, g_variable_domain));
         assert(effects[i].val >= 0 && effects[i].val < g_variable_domain[effects[i].var]);
         ExProposition *effect = &propositions[effects[i].var][effects[i].val];
-        const vector<Condition> &eff_conds = effects[i].conditions;
+        const vector<GlobalCondition> &eff_conds = effects[i].conditions;
         for (size_t j = 0; j < eff_conds.size(); ++j) {
             assert(in_bounds(eff_conds[j].var, g_variable_domain));
             assert(eff_conds[j].val >= 0 && eff_conds[j].val < g_variable_domain[eff_conds[j].var]);
@@ -165,9 +165,9 @@ public:
 };
 
 // heuristic computation
-void Exploration::setup_exploration_queue(const State &state,
+void Exploration::setup_exploration_queue(const GlobalState &state,
                                           const vector<pair<int, int> > &excluded_props,
-                                          const hash_set<const Operator *,
+                                          const hash_set<const GlobalOperator *,
                                                          ex_hash_operator_ptr> &excluded_ops,
                                           bool use_h_max = false) {
     prop_queue.clear();
@@ -303,7 +303,7 @@ int Exploration::compute_hsp_max_heuristic() {
     return maximal_cost;
 }
 
-int Exploration::get_lower_bound(const State &state) {
+int Exploration::get_lower_bound(const GlobalState &state) {
 /* Note: this function is currently not used */
     prepare_heuristic_computation(state, true);
     int h = compute_hsp_max_heuristic();
@@ -312,7 +312,7 @@ int Exploration::get_lower_bound(const State &state) {
 }
 
 
-int Exploration::compute_ff_heuristic(const State &state) {
+int Exploration::compute_ff_heuristic(const GlobalState &state) {
     int h_add_heuristic = compute_hsp_add_heuristic();
     if (h_add_heuristic == DEAD_END) {
         return DEAD_END;
@@ -330,14 +330,14 @@ int Exploration::compute_ff_heuristic(const State &state) {
 }
 
 void Exploration::collect_relaxed_plan(ExProposition *goal,
-                                       RelaxedPlan &relaxed_plan, const State &state) {
+                                       RelaxedPlan &relaxed_plan, const GlobalState &state) {
     if (!goal->marked) { // Only consider each subgoal once.
         goal->marked = true;
         ExUnaryOperator *unary_op = goal->reached_by;
         if (unary_op) { // We have not yet chained back to a start node.
             for (size_t i = 0; i < unary_op->precondition.size(); ++i)
                 collect_relaxed_plan(unary_op->precondition[i], relaxed_plan, state);
-            const Operator *op = unary_op->op;
+            const GlobalOperator *op = unary_op->op;
             bool added_to_relaxed_plan = false;
             //if(!op->is_axiom()) // Using axioms in the relaxed plan actually
             //improves performance in many domains... We need to look into this.
@@ -359,7 +359,7 @@ void Exploration::compute_reachability_with_excludes(vector<vector<int> > &lvl_v
                                                      vector<hash_map<pair<int, int>, int, hash_int_pair> > &lvl_op,
                                                      bool level_out,
                                                      const vector<pair<int, int> > &excluded_props,
-                                                     const hash_set<const Operator *, ex_hash_operator_ptr> &excluded_ops,
+                                                     const hash_set<const GlobalOperator *, ex_hash_operator_ptr> &excluded_ops,
                                                      bool compute_lvl_ops) {
     // Perform exploration using h_max-values
     setup_exploration_queue(g_initial_state(), excluded_props, excluded_ops, true);
@@ -374,7 +374,7 @@ void Exploration::compute_reachability_with_excludes(vector<vector<int> > &lvl_v
         }
     }
     if (compute_lvl_ops) {
-        hash_map< const Operator *, int, ex_hash_operator_ptr> operator_index;
+        hash_map< const GlobalOperator *, int, ex_hash_operator_ptr> operator_index;
         for (size_t i = 0; i < g_operators.size(); ++i) {
             operator_index.insert(make_pair(&g_operators[i], i));
         }
@@ -413,13 +413,13 @@ void Exploration::compute_reachability_with_excludes(vector<vector<int> > &lvl_v
     heuristic_recomputation_needed = true;
 }
 
-void Exploration::prepare_heuristic_computation(const State &state, bool h_max = false) {
+void Exploration::prepare_heuristic_computation(const GlobalState &state, bool h_max = false) {
     setup_exploration_queue(state, h_max);
     relaxed_exploration(h_max);
     heuristic_recomputation_needed = false;
 }
 
-int Exploration::compute_heuristic(const State &state) {
+int Exploration::compute_heuristic(const GlobalState &state) {
     if (heuristic_recomputation_needed) {
         prepare_heuristic_computation(state);
     }
@@ -428,7 +428,7 @@ int Exploration::compute_heuristic(const State &state) {
 
 
 void Exploration::collect_ha(ExProposition *goal,
-                             RelaxedPlan &relaxed_plan, const State &state) {
+                             RelaxedPlan &relaxed_plan, const GlobalState &state) {
     // This is the same as collect_relaxed_plan, except that preferred operators
     // are saved in exported_ops rather than preferred_operators
 
@@ -436,7 +436,7 @@ void Exploration::collect_ha(ExProposition *goal,
     if (unary_op) { // We have not yet chained back to a start node.
         for (size_t i = 0; i < unary_op->precondition.size(); ++i)
             collect_ha(unary_op->precondition[i], relaxed_plan, state);
-        const Operator *op = unary_op->op;
+        const GlobalOperator *op = unary_op->op;
         bool added_to_relaxed_plan = false;
         if (!op->is_axiom())
             added_to_relaxed_plan = relaxed_plan.insert(op).second;
@@ -459,7 +459,7 @@ bool is_landmark(vector<pair<int, int> > &landmarks, int var, int val) {
 }
 
 bool Exploration::plan_for_disj(vector<pair<int, int> > &landmarks,
-                                const State &state) {
+                                const GlobalState &state) {
     relaxed_plan.clear();
     // generate plan to reach part of disj. goal OR if no landmarks given, plan to real goal
     if (!landmarks.empty()) {

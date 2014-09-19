@@ -4,8 +4,8 @@
 #include "label.h"
 
 #include "../equivalence_relation.h"
+#include "../global_operator.h"
 #include "../globals.h"
-#include "../operator.h"
 #include "../option_parser.h"
 #include "../utilities.h"
 
@@ -108,7 +108,7 @@ void LabelReducer::reduce_labels(pair<int, int> next_merge,
     } else if (label_reduction_method == ALL_ABSTRACTIONS_WITH_FIXPOINT) {
         max_iterations = numeric_limits<int>::max();
     } else {
-        abort();
+        ABORT("unknown label reduction method");
     }
 
     int num_unsuccessful_iterations = 0;
@@ -204,7 +204,7 @@ LabelSignature LabelReducer::build_label_signature(
     vector<Assignment> preconditions;
     vector<Assignment> effects;
 
-    const vector<Condition> &precs = label.get_preconditions();
+    const vector<GlobalCondition> &precs = label.get_preconditions();
     for (size_t i = 0; i < precs.size(); ++i) {
         int var = precs[i].var;
         if (var_is_used[var]) {
@@ -212,7 +212,7 @@ LabelSignature LabelReducer::build_label_signature(
             preconditions.push_back(make_pair(var, val));
         }
     }
-    const vector<Effect> &effs = label.get_effects();
+    const vector<GlobalEffect> &effs = label.get_effects();
     for (size_t i = 0; i < effs.size(); ++i) {
         int var = effs[i].var;
         if (var_is_used[var]) {
