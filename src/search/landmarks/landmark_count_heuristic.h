@@ -8,12 +8,7 @@
 #include "../global_state.h"
 #include "../heuristic.h"
 
-extern LandmarkGraph *g_lgraph; // Make global so graph does not need to be built more than once
-// even when iterating search (TODO: clean up use of g_lgraph vs.
-// lgraph in this class).
-
 class LandmarkCountHeuristic : public Heuristic {
-    friend class LamaFFSynergy;
     LandmarkGraph &lgraph;
     Exploration *exploration;
     bool use_preferred_operators;
@@ -44,7 +39,6 @@ class LandmarkCountHeuristic : public Heuristic {
                                   const LandmarkSet &reached);
     void set_exploration_goals(const GlobalState &state);
 
-    //int get_needed_landmarks(const GlobalState& state, LandmarkSet& needed) const;
     Exploration *get_exploration() {return exploration; }
     void convert_lms(LandmarkSet &lms_set, const std::vector<bool> &lms_vec);
 protected:
