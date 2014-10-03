@@ -72,12 +72,10 @@ void save_plan(const vector<const GlobalOperator *> &plan, int iter) {
         cout << plan[i]->get_name() << " (" << plan[i]->get_cost() << ")" << endl;
         outfile << "(" << plan[i]->get_name() << ")" << endl;
     }
-    outfile.close();
     int plan_cost = calculate_plan_cost(plan);
-    ofstream statusfile;
-    statusfile.open("plan_numbers_and_cost", ios::out | ios::app);
-    statusfile << iter << " " << plan_cost << endl;
-    statusfile.close();
+    outfile << "; cost = " << plan_cost << " ("
+            << (is_unit_cost() ? "unit-cost" : "general-cost") << ")" << endl;
+    outfile.close();
     cout << "Plan length: " << plan.size() << " step(s)." << endl;
     cout << "Plan cost: " << plan_cost << endl;
 }
