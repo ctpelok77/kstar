@@ -83,7 +83,6 @@ CFLAGS  = ${DEPENDFLAGS}
 
 # C++ compiler
 
-CXX      := g++
 CXXFLAGS  := ${CXXFLAGS} ${DEPENDFLAGS} -ansi -Wall -Wno-unused-but-set-variable
 
 %.o : %.cc
@@ -116,7 +115,7 @@ FFLAGS  =
 
 # C/C++/Eiffel/FORTRAN linker
 
-LINKER    := g++
+LINKER    := ${CXX}
 ifeq ($(LINK_STATICALLY), 1)
 LINKER += -static -static-libgcc
 endif
