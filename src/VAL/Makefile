@@ -67,7 +67,7 @@ SEARCHDIRS := -iquote -I${MYCODEDIR}
 
 # makemake variables
 
-DEPENDFLAGS := -Wall ${SEARCHDIRS}
+DEPENDFLAGS := ${SEARCHDIRS}
 
 # C preprocessor (C, C++, FORTRAN)
 
@@ -83,7 +83,7 @@ CFLAGS  = ${DEPENDFLAGS}
 
 # C++ compiler
 
-CXXFLAGS  := ${CXXFLAGS} ${DEPENDFLAGS} -ansi -Wall -Wno-unused-but-set-variable -Wno-unused-local-typedefs
+CXXFLAGS  := ${CXXFLAGS} ${DEPENDFLAGS} -ansi -w
 
 %.o : %.cc
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} -c $< -o $@
