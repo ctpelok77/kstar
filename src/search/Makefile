@@ -75,6 +75,7 @@ HEADERS = \
           sum_evaluator.h \
           timer.h \
           utilities.h \
+          variable_order_finder.h \
           weighted_evaluator.h \
           \
           open_lists/alternation_open_list.h \
@@ -103,8 +104,7 @@ HEADERS += hm_heuristic.h
 HEADERS += lm_cut_heuristic.h
 HEADERS += max_heuristic.h
 
-HEADERS += merge_and_shrink/abstraction.h \
-           merge_and_shrink/label.h \
+HEADERS += merge_and_shrink/label.h \
            merge_and_shrink/labels.h \
            merge_and_shrink/label_reducer.h \
            merge_and_shrink/merge_and_shrink_heuristic.h \
@@ -116,7 +116,7 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/shrink_fh.h \
            merge_and_shrink/shrink_random.h \
            merge_and_shrink/shrink_strategy.h \
-           merge_and_shrink/variable_order_finder.h \
+           merge_and_shrink/transition_system.h \
 
 HEADERS += landmarks/exploration.h \
            landmarks/h_m_landmarks.h \
@@ -223,7 +223,8 @@ endif
 CXXFLAGS =
 CXXFLAGS += -g
 CXXFLAGS += $(BITWIDTHOPT)
-CXXFLAGS += -std=c++98 -Wall -Wextra -pedantic -Wno-deprecated -Werror
+# Note: we write "-std=c++0x" rather than "-std=c++11" to support gcc 4.4.
+CXXFLAGS += -std=c++0x -Wall -Wextra -pedantic -Wno-deprecated -Werror
 
 CXXFLAGS += -Iext
 ifeq ($(DOWNWARD_OS), osx)
