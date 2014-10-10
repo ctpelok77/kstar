@@ -44,8 +44,6 @@ class TransitionSystem {
     friend class AtomicTransitionSystem;
     friend class CompositeTransitionSystem;
 
-    friend class ShrinkStrategy; // for apply() -- TODO: refactor!
-
     static const int PRUNED_STATE = -1;
     static const int DISTANCE_UNKNOWN = -2;
 
@@ -88,16 +86,26 @@ class TransitionSystem {
     void compute_init_distances_general_cost();
     void compute_goal_distances_general_cost();
     void discard_states(const std::vector<bool> &to_be_pruned_states);
+    bool are_distances_computed() const;
+    void compute_distances_and_prune();
 
     // are_transitions_sorted_unique() is used to determine whether the
     // transitions of an transition system are sorted uniquely or not after
     // construction (composite transition system) and shrinking (apply_abstraction).
     bool are_transitions_sorted_unique() const;
-
-    void apply_abstraction(std::vector<__gnu_cxx::slist<AbstractStateRef> > &collapsed_groups);
+    void normalize();
 
     int total_transitions() const;
     int unique_unlabeled_transitions() const;
+
+    /*
+      Print "atomic transition system #x" for atomic transition systems,
+      where x is the variable. For composite transition systems, print
+      "transition system (xyz)" for the transition system containing variables
+      x, y and z.
+    */
+    virtual std::string description() const = 0;
+
 protected:
     std::vector<int> varset;
 
@@ -109,22 +117,31 @@ public:
     explicit TransitionSystem(Labels *labels);
     virtual ~TransitionSystem();
 
-    // Two methods to identify the transition system in output.
-    // tag is a convience method that upper-cases the first letter of
-    // description and appends ": ";
-    virtual std::string description() const = 0;
-    std::string tag() const;
-
     static void build_atomic_transition_systems(std::vector<TransitionSystem *> &result,
                                                 Labels *labels);
+    void apply_abstraction(std::vector<__gnu_cxx::slist<AbstractStateRef> > &collapsed_groups);
 
+    // Method to identify the transition system in output. It upper-cases the
+    // first letter of description() and appends ": ".
+    std::string tag() const;
+
+    // get_label_cost_by_index is public exclusively for ShrinkBisimulation
     int get_label_cost_by_index(int label_no) const;
-    bool are_distances_computed() const;
-    void compute_distances_and_prune();
+    /*
+      A transition system is normalized if:
+       - Transitions are sorted (by labels, by states) and there are no
+         duplicates.
+       - All labels are incorporated
+       - Distances are computed and stored
+      TODO: combine is_normalized with are_distances_computed()
+      NOTE: normalize() does *not* compute distances, as to avoid recomputing
+      distances after every label reduction. We compute distances after
+      creating transition systems and after applying abstractions.
+    */
     bool is_normalized() const;
-    void normalize();
     EquivalenceRelation *compute_local_equivalence_relation() const;
 
+    bool is_solvable() const;
     int get_cost(const GlobalState &state) const;
     void statistics(bool include_expensive_statistics) const;
     // NOTE: This will only return something useful if the memory estimates
@@ -137,9 +154,6 @@ public:
     void dump_relevant_labels() const;
     void dump() const;
 
-    bool is_solvable() const {
-        return init_state != PRUNED_STATE;
-    }
     int get_size() const {
         return num_states;
     }
@@ -169,7 +183,7 @@ public:
     int get_num_labels() const;
 
     // Methods only used by MergeDFP.
-    void compute_label_ranks(std::vector<int> &label_ranks);
+    void compute_label_ranks(std::vector<int> &label_ranks) const;
     bool is_goal_relevant() const {
         return goal_relevant;
     }
