@@ -54,6 +54,10 @@
 #include <cstdio>
 #include <iostream>
 #include <fstream>
+
+// Needed on Windows for time().
+#include <time.h>
+
 #include "ptree.h"
 #include "FlexLexer.h"
 #include "Utils.h"

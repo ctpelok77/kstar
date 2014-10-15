@@ -1291,7 +1291,7 @@ const CtsFunction * ActiveCtsEffects::buildNumericalSoln(const ActiveFE * afe)
    vector<pair<const CtsFunction *,bool> > discharge;
    pair<pair<const expression*,bool>,const Environment *> exprn;
    bool exprnDefined = false;
-	const FuncExp * fexp = 0;
+   // const FuncExp * fexp = 0;
             
    for(vector<pair<pair<const expression*,bool>,const Environment *> >::const_iterator i = afe->exprns.begin(); i != afe->exprns.end(); ++i)
    {
@@ -1317,23 +1317,24 @@ const CtsFunction * ActiveCtsEffects::buildNumericalSoln(const ActiveFE * afe)
        
    rateExprn = getRateExpression(exprn.first.first);
 
-	if(const func_term * fexpression = dynamic_cast<const func_term *>(rateExprn))
-	{
-		fexp = vld->fef.buildFuncExp(fexpression,*exprn.second);
-	  }
-	else if(const mul_expression * me = dynamic_cast<const mul_expression *>(rateExprn))
+	// if(const func_term * fexpression = dynamic_cast<const func_term *>(rateExprn))
+	// {
+	// 	// fexp = vld->fef.buildFuncExp(fexpression,*exprn.second);
+	//   }
+	// else 
+   if(const mul_expression * me = dynamic_cast<const mul_expression *>(rateExprn))
 	{
 
          if(afe->appearsInEprsn(this,me->getLHS(),exprn.second))
          {
-             constExprn = me->getRHS();   fexp = afe->fe;
+             constExprn = me->getRHS();   // fexp = afe->fe;
              FEExprn = me->getLHS();
          }
 
 
          else if(afe->appearsInEprsn(this,me->getRHS(),exprn.second))
          {
-             constExprn = me->getLHS();   fexp = afe->fe;
+             constExprn = me->getLHS();   // fexp = afe->fe;
              FEExprn = me->getRHS();
          }
          else
