@@ -367,6 +367,10 @@ MM_ALL_TARGETS := validate parser analyse tan tim tofn instantiate libInst.a typ
 
 # target for making everything
 
+## [Added for Fast Downward]
+.PHONY : debug
+debug: validate
+
 .PHONY : all
 all: ${MM_ALL_TARGETS}
 
