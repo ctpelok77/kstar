@@ -1,29 +1,13 @@
 #include "utilities.h"
 
+#include "reentrant.h"
+
 #include <cassert>
 #include <csignal>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <limits>
 using namespace std;
-
-
-#if OPERATING_SYSTEM == LINUX
-static void exit_handler(int exit_code, void *hint);
-#elif OPERATING_SYSTEM == OSX
-static void exit_handler();
-#include <mach/mach.h>
-#elif OPERATING_SYSTEM == WINDOWS || OPERATING_SYSTEM == CYGWIN
-#include <windows.h>
-#include <psapi.h>
-#endif
-
-// See issue 469 for the reasons we chose this limit.
-static char *memory_padding = new char[32 * 1024];
-
-static void out_of_memory_handler();
-static void signal_handler(int signal_number);
-
 
 void register_event_handlers() {
     // When running out of memory, release some emergency memory and
@@ -39,80 +23,31 @@ void register_event_handlers() {
 #elif OPERATING_SYSTEM == CYGWIN || OPERATING_SYSTEM == WINDOWS
     // nothing
 #endif
-    signal(SIGABRT, signal_handler);
-    signal(SIGTERM, signal_handler);
-    signal(SIGSEGV, signal_handler);
-    signal(SIGINT, signal_handler);
-#if OPERATING_SYSTEM != WINDOWS
-    // This causes problems, see issue479.
-    //signal(SIGXCPU, signal_handler);
-#endif
-}
+    struct sigaction default_signal_action;
+    default_signal_action.sa_handler = signal_handler;
+    // Block all signals we handle while one of them is handled.
+    sigemptyset(&default_signal_action.sa_mask);
+    sigaddset(&default_signal_action.sa_mask, SIGABRT);
+    sigaddset(&default_signal_action.sa_mask, SIGTERM);
+    sigaddset(&default_signal_action.sa_mask, SIGSEGV);
+    sigaddset(&default_signal_action.sa_mask, SIGINT);
+    sigaddset(&default_signal_action.sa_mask, SIGXCPU);
+    // Reset handler to default action after completion.
+    default_signal_action.sa_flags = SA_RESETHAND;
 
-#if OPERATING_SYSTEM == LINUX || OPERATING_SYSTEM == OSX
-#if OPERATING_SYSTEM == LINUX
-void exit_handler(int, void *) {
-#elif OPERATING_SYSTEM == OSX
-void exit_handler() {
-#endif
-    print_peak_memory(false);
+    sigaction(SIGABRT, &default_signal_action, 0);
+    sigaction(SIGTERM, &default_signal_action, 0);
+    sigaction(SIGSEGV, &default_signal_action, 0);
+    sigaction(SIGINT, &default_signal_action, 0);
+    sigaction(SIGXCPU, &default_signal_action, 0);
 }
-#endif
 
 void exit_with(ExitCode exitcode) {
-    switch (exitcode) {
-    case EXIT_PLAN_FOUND:
-        cout << "Solution found." << endl;
-        break;
-    case EXIT_CRITICAL_ERROR:
-        cerr << "Unexplained error occurred." << endl;
-        break;
-    case EXIT_INPUT_ERROR:
-        cerr << "Usage error occurred." << endl;
-        break;
-    case EXIT_UNSUPPORTED:
-        cerr << "Tried to use unsupported feature." << endl;
-        break;
-    case EXIT_UNSOLVABLE:
-        cout << "Task is provably unsolvable." << endl;
-        break;
-    case EXIT_UNSOLVED_INCOMPLETE:
-        cout << "Search stopped without finding a solution." << endl;
-        break;
-    case EXIT_OUT_OF_MEMORY:
-        cout << "Memory limit has been reached." << endl;
-        break;
-    case EXIT_TIMEOUT:
-        cout << "Time limit has been reached." << endl;
-        break;
-    default:
-        cerr << "Exitcode: " << exitcode << endl;
-        ABORT("Unknown exitcode.");
-    }
+    report_exit_code_reentrant(exitcode);
     exit(exitcode);
 }
 
-static void out_of_memory_handler() {
-    assert(memory_padding);
-    delete[] memory_padding;
-    memory_padding = 0;
-    cout << "Failed to allocate memory. Released memory buffer." << endl;
-    exit_with(EXIT_OUT_OF_MEMORY);
-}
-
-void signal_handler(int signal_number) {
-    // See glibc manual: "Handlers That Terminate the Process"
-    static volatile sig_atomic_t handler_in_progress = 0;
-    if (handler_in_progress)
-        raise(signal_number);
-    handler_in_progress = 1;
-    print_peak_memory(false);
-    cout << "caught signal " << signal_number << " -- exiting" << endl;
-    signal(signal_number, SIG_DFL);
-    raise(signal_number);
-}
-
-int get_peak_memory_in_kb(bool use_buffered_input) {
+int get_peak_memory_in_kb() {
     // On error, produces a warning on cerr and returns -1.
     int memory_in_kb = -1;
 
@@ -134,9 +69,6 @@ int get_peak_memory_in_kb(bool use_buffered_input) {
     memory_in_kb = pmc.PeakPagefileUsage / 1024;
 #else
     ifstream procfile;
-    if (!use_buffered_input) {
-        procfile.rdbuf()->pubsetbuf(0, 0);
-    }
     procfile.open("/proc/self/status");
     string word;
     while (procfile.good()) {
@@ -157,8 +89,8 @@ int get_peak_memory_in_kb(bool use_buffered_input) {
     return memory_in_kb;
 }
 
-void print_peak_memory(bool use_buffered_input) {
-    cout << "Peak memory: " << get_peak_memory_in_kb(use_buffered_input) << " KB" << endl;
+void print_peak_memory() {
+    cout << "Peak memory: " << get_peak_memory_in_kb() << " KB" << endl;
 }
 
 
