@@ -67,7 +67,7 @@ SEARCHDIRS := -iquote -I${MYCODEDIR}
 
 # makemake variables
 
-DEPENDFLAGS := -Wall ${SEARCHDIRS}
+DEPENDFLAGS := ${SEARCHDIRS}
 
 # C preprocessor (C, C++, FORTRAN)
 
@@ -83,8 +83,7 @@ CFLAGS  = ${DEPENDFLAGS}
 
 # C++ compiler
 
-CXX      := g++
-CXXFLAGS  := ${CXXFLAGS} ${DEPENDFLAGS} -ansi -Wall -Wno-unused-but-set-variable
+CXXFLAGS  := ${CXXFLAGS} ${DEPENDFLAGS} -ansi -w
 
 %.o : %.cc
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} -c $< -o $@
@@ -116,7 +115,7 @@ FFLAGS  =
 
 # C/C++/Eiffel/FORTRAN linker
 
-LINKER    := g++
+LINKER    := ${CXX}
 ifeq ($(LINK_STATICALLY), 1)
 LINKER += -static -static-libgcc
 endif
@@ -367,6 +366,10 @@ planrec :: ./pddl+.o ./pddl+.o ./ptree.o ./Action.o ./Proposition.o ./FuncExp.o 
 MM_ALL_TARGETS := validate parser analyse tan tim tofn instantiate libInst.a typestrip pddl2lpgp dyna relax dynaplan hww pinguplan planrec
 
 # target for making everything
+
+## [Added for Fast Downward]
+.PHONY : debug
+debug: validate
 
 .PHONY : all
 all: ${MM_ALL_TARGETS}
