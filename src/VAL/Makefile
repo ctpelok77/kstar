@@ -30,6 +30,8 @@
 MYCODEDIR := .
 
 ## [Added for Fast Downward]
+## Disable shift/reduce and reduce/reduce warnings:
+BISONFLAGS = -Wno-conflicts-sr -Wno-conflicts-rr
 OS = auto
 ## We link statically by default, but not on OS X.
 ## The OS can either be auto-detected (default) or
@@ -104,8 +106,7 @@ CXXFLAGS  := ${CXXFLAGS} ${DEPENDFLAGS} -ansi -w
 	@hash flex 2>&- || { echo >&2 "flex is not installed -- aborting. If you are using Ubuntu Linux, try 'sudo apt-get install flex'."; exit 1; }
 	flex -+ pddl+.lex
 	@hash bison 2>&- || { echo >&2 "bison is not installed -- aborting. If you are using Ubuntu Linux, try 'sudo apt-get install bison'."; exit 1; }
-	bison $< -o $@
-
+	bison ${BISONFLAGS} $< -o $@
 
 
 # FORTRAN compiler
