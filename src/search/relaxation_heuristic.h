@@ -5,7 +5,7 @@
 
 #include <vector>
 
-class GlobalOperator;
+class Operator;
 class GlobalState;
 
 struct Proposition;
@@ -45,7 +45,8 @@ struct Proposition {
 };
 
 class RelaxationHeuristic : public Heuristic {
-    void build_unary_operators(const GlobalOperator &op, int operator_no);
+    Proposition *get_proposition(const Fact &fact);
+    void build_unary_operators(const Operator &op, int operator_no);
     void simplify();
 protected:
     std::vector<UnaryOperator> unary_operators;

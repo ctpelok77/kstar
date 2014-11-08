@@ -7,6 +7,8 @@ using namespace std;
 
 GlobalCondition::GlobalCondition(istream &in) {
     in >> var >> val;
+    assert(in_bounds(var, g_variable_domain));
+    assert(val >= 0 && val < g_variable_domain[var]);
 }
 
 // TODO if the input file format has been changed, we would need something like this
@@ -27,6 +29,9 @@ void GlobalOperator::read_pre_post(istream &in) {
     for (int i = 0; i < cond_count; ++i)
         conditions.push_back(GlobalCondition(in));
     in >> var >> pre >> post;
+    assert(in_bounds(var, g_variable_domain));
+    assert(pre >= -1 && pre < g_variable_domain[var]);
+    assert(post >= 0 && post < g_variable_domain[var]);
     if (pre != -1)
         preconditions.push_back(GlobalCondition(var, pre));
     effects.push_back(GlobalEffect(var, post, conditions));
