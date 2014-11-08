@@ -15,7 +15,7 @@ struct GlobalCondition {
     int val;
     explicit GlobalCondition(std::istream &in);
     GlobalCondition(int variable, int value) : var(variable), val(value) {
-        assert(in_bounds(var, g_variable_name));
+        assert(in_bounds(var, g_variable_domain));
         assert(val >= 0 && val < g_variable_domain[var]);
     }
 
@@ -40,7 +40,10 @@ struct GlobalEffect {
     std::vector<GlobalCondition> conditions;
     explicit GlobalEffect(std::istream &in);
     GlobalEffect(int variable, int value, const std::vector<GlobalCondition> &conds)
-        : var(variable), val(value), conditions(conds) {}
+        : var(variable), val(value), conditions(conds) {
+        assert(in_bounds(var, g_variable_domain));
+        assert(val >= 0 && val < g_variable_domain[var]);
+    }
 
     bool does_fire(const GlobalState &state) const {
         for (size_t i = 0; i < conditions.size(); ++i)

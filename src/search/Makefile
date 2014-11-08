@@ -51,6 +51,7 @@ HEADERS = \
           global_operator.h \
           global_state.h \
           globals.h \
+          global_task_interface.h \
           heuristic.h \
           int_packer.h \
           ipc_max_heuristic.h \
@@ -73,6 +74,7 @@ HEADERS = \
           state_registry.h \
           successor_generator.h \
           sum_evaluator.h \
+          task.h \
           timer.h \
           utilities.h \
           variable_order_finder.h \
