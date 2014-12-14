@@ -3,8 +3,13 @@
 #include "utilities.h"
 
 #include <cassert>
+#include <iostream>
 
 using namespace std;
+
+Block::Block(BlockListIter block_it)
+    : it_intersection_block(block_it) {
+}
 
 bool Block::empty() const {
     return elements.empty();
@@ -36,6 +41,75 @@ EquivalenceRelation::EquivalenceRelation(int n, const list<Block> &blocks_)
 }
 
 EquivalenceRelation::~EquivalenceRelation() {
+}
+
+int EquivalenceRelation::replace_elements_by_new_one(
+    const std::vector<int> &existing_elements,
+    int new_element) {
+    assert(new_element == num_elements);
+
+    /*
+      Remove all existing elements from their block and remove the entry in
+      element_positions.
+    */
+    BlockListIter canonical_block_it = element_positions[existing_elements[0]].first;
+    for (size_t i = 0; i < existing_elements.size(); ++i) {
+        int old_element = existing_elements[i];
+        assert(element_positions[old_element].first == canonical_block_it);
+        ElementListIter element_it = element_positions[old_element].second;
+        canonical_block_it->erase(element_it);
+        element_positions.erase(old_element);
+    }
+
+    if (canonical_block_it->empty()) {
+        /*
+          Note that if all labels from a block are replaced by a single new
+          one, we could use the same block, but for the sake of the blocks
+          being orderd (by the smallest element contained in the block), we
+          delete the old empty block and create a new one.
+        */
+        blocks.erase(canonical_block_it);
+        canonical_block_it = add_empty_block();
+    }
+
+    /*
+      Insert the new element into the block of the removed elements, if it
+      did not become empty, or into the newly created block (see above).
+    */
+    ElementListIter elem_it = canonical_block_it->insert(new_element);
+    element_positions[new_element] = make_pair(canonical_block_it, elem_it);
+    ++num_elements;
+    return *canonical_block_it->begin();
+}
+
+void EquivalenceRelation::remove_elements(const vector<int> &existing_elements) {
+    /*
+      Remove all existing elements from their block (and the block itself if
+      it becomes empty) and remove their entries in element_positions.
+    */
+    for (size_t i = 0; i < existing_elements.size(); ++i) {
+        int old_element = existing_elements[i];
+        BlockListIter block_it = element_positions[old_element].first;
+        ElementListIter element_it = element_positions[old_element].second;
+        block_it->erase(element_it);
+        element_positions.erase(old_element);
+        if (block_it->empty()) {
+            blocks.erase(block_it);
+        }
+    }
+}
+
+void EquivalenceRelation::insert(int new_element, int existing_element) {
+    BlockListIter block_it;
+    if (existing_element == -1) {
+        block_it = add_empty_block();
+    } else {
+        block_it = element_positions[existing_element].first;
+    }
+    ElementListIter elem_it = block_it->insert(new_element);
+    element_positions[new_element] = make_pair(block_it, elem_it);
+    assert(new_element == num_elements);
+    ++num_elements;
 }
 
 int EquivalenceRelation::get_num_elements() const {
@@ -154,5 +228,19 @@ void EquivalenceRelation::refine(const Block &block_X) {
         } else {
             modified_block->it_intersection_block = blocks.end();
         }
+    }
+}
+
+void EquivalenceRelation::dump() const {
+    cout << "equivalence relation: " << endl;
+    for (BlockListConstIter it_block = blocks.begin();
+         it_block != blocks.end(); ++it_block) {
+        const Block &block = *it_block;
+        cout << "block: ";
+        for (ElementListConstIter it_element = block.begin();
+             it_element != block.end(); ++it_element) {
+            cout << *it_element << ", ";
+        }
+        cout << endl;
     }
 }
