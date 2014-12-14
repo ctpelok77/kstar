@@ -61,6 +61,8 @@ class TransitionSystem {
       have a pointer to this object to ease access to the set of labels.
     */
     const Labels *labels;
+    EquivalenceRelation *equivalent_labels;
+    std::vector<int> label_to_representative;
     /*
       num_labels is always equal to labels->size(), with the exception during
       label reduction. Whenever new labels are generated through label
@@ -74,7 +76,7 @@ class TransitionSystem {
       original labels.
     */
     std::vector<std::vector<Transition> > transitions_by_label;
-    std::vector<bool> relevant_labels;
+    std::vector<Transition> empty_transitions;
 
     int num_states;
 
@@ -97,9 +99,11 @@ class TransitionSystem {
        - Transitions are sorted (by labels, by states) and there are no
          duplicates (are_transitions_sorted_unique() == true)
        - All labels are incorporated (is_label_reduced() == true))
+       - Locally equivalent labels are computed (are_equivalent_labels_computed() == true)
        - Distances are computed and stored (are_distances_computed() == true)
     */
     bool is_valid() const;
+    bool check_equivrel_consistent() const;
 
     // Methods related to computation of distances
     void clear_distances();
@@ -112,11 +116,16 @@ class TransitionSystem {
     void compute_distances_and_prune();
 
     // Methods related to the representation of transitions
+    bool is_label_relevant(int label_no) const;
     bool are_transitions_sorted_unique() const;
     void normalize_transitions();
     bool is_label_reduced() const;
+    void replace_labels_by_locally_equivalent_one(int new_label_no,
+                                                  const std::vector<int> &old_label_nos);
     void apply_general_label_mapping(int new_label_no,
                                      const std::vector<int> &old_label_nos);
+    bool are_equivalent_labels_computed() const;
+    void compute_local_equivalence_relation();
     int total_transitions() const;
     int unique_unlabeled_transitions() const;
     virtual std::string description() const = 0;
@@ -139,7 +148,9 @@ public:
                                bool only_equivalent_labels);
     void release_memory();
 
-    EquivalenceRelation *compute_local_equivalence_relation() const;
+    const EquivalenceRelation *get_local_equivalence_relation() const {
+        return equivalent_labels;
+    }
     /*
       Method to identify the transition system in output.
       Print "Atomic transition system #x: " for atomic transition systems,
@@ -158,6 +169,9 @@ public:
     int get_peak_memory_estimate() const;
     void dump_attributes() const;
     void dump_dot_graph() const;
+    void dump_grouped_transitions() const;
+    void dump_transitions() const;
+    void dump_equivalence_relation() const;
     int get_size() const {
         return num_states;
     }
@@ -181,12 +195,9 @@ public:
     int get_goal_distance(int state) const {
         return goal_distances[state];
     }
-    const std::vector<Transition> &get_transitions_for_label(int label_no) const {
-        return transitions_by_label[label_no];
-    }
-    const Labels *get_labels() const {
-        return labels;
-    }
+    const std::vector<Transition> &get_transitions_for_label(int label_no) const;
+    const std::vector<Transition> &get_transitions_for_relevant_label(int label_no) const;
+    int get_label_cost(int label_no) const;
 
     // Methods only used by MergeDFP.
     void compute_label_ranks(std::vector<int> &label_ranks) const;

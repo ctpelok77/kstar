@@ -23,6 +23,7 @@ struct DoubleEpsilonEquality {
 };
 
 class Block {
+    Block() {}
     std::list<int> elements;
     /*
       During the refinement step of EquivalenceRelation, every existing block B
@@ -34,6 +35,7 @@ class Block {
     friend class EquivalenceRelation;
     BlockListIter it_intersection_block;
 public:
+    explicit Block(BlockListIter block_it);
     bool empty() const;
     ElementListIter insert(int element);
     void erase(ElementListIter it);
@@ -67,6 +69,17 @@ public:
     EquivalenceRelation(int n);
     EquivalenceRelation(int n, const std::list<Block> &blocks_);
     ~EquivalenceRelation();
+    int replace_elements_by_new_one(const std::vector<int> &existing_elements,
+                                    int new_element);
+    void remove_elements(const std::vector<int> &existing_elements);
+    void insert(int new_element, int existing_element);
+    // Cannot be declared const due to operator[]
+    BlockListConstIter get_block_iterator_for_element(int element) {
+        return element_positions[element].first;
+    }
+    const std::list<Block> &get_blocks() const {
+        return blocks;
+    }
 
     int get_num_elements() const;
     int get_num_explicit_elements() const;
@@ -89,6 +102,8 @@ public:
       The amortized runtime is linear in the number of elements specified in other.
     */
     void refine(const EquivalenceRelation &other);
+
+    void dump() const;
 
     /*
       Creates an equivalence relation over the numbers 0 to n -1.
