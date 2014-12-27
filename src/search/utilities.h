@@ -1,6 +1,8 @@
 #ifndef UTILITIES_H
 #define UTILITIES_H
 
+#include <algorithm>
+#include <cassert>
 #include <cstdlib>
 #include <ostream>
 #include <utility>
@@ -90,6 +92,12 @@ size_t hash_number_sequence(const Sequence &data, size_t length) {
     return hash_value;
 }
 
+struct hash_int_vector {
+    size_t operator()(const std::vector<int> &vec) const {
+        return hash_number_sequence(vec, vec.size());
+    }
+};
+
 struct hash_int_pair {
     size_t operator()(const std::pair<int, int> &key) const {
         return size_t(key.first * 1337 + key.second);
@@ -119,6 +127,13 @@ bool in_bounds(int index, const T &container) {
 template<class T>
 bool in_bounds(size_t index, const T &container) {
     return index < container.size();
+}
+
+template<typename T>
+void swap_and_pop_from_vector(std::vector<T> &vec, std::size_t pos) {
+    assert(in_bounds(pos, vec));
+    std::swap(vec[pos], vec.back());
+    vec.pop_back();
 }
 
 template<typename T>
