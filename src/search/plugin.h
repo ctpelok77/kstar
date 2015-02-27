@@ -10,6 +10,7 @@
 #include "open_lists/tiebreaking_open_list.h"
 #include "open_lists/alternation_open_list.h"
 #include "open_lists/pareto_open_list.h"
+#include "open_lists/type_based_open_list.h"
 
 template <class T>
 class Plugin {
@@ -39,6 +40,8 @@ public:
             "alt", AlternationOpenList<Entry>::_parse);
         Registry<OpenList<Entry > *>::instance()->register_object(
             "pareto", ParetoOpenList<Entry>::_parse);
+        Registry<OpenList<Entry > *>::instance()->register_object(
+            "type_based", TypeBasedOpenList<Entry>::_parse);
     }
 };
 
