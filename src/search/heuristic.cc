@@ -134,7 +134,7 @@ void Heuristic::add_options_to_parser(OptionParser &parser) {
     ::add_cost_type_option_to_parser(parser);
     parser.add_option<TaskProxy *>(
         "task",
-        "Task that the heuristic should operate on. Currently only global_task is supported.",
+        "Task that the heuristic should operate on. Choose from global_task and adapt_costs.",
         "global_task");
 }
 

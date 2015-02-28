@@ -3,6 +3,9 @@
 #include "global_operator.h"
 #include "globals.h"
 #include "option_parser.h"
+#include "plugin.h"
+#include "root_task.h"
+#include "task_proxy.h"
 #include "utilities.h"
 
 #include <cstdlib>
@@ -32,6 +35,84 @@ int get_adjusted_action_cost(const GlobalOperator &op, OperatorCost cost_type) {
         return get_adjusted_action_cost(op.get_cost(), cost_type);
 }
 
+
+AdaptCosts::AdaptCosts(const AbstractTask &base_, const Options &opts)
+    : base(base_),
+      cost_type(OperatorCost(opts.get<int>("cost_type"))) {
+}
+
+AdaptCosts::~AdaptCosts() {
+}
+
+int AdaptCosts::get_num_variables() const {
+    return base.get_num_variables();
+}
+
+int AdaptCosts::get_variable_domain_size(int var) const {
+    return base.get_variable_domain_size(var);
+}
+
+int AdaptCosts::get_operator_cost(int index, bool is_axiom) const {
+    return get_adjusted_action_cost(base.get_operator_cost(index, is_axiom), cost_type);
+}
+
+const std::string &AdaptCosts::get_operator_name(int index, bool is_axiom) const {
+    return base.get_operator_name(index, is_axiom);
+}
+
+int AdaptCosts::get_num_operators() const {
+    return base.get_num_operators();
+}
+
+int AdaptCosts::get_num_operator_preconditions(int index, bool is_axiom) const {
+    return base.get_num_operator_preconditions(index, is_axiom);
+}
+
+pair<int, int> AdaptCosts::get_operator_precondition(
+    int op_index, int fact_index, bool is_axiom) const {
+    return base.get_operator_precondition(op_index, fact_index, is_axiom);
+}
+
+int AdaptCosts::get_num_operator_effects(int op_index, bool is_axiom) const {
+    return base.get_num_operator_effects(op_index, is_axiom);
+}
+
+int AdaptCosts::get_num_operator_effect_conditions(
+    int op_index, int eff_index, bool is_axiom) const {
+    return base.get_num_operator_effect_conditions(op_index, eff_index, is_axiom);
+}
+
+pair<int, int> AdaptCosts::get_operator_effect_condition(
+    int op_index, int eff_index, int cond_index, bool is_axiom) const {
+    return base.get_operator_effect_condition(op_index, eff_index, cond_index, is_axiom);
+}
+
+pair<int, int> AdaptCosts::get_operator_effect(
+    int op_index, int eff_index, bool is_axiom) const {
+    return base.get_operator_effect(op_index, eff_index, is_axiom);
+}
+
+const GlobalOperator *AdaptCosts::get_global_operator(int index, bool is_axiom) const {
+    return base.get_global_operator(index, is_axiom);
+}
+
+int AdaptCosts::get_num_axioms() const {
+    return base.get_num_axioms();
+}
+
+int AdaptCosts::get_num_goals() const {
+    return base.get_num_goals();
+}
+
+std::pair<int, int> AdaptCosts::get_goal_fact(int index) const {
+    return base.get_goal_fact(index);
+}
+
+std::vector<int> AdaptCosts::get_state_values(const GlobalState &global_state) const {
+    return base.get_state_values(global_state);
+}
+
+
 void add_cost_type_option_to_parser(OptionParser &parser) {
     vector<string> cost_types;
     vector<string> cost_types_doc;
@@ -58,3 +139,16 @@ void add_cost_type_option_to_parser(OptionParser &parser) {
         "NORMAL",
         cost_types_doc);
 }
+
+
+static TaskProxy *_parse(OptionParser &parser) {
+    add_cost_type_option_to_parser(parser);
+    Options opts = parser.parse();
+    if (parser.dry_run()) {
+        return 0;
+    } else {
+        return new TaskProxy(new AdaptCosts(*(new RootTask()), opts));
+    }
+}
+
+static Plugin<TaskProxy> _plugin("adapt_costs", _parse);
