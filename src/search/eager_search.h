@@ -3,10 +3,8 @@
 
 #include <vector>
 
-#include "evaluator.h"
 #include "global_state.h"
 #include "search_engine.h"
-#include "search_progress.h"
 #include "search_space.h"
 #include "timer.h"
 
@@ -20,17 +18,20 @@ class ScalarEvaluator;
 class EagerSearch : public SearchEngine {
     // Search Behavior parameters
     bool reopen_closed_nodes; // whether to reopen closed nodes upon finding lower g paths
-    bool do_pathmax; // whether to use pathmax correction
     bool use_multi_path_dependence;
 
     OpenList<StateID> *open_list;
     ScalarEvaluator *f_evaluator;
 
+    EvaluationContext evaluate_state(
+        const GlobalState &state, int g, bool preferred);
+    EvaluationContext evaluate_state_for_preferred_ops(
+        const GlobalState &state, int g, bool preferred);
 protected:
     SearchStatus step();
     std::pair<SearchNode, bool> fetch_next_node();
-    void update_jump_statistic(const SearchNode &node);
-    void print_heuristic_values(const std::vector<int> &values) const;
+    void start_f_value_statistics(EvaluationContext &eval_context);
+    void update_f_value_statistics(const SearchNode &node);
     void reward_progress();
 
     std::vector<Heuristic *> heuristics;
@@ -41,9 +42,12 @@ protected:
 
     virtual void initialize();
 
+    void print_best_h_line(int g) const;
 public:
-    EagerSearch(const Options &opts);
-    void statistics() const;
+    explicit EagerSearch(const Options &opts);
+    virtual ~EagerSearch() = default;
+
+    virtual void print_statistics() const override;
 
     void dump_search_space();
 };

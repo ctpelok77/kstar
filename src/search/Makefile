@@ -37,6 +37,11 @@ DOWNWARD_LINK_RELEASE_STATICALLY ?= 1
 DOWNWARD_OS ?= auto
 
 
+# TODO: Add removed search algorithms back in.
+
+# TODO: Add ipc_max_heuristic.cc back in (or make the functionality
+#       work some other way.)
+
 HEADERS = \
           axioms.h \
           causal_graph.h \
@@ -44,8 +49,9 @@ HEADERS = \
           countdown_timer.h \
           domain_transition_graph.h \
           eager_search.h \
-          enforced_hill_climbing_search.h \
           equivalence_relation.h \
+          evaluation_context.h \
+          evaluation_result.h \
           exact_timer.h \
           g_evaluator.h \
           global_operator.h \
@@ -53,9 +59,6 @@ HEADERS = \
           globals.h \
           heuristic.h \
           int_packer.h \
-          ipc_max_heuristic.h \
-          iterated_search.h \
-          lazy_search.h \
           max_evaluator.h \
           operator_cost.h \
           option_parser.h \
@@ -66,10 +69,12 @@ HEADERS = \
           relaxation_heuristic.h \
           rng.h \
           root_task.h \
+          scalar_evaluator.h \
           search_engine.h \
           search_node_info.h \
           search_progress.h \
           search_space.h \
+          search_statistics.h \
           state_id.h \
           state_registry.h \
           successor_generator.h \
@@ -81,7 +86,8 @@ HEADERS = \
           weighted_evaluator.h \
           \
           open_lists/alternation_open_list.h \
-          open_lists/open_list_buckets.h \
+          open_lists/bucket_open_list.h \
+          open_lists/open_list.h \
           open_lists/pareto_open_list.h \
           open_lists/standard_scalar_open_list.h \
           open_lists/tiebreaking_open_list.h \
@@ -119,19 +125,21 @@ HEADERS += merge_and_shrink/labels.h \
            merge_and_shrink/shrink_strategy.h \
            merge_and_shrink/transition_system.h \
 
-HEADERS += landmarks/exploration.h \
-           landmarks/h_m_landmarks.h \
-           landmarks/lama_ff_synergy.h \
-           landmarks/landmark_cost_assignment.h \
-           landmarks/landmark_count_heuristic.h \
-           landmarks/landmark_status_manager.h \
-           landmarks/landmark_graph_merged.h \
-           landmarks/landmark_graph.h \
-           landmarks/landmark_factory.h \
-           landmarks/landmark_factory_rpg_exhaust.h \
-           landmarks/landmark_factory_rpg_sasp.h \
-           landmarks/landmark_factory_zhu_givan.h \
-           landmarks/util.h \
+# TODO: Add landmark code back in.
+
+# HEADERS += landmarks/exploration.h \
+#            landmarks/h_m_landmarks.h \
+#            landmarks/lama_ff_synergy.h \
+#            landmarks/landmark_cost_assignment.h \
+#            landmarks/landmark_count_heuristic.h \
+#            landmarks/landmark_status_manager.h \
+#            landmarks/landmark_graph_merged.h \
+#            landmarks/landmark_graph.h \
+#            landmarks/landmark_factory.h \
+#            landmarks/landmark_factory_rpg_exhaust.h \
+#            landmarks/landmark_factory_rpg_sasp.h \
+#            landmarks/landmark_factory_zhu_givan.h \
+#            landmarks/util.h \
 
 # HEADERS += learning/AODE.h \
 #            learning/classifier.h \
@@ -145,15 +153,17 @@ HEADERS += landmarks/exploration.h \
 #            learning/state_space_sample.h \
 #            learning/state_vars_feature_extractor.h \
 
-HEADERS += pdbs/canonical_pdbs_heuristic.h \
-           pdbs/dominance_pruner.h \
-           pdbs/match_tree.h \
-           pdbs/max_cliques.h \
-           pdbs/pattern_generation_edelkamp.h \
-           pdbs/pattern_generation_haslum.h \
-           pdbs/pdb_heuristic.h \
-           pdbs/util.h \
-           pdbs/zero_one_pdbs_heuristic.h \
+# TODO: Add PDB code back in.
+
+# HEADERS += pdbs/canonical_pdbs_heuristic.h \
+#            pdbs/dominance_pruner.h \
+#            pdbs/match_tree.h \
+#            pdbs/max_cliques.h \
+#            pdbs/pattern_generation_edelkamp.h \
+#            pdbs/pattern_generation_haslum.h \
+#            pdbs/pdb_heuristic.h \
+#            pdbs/util.h \
+#            pdbs/zero_one_pdbs_heuristic.h \
 
 SOURCES = planner.cc $(HEADERS:%.h=%.cc)
 TARGET = downward
