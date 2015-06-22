@@ -1,3 +1,5 @@
+#ifndef UTILITIES_WINDOWS_H
+#define UTILITIES_WINDOWS_H
 
 // avoid min/max conflicts http://support.microsoft.com/kb/143208
 #ifndef NOMINMAX
@@ -10,3 +12,5 @@
 #endif
 
 #include <windows.h>
+
+#endif
