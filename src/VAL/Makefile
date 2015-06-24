@@ -31,6 +31,11 @@
 
 MYCODEDIR := .
 
+## Set DOWNWARD_LINK_RELEASE_STATICALLY to 0 or 1 (default) to
+## disable/enable static linking of the executable in release mode.
+## On OS X, this is unsupported and will be silently disabled.
+DOWNWARD_LINK_RELEASE_STATICALLY ?= 1
+
 OS = auto
 ## We link statically by default, but not on OS X.
 ## The OS can either be auto-detected (default) or
@@ -58,7 +63,7 @@ ifeq ($(OS), osx)
 ## Disable static linking on OS X.
 LINK_STATICALLY = 0
 else
-LINK_STATICALLY = 1
+LINK_STATICALLY = ${DOWNWARD_LINK_RELEASE_STATICALLY}
 endif
 
 # Directories to search for header files
