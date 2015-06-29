@@ -49,6 +49,10 @@ class SearchEngine;
 class ShrinkStrategy;
 class Labels;
 
+namespace cegar {
+class Decomposition;
+}
+
 /*
 The TokenParser<T> wraps functions to parse supported types T.
  */
@@ -142,6 +146,12 @@ template <>
 class TokenParser<std::shared_ptr<AbstractTask> > {
 public:
     static inline std::shared_ptr<AbstractTask> parse(OptionParser &p);
+};
+
+template <>
+class TokenParser<std::shared_ptr<cegar::Decomposition> > {
+public:
+    static inline std::shared_ptr<cegar::Decomposition> parse(OptionParser &p);
 };
 
 template <class T>
@@ -446,6 +456,10 @@ Synergy *TokenParser<Synergy *>::parse(OptionParser &p) {
 
 std::shared_ptr<AbstractTask> TokenParser<std::shared_ptr<AbstractTask> >::parse(OptionParser &p) {
     return lookup_in_registry_shared<AbstractTask>(p);
+}
+
+std::shared_ptr<cegar::Decomposition> TokenParser<std::shared_ptr<cegar::Decomposition> >::parse(OptionParser &p) {
+    return lookup_in_registry_shared<cegar::Decomposition>(p);
 }
 
 ParseTree TokenParser<ParseTree>::parse(OptionParser &p) {

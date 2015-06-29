@@ -1,5 +1,8 @@
 #include "utilities.h"
 
+#include "globals.h"
+#include "timer.h"
+
 #include <cassert>
 #include <csignal>
 #include <fstream>
@@ -173,4 +176,10 @@ int get_process_id() {
 #else
     return getpid();
 #endif
+}
+
+Log::~Log() {
+    cout << os.str()
+         << " [t=" << g_timer << ", " << get_peak_memory_in_kb() << " KB]"
+         << std::endl;
 }
