@@ -48,6 +48,8 @@ class AdditiveHeuristic : public RelaxationHeuristic {
     }
 
     void write_overflow_warning();
+
+    int compute_heuristic(const State &state);
 protected:
     virtual void initialize();
     virtual int compute_heuristic(const GlobalState &global_state);
@@ -57,6 +59,18 @@ protected:
 public:
     AdditiveHeuristic(const Options &options);
     ~AdditiveHeuristic();
+
+    int get_cost(int var, int value) {
+        assert(in_bounds(var, propositions));
+        assert(in_bounds(value, propositions[var]));
+        return propositions[var][value].cost;
+    }
+
+    /*
+      We need this method for the CEGAR heuristic, which only has access to
+      State objects and not to GlobalState objects.
+    */
+    void initialize_and_compute_heuristic(const State &state);
 };
 
 #endif
