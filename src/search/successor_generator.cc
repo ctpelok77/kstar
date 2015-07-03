@@ -15,7 +15,7 @@ SuccessorGenerator::SuccessorGenerator(shared_ptr<AbstractTask> task)
 
 /*
   TODO: this is a dummy implementation that will be replaced with code from the
-  preprocessor in issue... For now, we just loop through operators every time.
+  preprocessor in issue547. For now, we just loop through operators every time.
 */
 void SuccessorGenerator::generate_applicable_ops(
     const State &state, std::vector<OperatorProxy> &applicable_ops) {
