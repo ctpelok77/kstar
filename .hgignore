@@ -9,7 +9,9 @@
 ^src/preprocess/preprocess$
 ^src/preprocess/preprocess-debug$
 ^src/preprocess/preprocess-profile$
-^src/search/\.obj/
+^src/search/CMakeCache.txt$
+^src/search/cmake_install.cmake$
+^src/search/CMakeFiles/
 ^src/search/lp/coin/
 ^src/search/Makefile\.depend$
 ^src/search/downward-debug$
