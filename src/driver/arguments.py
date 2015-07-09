@@ -3,6 +3,7 @@
 import argparse
 
 from . import aliases
+from . import limits
 
 
 DESCRIPTION = """Fast Downward driver script.
@@ -56,10 +57,12 @@ Examples:
 %s
 """ % "\n\n".join("%s\n%s" % (desc, " ".join(cmd)) for desc, cmd in EXAMPLES)
 
+COMPONENTS_PLUS_OVERALL = ["translate", "preprocess", "search", "overall"]
+
 
 class RawHelpFormatter(argparse.HelpFormatter):
-    """Preserve newlines and spacing."""
     def _fill_text(self, text, width, indent):
+        """Preserve newlines and spacing."""
         return ''.join([indent + line for line in text.splitlines(True)])
 
     def _format_args(self, action, default_metavar):
@@ -228,6 +231,12 @@ def _set_components_and_inputs(parser, args):
         assert False, first
 
 
+def _convert_limits_to_ints(parser, args):
+    for component in COMPONENTS_PLUS_OVERALL:
+        limits.set_timeout_in_seconds(parser, args, component)
+        limits.set_memory_limit_in_bytes(parser, args, component)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description=DESCRIPTION, epilog=EPILOG,
@@ -262,6 +271,18 @@ def parse_args():
     components.add_argument(
         "--search", action="store_true",
         help="run search component")
+
+    # TODO: Default values?
+    time_limits = parser.add_argument_group(
+        title="time limits in seconds or with suffixes s, m, h (e.g. 100s, 30m, 1h)")
+    for component in COMPONENTS_PLUS_OVERALL:
+        time_limits.add_argument("--{}-timeout".format(component))
+
+    # TODO: Default values?
+    memory_limits = parser.add_argument_group(
+        title="memory limits in MB or with suffixes K, M, G (e.g. 1024M, 2G)")
+    for component in COMPONENTS_PLUS_OVERALL:
+        memory_limits.add_argument("--{}-memory".format(component))
 
     driver_other = parser.add_argument_group(
         title="other driver options")
@@ -302,6 +323,8 @@ def parse_args():
             ("--alias", args.alias is not None),
             ("--portfolio", args.portfolio is not None),
             ("options for search component", bool(args.search_options))])
+
+    _convert_limits_to_ints(parser, args)
 
     if args.alias:
         try:
