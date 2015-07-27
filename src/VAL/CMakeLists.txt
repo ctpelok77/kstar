@@ -43,10 +43,13 @@ set(VALIDATE_SOURCES
     DebugWriteController
     Environment
     Events
+    Exceptions
     FuncExp
     LaTeXSupport
+    macros
     main
     Ownership
+    parse_error
     Plan
     Polynomial
     PrettyPrinter
@@ -55,11 +58,16 @@ set(VALIDATE_SOURCES
     random
     RepairAdvice
     RobustAnalyse
+    sStack
     State
+    StateObserver
+    tDistribution
     TrajectoryConstraints
     typecheck
     Utils
     Validator
+    VisitController
+    WriteController
     ${CMAKE_CURRENT_BINARY_DIR}/pddl+.cpp
 )
 
