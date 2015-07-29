@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 
 project(validate)
 
-if(CMAKE_COMPILER_IS_GNUCXX)
+if(CMAKE_COMPILER_IS_GNUCXX OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ansi -Wall -Werror")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-but-set-variable")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized")
@@ -20,6 +20,8 @@ elseif(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -wd4996")
     set(BISON_COMPILE_FLAGS "-Wno-conflicts-sr -Wno-conflicts-rr")
     set(FLEX_COMPILE_FLAGS "-+ --wincompat")
+else()
+    message(FATAL_ERROR "Unsupported compiler: ${CMAKE_CXX_COMPILER}")
 endif()
 
 find_package(BISON REQUIRED)
