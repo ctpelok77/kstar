@@ -149,7 +149,7 @@ class var_symbol_table_stack;
 class analysis;
 
 class WriteController;
-class VisitController;
+struct VisitController;
 
 enum quantifier { E_FORALL, E_EXISTS };
 enum polarity { E_NEG, E_POS };
