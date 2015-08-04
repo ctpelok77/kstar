@@ -148,7 +148,7 @@ class parse_category;
 class var_symbol_table_stack;
 class analysis;
 
-class WriteController;
+struct WriteController;
 struct VisitController;
 
 enum quantifier { E_FORALL, E_EXISTS };
