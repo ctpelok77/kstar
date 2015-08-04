@@ -13,9 +13,17 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-private-field")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-absolute-value")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-tautological-compare")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-parentheses-equality")
+    execute_process(
+        COMMAND ${CMAKE_CXX_COMPILER} --version
+        OUTPUT_VARIABLE _CLANG_VERSION_TEXT)
+    string(
+        REGEX REPLACE ".*clang version ([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1"
+        CLANG_VERSION_STRING ${_CLANG_VERSION_TEXT})
+    if(CLANG_VERSION_STRING VERSION_EQUAL 3.5 OR CLANG_VERSION_STRING VERSION_GREATER 3.5)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-absolute-value")
+    endif()
 elseif(MSVC)
     # enable exceptions
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
