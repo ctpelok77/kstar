@@ -10,7 +10,10 @@ if(NOT BISON_FOUND OR NOT FLEX_FOUND OR NOT FLEX_INCLUDE_DIR)
     return()
 endif()
 
-set(BISON_COMPILE_FLAGS "-Wno-conflicts-sr -Wno-conflicts-rr")
+set(BISON_COMPILE_FLAGS "")
+if (BISON_VERSION VERSION_EQUAL 2.5 OR BISON_VERSION VERSION_GREATER 2.5)
+    set(BISON_COMPILE_FLAGS "-Wno-conflicts-sr -Wno-conflicts-rr")
+endif()
 set(FLEX_COMPILE_FLAGS "-+")
 
 if(CMAKE_COMPILER_IS_GNUCXX)
@@ -51,8 +54,12 @@ endif()
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${FLEX_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 
-bison_target(validate_Parser pddl+.yacc ${CMAKE_CURRENT_BINARY_DIR}/pddl+.cpp
-             COMPILE_FLAGS ${BISON_COMPILE_FLAGS})
+if(BISON_COMPILE_FLAGS)
+    bison_target(validate_Parser pddl+.yacc ${CMAKE_CURRENT_BINARY_DIR}/pddl+.cpp
+                 COMPILE_FLAGS ${BISON_COMPILE_FLAGS})
+else()
+    bison_target(validate_Parser pddl+.yacc ${CMAKE_CURRENT_BINARY_DIR}/pddl+.cpp)
+endif()
 flex_target(validate_Scanner pddl+.lex  ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cc
             COMPILE_FLAGS ${FLEX_COMPILE_FLAGS})
 
