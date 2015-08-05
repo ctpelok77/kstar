@@ -2,6 +2,14 @@ cmake_minimum_required(VERSION 2.8.3)
 
 project(validate)
 
+find_package(BISON)
+find_package(FLEX)
+
+if(NOT BISON_FOUND OR NOT FLEX_FOUND OR NOT FLEX_INCLUDE_DIR)
+    message("FLEX or BISON where not found, so VAL won't be build.")
+    return()
+endif()
+
 set(BISON_COMPILE_FLAGS "-Wno-conflicts-sr -Wno-conflicts-rr")
 set(FLEX_COMPILE_FLAGS "-+")
 
@@ -41,57 +49,50 @@ else()
     message(FATAL_ERROR "Unsupported compiler: ${CMAKE_CXX_COMPILER}")
 endif()
 
-find_package(BISON)
-find_package(FLEX)
+include_directories(${CMAKE_CURRENT_BINARY_DIR} ${FLEX_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
 
-if(BISON_FOUND AND FLEX_FOUND AND FLEX_INCLUDE_DIR)
-    include_directories(${CMAKE_CURRENT_BINARY_DIR} ${FLEX_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
+bison_target(validate_Parser pddl+.yacc ${CMAKE_CURRENT_BINARY_DIR}/pddl+.cpp
+             COMPILE_FLAGS ${BISON_COMPILE_FLAGS})
+flex_target(validate_Scanner pddl+.lex  ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cc
+            COMPILE_FLAGS ${FLEX_COMPILE_FLAGS})
 
-    bison_target(validate_Parser pddl+.yacc ${CMAKE_CURRENT_BINARY_DIR}/pddl+.cpp
-                 COMPILE_FLAGS ${BISON_COMPILE_FLAGS})
-    flex_target(validate_Scanner pddl+.lex  ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cc
-                COMPILE_FLAGS ${FLEX_COMPILE_FLAGS})
+set_source_files_properties(
+    ${CMAKE_CURRENT_BINARY_DIR}/pddl+.cpp
+    PROPERTIES OBJECT_DEPENDS
+    ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cc
+)
 
-    set_source_files_properties(
-        ${CMAKE_CURRENT_BINARY_DIR}/pddl+.cpp
-        PROPERTIES OBJECT_DEPENDS
-        ${CMAKE_CURRENT_BINARY_DIR}/lex.yy.cc
-    )
+set(VALIDATE_SOURCES
+    Action
+    DebugWriteController
+    Environment
+    Events
+    Exceptions
+    FuncExp
+    LaTeXSupport
+    macros
+    main
+    Ownership
+    parse_error
+    Plan
+    Polynomial
+    PrettyPrinter
+    Proposition
+    ptree
+    random
+    RepairAdvice
+    RobustAnalyse
+    sStack
+    State
+    StateObserver
+    tDistribution
+    TrajectoryConstraints
+    typecheck
+    Utils
+    Validator
+    VisitController
+    WriteController
+    ${CMAKE_CURRENT_BINARY_DIR}/pddl+.cpp
+)
 
-    set(VALIDATE_SOURCES
-        Action
-        DebugWriteController
-        Environment
-        Events
-        Exceptions
-        FuncExp
-        LaTeXSupport
-        macros
-        main
-        Ownership
-        parse_error
-        Plan
-        Polynomial
-        PrettyPrinter
-        Proposition
-        ptree
-        random
-        RepairAdvice
-        RobustAnalyse
-        sStack
-        State
-        StateObserver
-        tDistribution
-        TrajectoryConstraints
-        typecheck
-        Utils
-        Validator
-        VisitController
-        WriteController
-        ${CMAKE_CURRENT_BINARY_DIR}/pddl+.cpp
-    )
-
-    add_executable(validate ${VALIDATE_SOURCES})
-else()
-    message(STATUS "FLEX or BISON where not found, so VAL won't be build.")
-endif()
+add_executable(validate ${VALIDATE_SOURCES})
