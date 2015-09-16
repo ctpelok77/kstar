@@ -98,6 +98,7 @@ HEADERS = \
           open_lists/pareto_open_list.h \
           open_lists/standard_scalar_open_list.h \
           open_lists/tiebreaking_open_list.h \
+          open_lists/type_based_open_list.h \
           \
           lp_internals.h \
           lp_solver.h \
@@ -114,6 +115,7 @@ HEADERS += additive_heuristic.h
 HEADERS += blind_search_heuristic.h
 HEADERS += cea_heuristic.h
 HEADERS += cg_heuristic.h cg_cache.h
+HEADERS += const_evaluator.h
 HEADERS += ff_heuristic.h
 HEADERS += goal_count_heuristic.h
 HEADERS += hm_heuristic.h

@@ -1,7 +1,6 @@
 #ifndef UTILITIES_H
 #define UTILITIES_H
 
-
 #define LINUX 0
 #define OSX 1
 #define CYGWIN 2
@@ -94,6 +93,13 @@ bool in_bounds(int index, const T &container) {
 template<class T>
 bool in_bounds(size_t index, const T &container) {
     return index < container.size();
+}
+
+template<typename T>
+void swap_and_pop_from_vector(std::vector<T> &vec, std::size_t pos) {
+    assert(in_bounds(pos, vec));
+    std::swap(vec[pos], vec.back());
+    vec.pop_back();
 }
 
 template<typename T>
