@@ -31,7 +31,7 @@ elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     # see: http://forums.bannister.org/ubbthreads.php?ubb=showflat&Number=96173
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-warning-option")
 elseif(MSVC)
-    # enable exceptions
+    # Enable exceptions.
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_SCL_SECURE_NO_WARNINGS")
