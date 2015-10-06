@@ -70,7 +70,7 @@ class Action;
 
 
 
-class ActiveCtsEffects;
+struct ActiveCtsEffects;
 class DerivedGoal;
 class AdviceProposition;
 
