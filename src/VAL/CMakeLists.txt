@@ -6,7 +6,7 @@ find_package(BISON)
 find_package(FLEX)
 
 if(NOT BISON_FOUND OR NOT FLEX_FOUND OR NOT FLEX_INCLUDE_DIR)
-    message("FLEX or BISON where not found, so VAL won't be build.")
+    message(WARNING "FLEX or BISON where not found, so VAL won't be build.")
     return()
 endif()
 
