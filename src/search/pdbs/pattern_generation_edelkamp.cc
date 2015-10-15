@@ -195,6 +195,7 @@ void PatternGenerationEdelkamp::evaluate(vector<double> &fitness_values) {
             // Since we pass a task transformation, cost_type won't be used.
             opts.set<int>("cost_type", NORMAL);
             opts.set<vector<vector<int>>>("patterns", pattern_collection);
+            opts.set<bool>("cache_h", false);
             ZeroOnePDBsHeuristic *pattern_collection_heuristic =
                 new ZeroOnePDBsHeuristic(opts);
             fitness = pattern_collection_heuristic->get_approx_mean_finite_h();
