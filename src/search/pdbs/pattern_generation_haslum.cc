@@ -328,6 +328,7 @@ void PatternGenerationHaslum::initialize() {
     // Since we pass a task transformation, cost_type won't be used.
     opts.set<int>("cost_type", NORMAL);
     opts.set<vector<vector<int>>>("patterns", initial_pattern_collection);
+    opts.set<bool>("cache_h", false);
     current_heuristic = new CanonicalPDBsHeuristic(opts);
 
     State initial_state = task_proxy.get_initial_state();
