@@ -65,8 +65,8 @@ class State;
 class Ownership;
 class EffectsRecord;
 class Validator;
-class ExecutionContext;
-class ActiveCtsEffects;
+struct ExecutionContext;
+struct ActiveCtsEffects;
 class StartAction;
 class EndAction;
 
@@ -125,9 +125,9 @@ protected:
 			};
 		};
 
-	friend class FAEhandler;
-	friend class ActiveCtsEffects;
-	
+	friend struct FAEhandler;
+	friend struct ActiveCtsEffects;
+
 public:
 	Action(Validator * v,const operator_ * a,const const_symbol_list* bs);
 	Action(Validator * v,const operator_ * a,Environment * bs);
