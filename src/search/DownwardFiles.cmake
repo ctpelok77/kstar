@@ -236,7 +236,9 @@ fast_downward_plugin(
 fast_downward_plugin(
     NAME LM_CUT_HEURISTIC
     HELP "The LM-cut heuristic"
-    SOURCES lm_cut_heuristic.cc
+    SOURCES
+        lm_cut_heuristic.cc
+        lm_cut_landmarks.cc
 )
 
 fast_downward_plugin(
@@ -286,24 +288,6 @@ fast_downward_plugin(
         landmarks/landmark_status_manager.cc
         landmarks/util.cc
     DEPENDS LP_SOLVER
-)
-
-fast_downward_plugin(
-    NAME LEARNING
-    HELP "Plugin containing the code to reason with learning"
-    SOURCES
-        learning/AODE.cc
-        learning/classifier.cc
-        learning/composite_feature_extractor.cc
-        learning/feature_extractor.cc
-        learning/maximum_heuristic.cc
-        learning/naive_bayes_classifier.cc
-        learning/PDB_state_space_sample.cc
-        learning/probe_state_space_sample.cc
-        learning/selective_max_heuristic.cc
-        learning/state_space_sample.cc
-        learning/state_vars_feature_extractor.cc
-    DEACTIVATED
 )
 
 fast_downward_plugin(
