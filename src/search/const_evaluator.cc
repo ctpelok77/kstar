@@ -5,7 +5,6 @@
 
 
 namespace ConstEvaluator {
-
 ConstEvaluator::ConstEvaluator(const Options &opts)
     : Heuristic(opts),
       value(opts.get<int>("value")) {
@@ -34,5 +33,4 @@ static Heuristic *_parse(OptionParser &parser) {
 }
 
 static Plugin<Heuristic> _plugin("const", _parse);
-
 }
