@@ -9,6 +9,10 @@
 #include "../pdbs/pdb_heuristic.h"
 #include "../pdbs/util.h"
 
+#include <memory>
+using namespace std;
+
+
 namespace OperatorCounting {
 PhOConstraints::PhOConstraints(const Options &opts)
     : options(opts),

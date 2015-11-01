@@ -2,6 +2,8 @@
 
 #include "../plugin.h"
 
+using namespace std;
+
 
 std::ostream & operator<<(std::ostream &os, const Fluent &p) {
     return os << "(" << p.first << ", " << p.second << ")";
