@@ -21,6 +21,14 @@ Distances::Distances(const TransitionSystem &transition_system)
 Distances::~Distances() {
 }
 
+void Distances::clear_distances() {
+    max_f = DISTANCE_UNKNOWN;
+    max_g = DISTANCE_UNKNOWN;
+    max_h = DISTANCE_UNKNOWN;
+    init_distances.clear();
+    goal_distances.clear();
+}
+
 int Distances::get_num_states() const {
     return transition_system.get_size();
 }
@@ -177,14 +185,6 @@ void Distances::compute_goal_distances_general_cost() {
     dijkstra_search(backward_graph, queue, goal_distances);
 }
 
-void Distances::clear_distances() {
-    max_f = DISTANCE_UNKNOWN;
-    max_g = DISTANCE_UNKNOWN;
-    max_h = DISTANCE_UNKNOWN;
-    init_distances.clear();
-    goal_distances.clear();
-}
-
 bool Distances::are_distances_computed() const {
     if (max_h == DISTANCE_UNKNOWN) {
         assert(max_f == DISTANCE_UNKNOWN);
@@ -196,7 +196,7 @@ bool Distances::are_distances_computed() const {
     return true;
 }
 
-std::vector<bool> Distances::compute_distances() {
+vector<bool> Distances::compute_distances() {
     /*
       This method does the following:
       - Computes the distances of abstract states from the abstract
@@ -276,7 +276,7 @@ bool Distances::apply_abstraction(
       we should have a typedef for this and perhaps also for a vector of
       this at a more central place.
     */
-    typedef forward_list<AbstractStateRef> Group;
+    typedef forward_list<int> Group;
 
     int new_num_states = collapsed_groups.size();
     vector<int> new_init_distances(new_num_states, DISTANCE_UNKNOWN);
@@ -319,16 +319,4 @@ bool Distances::apply_abstraction(
         goal_distances = move(new_goal_distances);
         return true;
     }
-}
-
-int Distances::get_max_f() const {
-    return max_f;
-}
-
-int Distances::get_max_g() const {
-    return max_g;
-}
-
-int Distances::get_max_h() const {
-    return max_h;
 }
