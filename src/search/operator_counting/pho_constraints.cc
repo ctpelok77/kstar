@@ -9,10 +9,9 @@
 
 #include <cassert>
 #include <limits>
+#include <memory>
 #include <vector>
 
-
-#include <memory>
 using namespace std;
 
 
