@@ -12,6 +12,10 @@
 #include <vector>
 
 
+#include <memory>
+using namespace std;
+
+
 namespace OperatorCounting {
 PhOConstraints::PhOConstraints(const Options &opts)
     : pattern_generator(
