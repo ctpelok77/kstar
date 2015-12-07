@@ -49,7 +49,7 @@
  :parameters (?x - simple ?l1 ?l2 - level)
  :precondition (and (possible ?x) (not-chosen ?x) 
 		    (num-subs ?l2) (next ?l1 ?l2))
- :effect (and (chosen ?x) (not (num-subs ?l2)) (num-subs ?l1)))
+ :effect (and (chosen ?x) (not (not-chosen ?x)) (not (num-subs ?l2)) (num-subs ?l1)))
 
 (:action initialize
   :parameters (?x - simple)
