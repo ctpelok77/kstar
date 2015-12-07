@@ -4,10 +4,15 @@
 #include "system.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <sstream>
+#include <unordered_set>
 #include <utility>
 #include <vector>
+#include <functional>
+
 
 #define ABORT(msg) \
     ( \
@@ -50,12 +55,24 @@ namespace std {
 template<class T>
 ostream &operator<<(ostream &stream, const vector<T> &vec) {
     stream << "[";
-    for (size_t i = 0; i < vec.size(); ++i) {
-        if (i != 0)
-            stream << ", ";
-        stream << vec[i];
+    string sep = "";
+    for (const auto &item : vec) {
+        stream << sep << item;
+        sep = ", ";
     }
     stream << "]";
+    return stream;
+}
+
+template<class T>
+ostream &operator<<(ostream &stream, const unordered_set<T> &set) {
+    stream << "{";
+    string sep = "";
+    for (auto &item : set) {
+        stream << sep << item;
+        sep = ", ";
+    }
+    stream << "}";
     return stream;
 }
 }
@@ -98,5 +115,23 @@ template<typename T, typename ... Args>
 std::unique_ptr<T> make_unique_ptr(Args && ... args) {
     return std::unique_ptr<T>(new T(std::forward<Args>(args) ...));
 }
+
+/*
+  Simple logger that includes the time and peak memory usage in logged lines.
+  Line breaks are automatically added. Passing std::endl is not supported.
+
+  Usage: Log() << "Variables: " << 10;
+*/
+class Log {
+    std::ostringstream os;
+public:
+    template <typename T>
+    Log &operator<<(T const &value) {
+        os << value;
+        return *this;
+    }
+
+    ~Log();
+};
 
 #endif
