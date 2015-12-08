@@ -22,8 +22,9 @@
 
 using namespace std;
 
-struct HillClimbingTimeout : public exception {};
 
+namespace PDBs {
+struct HillClimbingTimeout : public exception {};
 
 PatternCollectionGeneratorHillclimbing::PatternCollectionGeneratorHillclimbing(const Options &opts)
     : pdb_max_size(opts.get<int>("pdb_max_size")),
@@ -99,8 +100,8 @@ void PatternCollectionGeneratorHillclimbing::sample_states(
             task_proxy, successor_generator, num_samples, init_h,
             average_operator_cost,
             [this](const State &state) {
-            return current_pdbs->is_dead_end(state);
-        },
+                return current_pdbs->is_dead_end(state);
+            },
             hill_climbing_timer);
     } catch (SamplingTimeout &) {
         throw HillClimbingTimeout();
@@ -524,3 +525,4 @@ static Heuristic *_parse_ipdb(OptionParser &parser) {
 
 static Plugin<Heuristic> _plugin_ipdb("ipdb", _parse_ipdb);
 static PluginShared<PatternCollectionGenerator> _plugin("hillclimbing", _parse);
+}
