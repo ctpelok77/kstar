@@ -24,6 +24,7 @@ set(CORE_SOURCES
         heuristic_cache.cc
         heuristic.cc
         int_packer.cc
+        logging.cc
         operator_cost.cc
         option_parser.h
         option_parser_util.h
@@ -52,6 +53,7 @@ set(CORE_SOURCES
         tracer.cc
         utilities.cc
         utilities_hash.cc
+        utilities_memory.cc
         variable_order_finder.cc
 
         open_lists/alternation_open_list.cc
@@ -63,6 +65,11 @@ set(CORE_SOURCES
         open_lists/standard_scalar_open_list.cc
         open_lists/tiebreaking_open_list.cc
         open_lists/type_based_open_list.cc
+
+        tasks/domain_abstracted_task.cc
+        tasks/domain_abstracted_task_factory.cc
+        tasks/modified_costs_task.cc
+        tasks/modified_goals_task.cc
 )
 
 fast_downward_add_headers_to_sources_list(CORE_SOURCES)
@@ -299,6 +306,23 @@ fast_downward_plugin(
     SOURCES
         heuristics/max_heuristic.cc
     DEPENDS RELAXATION_HEURISTIC
+)
+
+fast_downward_plugin(
+    NAME CEGAR
+    HELP "Plugin containing the code for CEGAR heuristics"
+    SOURCES
+        cegar/abstraction.cc
+        cegar/abstract_search.cc
+        cegar/abstract_state.cc
+        cegar/additive_cartesian_heuristic.cc
+        cegar/cartesian_heuristic.cc
+        cegar/decompositions.cc
+        cegar/domains.cc
+        cegar/split_selector.cc
+        cegar/split_tree.cc
+        cegar/utils.cc
+        cegar/utils_landmarks.cc
 )
 
 fast_downward_plugin(
