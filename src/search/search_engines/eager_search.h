@@ -1,6 +1,7 @@
 #ifndef SEARCH_ENGINES_EAGER_SEARCH_H
 #define SEARCH_ENGINES_EAGER_SEARCH_H
 
+#include "../por_method.h"
 #include "../search_engine.h"
 
 #include "../open_lists/open_list.h"
@@ -23,6 +24,8 @@ class EagerSearch : public SearchEngine {
 
     std::vector<Heuristic *> heuristics;
     std::vector<Heuristic *> preferred_operator_heuristics;
+
+    std::shared_ptr<PORMethod> partial_order_reduction_method;
 
     std::pair<SearchNode, bool> fetch_next_node();
     void start_f_value_statistics(EvaluationContext &eval_context);
