@@ -11,6 +11,7 @@
 class GlobalOperator;
 class Heuristic;
 class Options;
+class PruningMethod;
 class ScalarEvaluator;
 
 namespace eager_search {
@@ -23,6 +24,8 @@ class EagerSearch : public SearchEngine {
 
     std::vector<Heuristic *> heuristics;
     std::vector<Heuristic *> preferred_operator_heuristics;
+
+    std::shared_ptr<PruningMethod> pruning_method;
 
     std::pair<SearchNode, bool> fetch_next_node();
     void start_f_value_statistics(EvaluationContext &eval_context);
