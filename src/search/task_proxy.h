@@ -557,6 +557,16 @@ public:
         }
         return State(*task, std::move(new_values));
     }
+
+    /*
+      Convert this state into a state of descendent_task which must be a
+      transformation of this->task.
+      See TaskProxy::convert_ancestor_state for details.
+    */
+    State convert_to_descendent_task(const AbstractTask *descendent_task) const {
+        return State(*descendent_task,
+                     descendent_task->get_state_values(values, task));
+    }
 };
 
 
@@ -599,6 +609,18 @@ public:
 
     State convert_global_state(const GlobalState &global_state) const {
         return State(*task, task->get_state_values(global_state));
+    }
+
+    /*
+      Convert a state from an ancestor task into a state of this task.
+      The given state has to come from a task that is an ancestor of this task
+      in the sense that this task is the result of a series of task
+      transformations on the ancestor task. The function aborts if
+      "ancestor_state.task" is not found while walking up the transformation
+      hierarchy.
+    */
+    State convert_ancestor_state(const State &ancestor_state) const {
+        return ancestor_state.convert_to_descendent_task(task);
     }
 
     const CausalGraph &get_causal_graph() const;
