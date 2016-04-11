@@ -5,7 +5,7 @@
 
 #include "../heuristic.h"
 
-namespace PDBs {
+namespace pdbs {
 // Implements the canonical heuristic function.
 class CanonicalPDBsHeuristic : public Heuristic {
     CanonicalPDBs canonical_pdbs;
@@ -19,7 +19,7 @@ protected:
     int compute_heuristic(const State &state) const;
 
 public:
-    explicit CanonicalPDBsHeuristic(const Options &opts);
+    explicit CanonicalPDBsHeuristic(const options::Options &opts);
     virtual ~CanonicalPDBsHeuristic() = default;
 };
 }

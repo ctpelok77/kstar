@@ -5,10 +5,11 @@
 
 #include <vector>
 
+namespace options {
 class Options;
+}
 
-
-namespace MergeAndShrink {
+namespace merge_and_shrink {
 /*
   NOTE: In case where we must merge across buckets (i.e. when
   the number of (f, h) pairs is larger than the number of
@@ -44,7 +45,7 @@ protected:
         std::vector<Bucket> &buckets) const override;
 
 public:
-    explicit ShrinkFH(const Options &opts);
+    explicit ShrinkFH(const options::Options &opts);
     virtual ~ShrinkFH() override;
 };
 }

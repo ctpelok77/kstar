@@ -16,8 +16,7 @@
 #include <unordered_set>
 #include <vector>
 
-
-namespace Landmarks {
+namespace landmarks {
 enum edge_type {
     /* NOTE: The code relies on the fact that larger numbers are
        stronger in the sense that, e.g., every greedy-necessary
@@ -135,7 +134,7 @@ public:
     LandmarkNode *get_lm_for_index(int);
     int get_needed_cost() const {return needed_cost; }
     int get_reached_cost() const {return reached_cost; }
-    LandmarkNode *get_landmark(const std::pair<int, int> &prop) const;
+    LandmarkNode *get_landmark(const Fact &fact) const;
 
     // TODO: the following method should not exist. Ideally, we want the
     // information about support for conditional effects to reside in the
@@ -160,7 +159,23 @@ public:
         assert(landmarks_count == static_cast<int>(nodes.size()));
         return landmarks_count;
     }
-    Exploration *get_exploration() const {return exploration; }
+
+    Exploration *get_exploration() const {
+        assert(exploration);
+        return exploration;
+    }
+
+    /*
+      The CEGAR code creates a landmark graph with an exploration that
+      goes out of scope after the graph has been created. To safeguard
+      against code that accidentally accesses the exploration, we
+      explicitly invalidate it and assert that we never return an
+      invalidated exploration above.
+    */
+    void invalidate_exploration_for_cegar() {
+        exploration = nullptr;
+    }
+
     bool is_using_reasonable_orderings() const {return reasonable_orders; }
 
     // ------------------------------------------------------------------------------

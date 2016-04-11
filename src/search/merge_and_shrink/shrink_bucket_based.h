@@ -5,10 +5,11 @@
 
 #include <vector>
 
+namespace options {
 class Options;
+}
 
-
-namespace MergeAndShrink {
+namespace merge_and_shrink {
 /* A base class for bucket-based shrink strategies.
 
    A bucket-based strategy partitions the states into an ordered
@@ -50,7 +51,7 @@ protected:
         std::vector<Bucket> &buckets) const = 0;
 
 public:
-    explicit ShrinkBucketBased(const Options &opts);
+    explicit ShrinkBucketBased(const options::Options &opts);
     virtual ~ShrinkBucketBased() override;
 };
 }

@@ -8,10 +8,12 @@
 #include <vector>
 
 class AbstractTask;
+
+namespace options {
 class Options;
+}
 
-
-namespace PDBs {
+namespace pdbs {
 /*
   Implementation of the pattern generation algorithm by Edelkamp. See:
   Stefan Edelkamp, Automated Creation of Pattern Database Search
@@ -105,7 +107,7 @@ class PatternCollectionGeneratorGenetic : public PatternCollectionGenerator {
     */
     void genetic_algorithm(std::shared_ptr<AbstractTask> task);
 public:
-    PatternCollectionGeneratorGenetic(const Options &opts);
+    PatternCollectionGeneratorGenetic(const options::Options &opts);
     virtual ~PatternCollectionGeneratorGenetic() = default;
 
     virtual PatternCollectionInformation generate(

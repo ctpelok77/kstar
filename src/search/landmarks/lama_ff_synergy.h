@@ -5,8 +5,7 @@
 
 #include <memory>
 
-
-namespace Landmarks {
+namespace landmarks {
 class Exploration;
 class LandmarkCountHeuristic;
 
@@ -46,7 +45,7 @@ class LamaFFSynergy {
     void compute_heuristics(EvaluationContext &eval_context);
 
 public:
-    explicit LamaFFSynergy(const Options &opts);
+    explicit LamaFFSynergy(const options::Options &opts);
     ~LamaFFSynergy() = default;
 
     Heuristic *get_lama_heuristic_proxy() const;

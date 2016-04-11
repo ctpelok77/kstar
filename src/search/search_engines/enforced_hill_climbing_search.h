@@ -12,9 +12,11 @@
 #include <utility>
 #include <vector>
 
+namespace options {
 class Options;
+}
 
-namespace EnforcedHillClimbingSearch {
+namespace enforced_hill_climbing_search {
 enum class PreferredUsage {
     PRUNE_BY_PREFERRED,
     RANK_PREFERRED_FIRST
@@ -57,7 +59,7 @@ protected:
     virtual SearchStatus step() override;
 
 public:
-    explicit EnforcedHillClimbingSearch(const Options &opts);
+    explicit EnforcedHillClimbingSearch(const options::Options &opts);
     virtual ~EnforcedHillClimbingSearch() override;
 
     virtual void print_statistics() const override;

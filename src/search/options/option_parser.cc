@@ -27,27 +27,33 @@ using namespace std;
 // TODO (post-issue586): Remove this once we no longer need it.
 class AbstractTask;
 class OpenListFactory;
+class PruningMethod;
 class SearchEngine;
 
-namespace Landmarks {
+namespace cegar {
+class SubtaskGenerator;
+}
+
+namespace landmarks {
 class LandmarkGraph;
 }
 
-namespace MergeAndShrink {
+namespace merge_and_shrink {
 class LabelReduction;
 class MergeStrategy;
 class ShrinkStrategy;
 }
 
-namespace OperatorCounting {
+namespace operator_counting {
 class ConstraintGenerator;
 }
 
-namespace PDBs {
+namespace pdbs {
 class PatternCollectionGenerator;
 class PatternGenerator;
 }
 
+namespace options {
 const string OptionParser::NONE = "<none>";
 
 
@@ -86,14 +92,16 @@ static void get_help(string k) {
     get_help_templ<shared_ptr<AbstractTask>>(pt);
     get_help_templ<ScalarEvaluator *>(pt);
     get_help_templ<Synergy *>(pt);
-    get_help_templ<Landmarks::LandmarkGraph *>(pt);
+    get_help_templ<landmarks::LandmarkGraph *>(pt);
+    get_help_templ<shared_ptr<cegar::SubtaskGenerator>>(pt);
     get_help_templ<shared_ptr<OpenListFactory>>(pt);
-    get_help_templ<shared_ptr<MergeAndShrink::MergeStrategy>>(pt);
-    get_help_templ<shared_ptr<MergeAndShrink::ShrinkStrategy>>(pt);
-    get_help_templ<shared_ptr<MergeAndShrink::LabelReduction>>(pt);
-    get_help_templ<shared_ptr<OperatorCounting::ConstraintGenerator>>(pt);
-    get_help_templ<shared_ptr<PDBs::PatternCollectionGenerator>>(pt);
-    get_help_templ<shared_ptr<PDBs::PatternGenerator>>(pt);
+    get_help_templ<shared_ptr<merge_and_shrink::MergeStrategy>>(pt);
+    get_help_templ<shared_ptr<merge_and_shrink::ShrinkStrategy>>(pt);
+    get_help_templ<shared_ptr<merge_and_shrink::LabelReduction>>(pt);
+    get_help_templ<shared_ptr<operator_counting::ConstraintGenerator>>(pt);
+    get_help_templ<shared_ptr<pdbs::PatternCollectionGenerator>>(pt);
+    get_help_templ<shared_ptr<pdbs::PatternGenerator>>(pt);
+    get_help_templ<shared_ptr<PruningMethod>>(pt);
 }
 
 template<typename T>
@@ -114,14 +122,16 @@ static void get_full_help() {
     get_full_help_templ<shared_ptr<AbstractTask>>();
     get_full_help_templ<ScalarEvaluator *>();
     get_full_help_templ<Synergy *>();
-    get_full_help_templ<Landmarks::LandmarkGraph *>();
+    get_full_help_templ<landmarks::LandmarkGraph *>();
+    get_full_help_templ<shared_ptr<cegar::SubtaskGenerator>>();
     get_full_help_templ<shared_ptr<OpenListFactory>>();
-    get_full_help_templ<shared_ptr<MergeAndShrink::MergeStrategy>>();
-    get_full_help_templ<shared_ptr<MergeAndShrink::ShrinkStrategy>>();
-    get_full_help_templ<shared_ptr<MergeAndShrink::LabelReduction>>();
-    get_full_help_templ<shared_ptr<OperatorCounting::ConstraintGenerator>>();
-    get_full_help_templ<shared_ptr<PDBs::PatternCollectionGenerator>>();
-    get_full_help_templ<shared_ptr<PDBs::PatternGenerator>>();
+    get_full_help_templ<shared_ptr<merge_and_shrink::MergeStrategy>>();
+    get_full_help_templ<shared_ptr<merge_and_shrink::ShrinkStrategy>>();
+    get_full_help_templ<shared_ptr<merge_and_shrink::LabelReduction>>();
+    get_full_help_templ<shared_ptr<operator_counting::ConstraintGenerator>>();
+    get_full_help_templ<shared_ptr<pdbs::PatternCollectionGenerator>>();
+    get_full_help_templ<shared_ptr<pdbs::PatternGenerator>>();
+    get_full_help_templ<shared_ptr<PruningMethod>>();
 }
 
 
@@ -191,8 +201,8 @@ static void predefine_lmgraph(std::string s, bool dry_run) {
     std::string rs = s.substr(split + 1);
     OptionParser op(rs, dry_run);
     if (definees.size() == 1) {
-        Predefinitions<Landmarks::LandmarkGraph *>::instance()->predefine(
-            definees[0], op.start_parsing<Landmarks::LandmarkGraph *>());
+        Predefinitions<landmarks::LandmarkGraph *>::instance()->predefine(
+            definees[0], op.start_parsing<landmarks::LandmarkGraph *>());
     } else {
         op.error("predefinition has invalid left side");
     }
@@ -630,4 +640,5 @@ bool OptionParser::help_mode() const {
 
 const ParseTree *OptionParser::get_parse_tree() {
     return &parse_tree;
+}
 }

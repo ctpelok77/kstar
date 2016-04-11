@@ -4,10 +4,11 @@
 #include "../option_parser_util.h"
 #include "../search_engine.h"
 
+namespace options {
 class Options;
+}
 
-
-namespace IteratedSearch {
+namespace iterated_search {
 class IteratedSearch : public SearchEngine {
     const std::vector<ParseTree> engine_configs;
     bool pass_bound;
