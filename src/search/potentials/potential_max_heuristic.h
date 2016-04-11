@@ -6,8 +6,7 @@
 #include <memory>
 #include <vector>
 
-
-namespace Potentials {
+namespace potentials {
 class PotentialFunction;
 
 /*
@@ -21,7 +20,7 @@ protected:
 
 public:
     explicit PotentialMaxHeuristic(
-        const Options &opts,
+        const options::Options &opts,
         std::vector<std::unique_ptr<PotentialFunction>> &&functions);
     ~PotentialMaxHeuristic() = default;
 };

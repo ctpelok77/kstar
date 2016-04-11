@@ -24,11 +24,13 @@
 #endif
 
 class CoinPackedVectorBase;
-class OptionParser;
 class OsiSolverInterface;
 
+namespace options {
+class OptionParser;
+}
 
-namespace LP {
+namespace lp {
 enum class LPSolverType {
     CLP, CPLEX, GUROBI
 };
@@ -37,7 +39,7 @@ enum class LPObjectiveSense {
     MAXIMIZE, MINIMIZE
 };
 
-void add_lp_solver_option_to_parser(OptionParser &parser);
+void add_lp_solver_option_to_parser(options::OptionParser &parser);
 
 class LPConstraint {
     std::vector<int> variables;

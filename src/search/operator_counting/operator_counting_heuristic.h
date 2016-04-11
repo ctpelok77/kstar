@@ -8,21 +8,22 @@
 #include <memory>
 #include <vector>
 
+namespace options {
 class Options;
+}
 
-
-namespace OperatorCounting {
+namespace operator_counting {
 class ConstraintGenerator;
 
 class OperatorCountingHeuristic : public Heuristic {
     std::vector<std::shared_ptr<ConstraintGenerator>> constraint_generators;
-    LP::LPSolver lp_solver;
+    lp::LPSolver lp_solver;
 protected:
     virtual void initialize() override;
     virtual int compute_heuristic(const GlobalState &global_state) override;
     int compute_heuristic(const State &state);
 public:
-    explicit OperatorCountingHeuristic(const Options &opts);
+    explicit OperatorCountingHeuristic(const options::Options &opts);
     ~OperatorCountingHeuristic();
 };
 }

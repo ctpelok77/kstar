@@ -5,7 +5,7 @@
 
 #include "../heuristic.h"
 
-namespace PDBs {
+namespace pdbs {
 class PatternDatabase;
 
 class ZeroOnePDBsHeuristic : public Heuristic {
@@ -18,7 +18,7 @@ protected:
        for a State object. */
     int compute_heuristic(const State &state) const;
 public:
-    ZeroOnePDBsHeuristic(const Options &opts);
+    ZeroOnePDBsHeuristic(const options::Options &opts);
     virtual ~ZeroOnePDBsHeuristic() = default;
 };
 }

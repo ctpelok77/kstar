@@ -3,10 +3,11 @@
 
 #include "shrink_bucket_based.h"
 
+namespace options {
 class Options;
+}
 
-
-namespace MergeAndShrink {
+namespace merge_and_shrink {
 class ShrinkRandom : public ShrinkBucketBased {
 protected:
     virtual void partition_into_buckets(
@@ -17,7 +18,7 @@ protected:
     virtual std::string name() const override;
     void dump_strategy_specific_options() const override {}
 public:
-    explicit ShrinkRandom(const Options &opts);
+    explicit ShrinkRandom(const options::Options &opts);
     virtual ~ShrinkRandom() override;
 };
 }

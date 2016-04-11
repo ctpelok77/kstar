@@ -19,6 +19,7 @@
   These features can be added if needed (see boost::any).
 */
 
+namespace options {
 class Any {
     class Placeholder {
 public:
@@ -38,7 +39,7 @@ public:
         }
 
         virtual std::unique_ptr<Placeholder> clone() const {
-            return Utils::make_unique_ptr<Holder<ValueType>>(held);
+            return utils::make_unique_ptr<Holder<ValueType>>(held);
         }
 
         virtual const std::type_info &type() const {
@@ -61,7 +62,7 @@ public:
 
     template<typename ValueType>
     Any(const ValueType &value)
-        : content(Utils::make_unique_ptr<Holder<ValueType>>(value)) {
+        : content(utils::make_unique_ptr<Holder<ValueType>>(value)) {
     }
 
     ~Any() = default;
@@ -121,6 +122,7 @@ ValueType any_cast(Any &operand) {
 template<typename ValueType>
 inline ValueType any_cast(const Any &operand) {
     return any_cast<const ValueType>(const_cast<Any &>(operand));
+}
 }
 
 /*

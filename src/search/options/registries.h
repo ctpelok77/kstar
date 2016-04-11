@@ -9,8 +9,8 @@
 #include <typeindex>
 #include <vector>
 
+namespace options {
 class OptionParser;
-
 
 //a registry<T> maps a string to a T-factory
 template<typename T>
@@ -25,7 +25,7 @@ public:
     void insert(const std::string &k, Factory f) {
         if (registered.count(k)) {
             std::cerr << "duplicate key in registry: " << k << std::endl;
-            Utils::exit_with(Utils::ExitCode::CRITICAL_ERROR);
+            utils::exit_with(utils::ExitCode::CRITICAL_ERROR);
         }
         registered[k] = f;
     }
@@ -136,5 +136,6 @@ public:
         return registry.cend();
     }
 };
+}
 
 #endif

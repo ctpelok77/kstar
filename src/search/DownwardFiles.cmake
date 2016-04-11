@@ -30,6 +30,7 @@ set(CORE_SOURCES
         option_parser_util.h
         per_state_information.cc
         plugin.h
+        pruning_method.cc
         priority_queue.cc
         root_task.cc
         sampling.cc
@@ -90,6 +91,14 @@ list(APPEND PLANNER_SOURCES ${CORE_SOURCES})
 # CORE_PLUGIN enables the plugin and hides the option to disable it in
 #     cmake GUIs like ccmake.
 
+option(
+    DISABLE_PLUGINS_BY_DEFAULT
+    "If set to YES only plugins that are specifically enabled will be compiled"
+    NO)
+# This option should not show up in cmake GUIs like ccmake where all
+# plugins are enabled or disabled manually.
+mark_as_advanced(DISABLE_PLUGINS_BY_DEFAULT)
+
 fast_downward_plugin(
     NAME OPTIONS
     HELP "Option parsing and plugin definition"
@@ -118,9 +127,11 @@ fast_downward_plugin(
     SOURCES
         utils/collections.h
         utils/countdown_timer.cc
+        utils/dynamic_bitset.h
         utils/hash.h
         utils/language.h
         utils/logging.cc
+        utils/markup.cc
         utils/math.cc
         utils/memory.cc
         utils/rng.cc
@@ -183,6 +194,37 @@ fast_downward_plugin(
 )
 
 fast_downward_plugin(
+    NAME NULL_PRUNING_METHOD
+    HELP "Pruning method that does nothing"
+    SOURCES
+        pruning/null_pruning_method.cc
+)
+
+fast_downward_plugin(
+    NAME STUBBORN_SETS
+    HELP "Base class for all stubborn set partial order reduction methods"
+    SOURCES
+        pruning/stubborn_sets.cc
+    DEPENDENCY_ONLY
+)
+
+fast_downward_plugin(
+    NAME STUBBORN_SETS_SIMPLE
+    HELP "Stubborn sets simple"
+    SOURCES
+        pruning/stubborn_sets_simple.cc
+    DEPENDS STUBBORN_SETS
+)
+
+fast_downward_plugin(
+    NAME StubbornSetsEC
+    HELP "Stubborn set method that dominates expansion core"
+    SOURCES
+        pruning/stubborn_sets_ec.cc
+    DEPENDS STUBBORN_SETS
+)
+
+fast_downward_plugin(
     NAME SEARCH_COMMON
     HELP "Basic classes used for all search engines"
     SOURCES
@@ -196,7 +238,7 @@ fast_downward_plugin(
     HELP "Eager search algorithm"
     SOURCES
         search_engines/eager_search.cc
-    DEPENDS SEARCH_COMMON
+    DEPENDS SEARCH_COMMON NULL_PRUNING_METHOD
 )
 
 fast_downward_plugin(
@@ -321,6 +363,35 @@ fast_downward_plugin(
     SOURCES
         heuristics/max_heuristic.cc
     DEPENDS RELAXATION_HEURISTIC
+)
+
+fast_downward_plugin(
+    NAME EXTRA_TASKS
+    HELP "Non-core task transformations"
+    SOURCES
+        tasks/domain_abstracted_task.cc
+        tasks/domain_abstracted_task_factory.cc
+        tasks/modified_goals_task.cc
+        tasks/modified_operator_costs_task.cc
+    DEPENDENCY_ONLY
+)
+
+fast_downward_plugin(
+    NAME CEGAR
+    HELP "Plugin containing the code for CEGAR heuristics"
+    SOURCES
+        cegar/abstraction.cc
+        cegar/abstract_search.cc
+        cegar/abstract_state.cc
+        cegar/additive_cartesian_heuristic.cc
+        cegar/cartesian_heuristic.cc
+        cegar/domains.cc
+        cegar/refinement_hierarchy.cc
+        cegar/split_selector.cc
+        cegar/subtask_generators.cc
+        cegar/utils.cc
+        cegar/utils_landmarks.cc
+    DEPENDS ADDITIVE_HEURISTIC EXTRA_TASKS LANDMARKS
 )
 
 fast_downward_plugin(

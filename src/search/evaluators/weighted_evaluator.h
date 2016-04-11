@@ -3,16 +3,17 @@
 
 #include "../scalar_evaluator.h"
 
+namespace options {
 class Options;
+}
 
-
-namespace WeightedEvaluator {
+namespace weighted_evaluator {
 class WeightedEvaluator : public ScalarEvaluator {
     ScalarEvaluator *evaluator;
     int w;
 
 public:
-    explicit WeightedEvaluator(const Options &opts);
+    explicit WeightedEvaluator(const options::Options &opts);
     WeightedEvaluator(ScalarEvaluator *eval, int weight);
     virtual ~WeightedEvaluator() override;
 

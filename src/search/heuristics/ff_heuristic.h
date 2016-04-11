@@ -5,9 +5,9 @@
 
 #include <vector>
 
-namespace FFHeuristic {
-using Proposition = RelaxationHeuristic::Proposition;
-using UnaryOperator = RelaxationHeuristic::UnaryOperator;
+namespace ff_heuristic {
+using Proposition = relaxation_heuristic::Proposition;
+using UnaryOperator = relaxation_heuristic::UnaryOperator;
 
 /*
   TODO: In a better world, this should not derive from
@@ -17,7 +17,7 @@ using UnaryOperator = RelaxationHeuristic::UnaryOperator;
         other relaxation heuristics and the additional FF heuristic
         implementation in the landmark code.
 */
-class FFHeuristic : public AdditiveHeuristic::AdditiveHeuristic {
+class FFHeuristic : public additive_heuristic::AdditiveHeuristic {
     // Relaxed plans are represented as a set of operators implemented
     // as a bit vector.
     typedef std::vector<bool> RelaxedPlan;
@@ -28,7 +28,7 @@ protected:
     virtual void initialize();
     virtual int compute_heuristic(const GlobalState &global_state);
 public:
-    FFHeuristic(const Options &options);
+    FFHeuristic(const options::Options &options);
     ~FFHeuristic();
 };
 }

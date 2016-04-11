@@ -10,9 +10,8 @@
 
 using namespace std;
 
-
-namespace MergeAndShrink {
-ShrinkBucketBased::ShrinkBucketBased(const Options &opts)
+namespace merge_and_shrink {
+ShrinkBucketBased::ShrinkBucketBased(const options::Options &opts)
     : ShrinkStrategy(opts) {
 }
 

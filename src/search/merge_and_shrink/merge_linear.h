@@ -5,10 +5,11 @@
 
 #include "../variable_order_finder.h"
 
+namespace options {
 class Options;
+}
 
-
-namespace MergeAndShrink {
+namespace merge_and_shrink {
 class MergeLinear : public MergeStrategy {
     // Only needed until variable order finder is initialized.
     VariableOrderType variable_order_type;
@@ -17,7 +18,7 @@ class MergeLinear : public MergeStrategy {
 protected:
     virtual void dump_strategy_specific_options() const override;
 public:
-    explicit MergeLinear(const Options &opts);
+    explicit MergeLinear(const options::Options &opts);
     virtual ~MergeLinear() override = default;
     virtual void initialize(const std::shared_ptr<AbstractTask> task) override;
 

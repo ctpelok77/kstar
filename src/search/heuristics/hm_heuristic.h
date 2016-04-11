@@ -9,11 +9,13 @@
 #include <string>
 #include <vector>
 
-typedef std::vector<std::pair<int, int>> Tuple;
+using Tuple = std::vector<std::pair<int, int>>;
 
+namespace options {
 class Options;
+}
 
-namespace HMHeuristic {
+namespace hm_heuristic {
 /*
   Haslum's h^m heuristic family ("critical path heuristics").
 
@@ -61,7 +63,7 @@ protected:
     virtual void initialize();
 
 public:
-    HMHeuristic(const Options &opts);
+    HMHeuristic(const options::Options &opts);
     virtual ~HMHeuristic();
     virtual bool dead_ends_are_reliable() const;
 };

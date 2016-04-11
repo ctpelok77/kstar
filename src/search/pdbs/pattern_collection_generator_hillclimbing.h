@@ -13,14 +13,15 @@
 #include <utility>
 #include <vector>
 
+namespace options {
 class Options;
+}
 
-namespace Utils {
+namespace utils {
 class CountdownTimer;
 }
 
-
-namespace PDBs {
+namespace pdbs {
 class CanonicalPDBsHeuristic;
 class IncrementalCanonicalPDBs;
 class PatternDatabase;
@@ -40,7 +41,7 @@ class PatternCollectionGeneratorHillclimbing : public PatternCollectionGenerator
 
     // for stats only
     int num_rejected;
-    Utils::CountdownTimer *hill_climbing_timer;
+    utils::CountdownTimer *hill_climbing_timer;
 
     /*
       For the given pattern, all possible extensions of the pattern by one
@@ -119,7 +120,7 @@ class PatternCollectionGeneratorHillclimbing : public PatternCollectionGenerator
         PatternCollection &initial_candidate_patterns);
 
 public:
-    explicit PatternCollectionGeneratorHillclimbing(const Options &opts);
+    explicit PatternCollectionGeneratorHillclimbing(const options::Options &opts);
     virtual ~PatternCollectionGeneratorHillclimbing() = default;
 
     /*
