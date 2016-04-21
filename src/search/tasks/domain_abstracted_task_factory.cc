@@ -2,6 +2,8 @@
 
 #include "domain_abstracted_task.h"
 
+#include "../utils/language.h"
+
 #include <sstream>
 #include <string>
 #include <unordered_set>
@@ -41,6 +43,7 @@ DomainAbstractedTaskFactory::DomainAbstractedTaskFactory(
         assert(utils::in_bounds(var, domain_size));
         for (const ValueGroup &group : groups) {
             for (int value : group) {
+                utils::unused_variable(value);
                 assert(0 <= value && value < domain_size[var]);
             }
         }
