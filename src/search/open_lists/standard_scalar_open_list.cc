@@ -1,83 +1,91 @@
-// HACK! Ignore this if used as a top-level compile target.
-#ifdef OPEN_LISTS_STANDARD_SCALAR_OPEN_LIST_H
+#include "standard_scalar_open_list.h"
 
-#include "../scalar_evaluator.h"
+#include "open_list.h"
+
 #include "../option_parser.h"
+#include "../plugin.h"
 
-#include <iostream>
+#include "../utils/memory.h"
+
 #include <cassert>
-#include <limits>
+#include <deque>
+#include <map>
 
 using namespace std;
-template<class Entry>
-OpenList<Entry> *StandardScalarOpenList<Entry>::create(
-    const std::vector<string> &config, int start, int &end, bool dry_run) {
-    std::vector<ScalarEvaluator *> evaluators;
-    bool only_pref_ = false;
-    NamedOptionParser named_option_parser;
-    named_option_parser.add_bool_option("pref_only", &only_pref_,
-                                        "insert only preferred operators");
-    OptionParser *parser = OptionParser::instance();
-    parser->parse_evals_and_options(config, start, end, evaluators,
-                                    named_option_parser, true, dry_run);
 
-    if (dry_run)
-        return 0;
-    else
-        return new StandardScalarOpenList<Entry>(evaluators[0], only_pref_);
+
+template<class Entry>
+class StandardScalarOpenList : public OpenList<Entry> {
+    typedef deque<Entry> Bucket;
+
+    map<int, Bucket> buckets;
+    int size;
+
+    ScalarEvaluator *evaluator;
+
+protected:
+    virtual void do_insertion(EvaluationContext &eval_context,
+                              const Entry &entry) override;
+
+public:
+    explicit StandardScalarOpenList(const Options &opts);
+    StandardScalarOpenList(ScalarEvaluator *eval,
+                           bool preferred_only);
+    virtual ~StandardScalarOpenList() override = default;
+
+    virtual Entry remove_min(vector<int> *key = nullptr) override;
+    virtual bool empty() const override;
+    virtual void clear() override;
+    virtual void get_involved_heuristics(set<Heuristic *> &hset) override;
+    virtual bool is_dead_end(
+        EvaluationContext &eval_context) const override;
+    virtual bool is_reliable_dead_end(
+        EvaluationContext &eval_context) const override;
+};
+
+
+template<class Entry>
+StandardScalarOpenList<Entry>::StandardScalarOpenList(const Options &opts)
+    : OpenList<Entry>(opts.get<bool>("pref_only")),
+      size(0),
+      evaluator(opts.get<ScalarEvaluator *>("eval")) {
 }
 
-/*
-  Bucket-based implementation of a open list.
-  Nodes with identical heuristic value are expanded in FIFO order.
-*/
-
 template<class Entry>
-StandardScalarOpenList<Entry>::StandardScalarOpenList(ScalarEvaluator *eval,
-                                                      bool preferred_only)
-    : OpenList<Entry>(preferred_only), size(0), evaluator(eval) {
-    lowest_bucket = numeric_limits<int>::max();
+StandardScalarOpenList<Entry>::StandardScalarOpenList(
+    ScalarEvaluator *evaluator, bool preferred_only)
+    : OpenList<Entry>(preferred_only),
+      size(0),
+      evaluator(evaluator) {
 }
 
 template<class Entry>
-StandardScalarOpenList<Entry>::~StandardScalarOpenList() {
-}
-
-template<class Entry>
-int StandardScalarOpenList<Entry>::insert(const Entry &entry) {
-    if (OpenList<Entry>::only_preferred && !last_preferred)
-        return 0;
-    if (dead_end) {
-        return 0;
-    }
-    int key = last_evaluated_value;
-    if (key < lowest_bucket)
-        lowest_bucket = key;
+void StandardScalarOpenList<Entry>::do_insertion(
+    EvaluationContext &eval_context, const Entry &entry) {
+    int key = eval_context.get_heuristic_value(evaluator);
     buckets[key].push_back(entry);
-    size++;
-    return 1;
+    ++size;
 }
 
 template<class Entry>
 Entry StandardScalarOpenList<Entry>::remove_min(vector<int> *key) {
     assert(size > 0);
-    typename std::map<int, Bucket>::iterator it;
-    it = buckets.find(lowest_bucket);
+    auto it = buckets.begin();
     assert(it != buckets.end());
-    while (it->second.empty())
-        ++it;
-    assert(it != buckets.end());
-    lowest_bucket = it->first;
-    size--;
     if (key) {
         assert(key->empty());
-        key->push_back(lowest_bucket);
+        key->push_back(it->first);
     }
-    Entry result = it->second.front();
-    it->second.pop_front();
+
+    Bucket &bucket = it->second;
+    assert(!bucket.empty());
+    Entry result = bucket.front();
+    bucket.pop_front();
+    if (bucket.empty())
+        buckets.erase(it);
+    --size;
     return result;
 }
-
 
 template<class Entry>
 bool StandardScalarOpenList<Entry>::empty() const {
@@ -87,32 +95,56 @@ bool StandardScalarOpenList<Entry>::empty() const {
 template<class Entry>
 void StandardScalarOpenList<Entry>::clear() {
     buckets.clear();
-    lowest_bucket = numeric_limits<int>::max();
     size = 0;
 }
 
 template<class Entry>
-void StandardScalarOpenList<Entry>::evaluate(int g, bool preferred) {
-    get_evaluator()->evaluate(g, preferred);
-    last_evaluated_value = get_evaluator()->get_value();
-    last_preferred = preferred;
-    dead_end = get_evaluator()->is_dead_end();
-    dead_end_reliable = get_evaluator()->dead_end_is_reliable();
-}
-
-template<class Entry>
-bool StandardScalarOpenList<Entry>::is_dead_end() const {
-    return dead_end;
-}
-
-template<class Entry>
-bool StandardScalarOpenList<Entry>::dead_end_is_reliable() const {
-    return dead_end_reliable;
-}
-
-template<class Entry>
-void StandardScalarOpenList<Entry>::get_involved_heuristics(std::set<Heuristic *>
-                                                            &hset) {
+void StandardScalarOpenList<Entry>::get_involved_heuristics(
+    set<Heuristic *> &hset) {
     evaluator->get_involved_heuristics(hset);
 }
-#endif
+
+template<class Entry>
+bool StandardScalarOpenList<Entry>::is_dead_end(
+    EvaluationContext &eval_context) const {
+    return eval_context.is_heuristic_infinite(evaluator);
+}
+
+template<class Entry>
+bool StandardScalarOpenList<Entry>::is_reliable_dead_end(
+    EvaluationContext &eval_context) const {
+    return is_dead_end(eval_context) && evaluator->dead_ends_are_reliable();
+}
+
+StandardScalarOpenListFactory::StandardScalarOpenListFactory(
+    const Options &options)
+    : options(options) {
+}
+
+unique_ptr<StateOpenList>
+StandardScalarOpenListFactory::create_state_open_list() {
+    return utils::make_unique_ptr<StandardScalarOpenList<StateOpenListEntry>>(options);
+}
+
+unique_ptr<EdgeOpenList>
+StandardScalarOpenListFactory::create_edge_open_list() {
+    return utils::make_unique_ptr<StandardScalarOpenList<EdgeOpenListEntry>>(options);
+}
+
+static shared_ptr<OpenListFactory> _parse(OptionParser &parser) {
+    parser.document_synopsis(
+        "Standard open list",
+        "Standard open list that uses a single evaluator");
+    parser.add_option<ScalarEvaluator *>("eval", "scalar evaluator");
+    parser.add_option<bool>(
+        "pref_only",
+        "insert only nodes generated by preferred operators", "false");
+
+    Options opts = parser.parse();
+    if (parser.dry_run())
+        return nullptr;
+    else
+        return make_shared<StandardScalarOpenListFactory>(opts);
+}
+
+static PluginShared<OpenListFactory> _plugin("single", _parse);

@@ -1,11 +1,13 @@
 #ifndef LANDMARKS_H_M_LANDMARKS_H
 #define LANDMARKS_H_M_LANDMARKS_H
 
+#include "landmark_factory.h"
+#include "landmark_graph.h"
 #include "../globals.h"
-#include "landmarks_graph.h"
 
-typedef std::pair<int, int> Fluent;
-typedef std::vector<Fluent> FluentSet;
+namespace landmarks {
+using Fluent = std::pair<int, int>;
+using FluentSet = std::vector<Fluent>;
 
 std::ostream &
 operator<<(std::ostream &os, const Fluent &p);
@@ -18,7 +20,7 @@ struct FluentSetComparer {
         if (fs1.size() != fs2.size()) {
             return fs1.size() < fs2.size();
         }
-        for (int i = 0; i < fs1.size(); i++) {
+        for (size_t i = 0; i < fs1.size(); ++i) {
             if (fs1[i].first != fs2[i].first) {
                 return fs1[i].first < fs2[i].first;
             }
@@ -36,7 +38,7 @@ struct PMOp {
     std::vector<int> pc;
     std::vector<int> eff;
     // pc separated from effect by a value of -1
-    std::vector<std::vector<int> > cond_noops;
+    std::vector<std::vector<int>> cond_noops;
     int index;
 };
 
@@ -55,7 +57,7 @@ struct HMEntry {
 
     // first int = op index, second int conditional noop effect
     // -1 for op itself
-    std::vector<std::pair<int, int> > pc_for;
+    std::vector<std::pair<int, int>> pc_for;
 
     HMEntry() {
         fluents.resize(0);
@@ -65,22 +67,18 @@ struct HMEntry {
 
 typedef std::map<FluentSet, int, FluentSetComparer> FluentSetToIntMap;
 
-class HMLandmarks : public LandmarksGraph {
+class HMLandmarks : public LandmarkFactory {
 public:
-    HMLandmarks(LandmarkGraphOptions &options, Exploration *expl, int m);
-    ~HMLandmarks() {
-    }
-
-    virtual void generate_landmarks();
+    HMLandmarks(const Options &opts);
+    virtual ~HMLandmarks() {}
 
 // should be used together in a tuple?
     bool interesting(int var1, int val1, int var2, int val2);
-    static LandmarksGraph *create(const std::vector<std::string> &config, int start,
-                                  int &end, bool dry_run);
-
-protected:
+private:
 //  typedef std::set<std::pair<int,int> > TriggerSet;
-    typedef __gnu_cxx::hash_map<int, std::set<int> > TriggerSet;
+    typedef std::unordered_map<int, std::set<int>> TriggerSet;
+
+    virtual void generate_landmarks();
 
     void compute_h_m_landmarks();
     void compute_noop_landmarks(int op_index, int noop_index,
@@ -116,9 +114,9 @@ protected:
     FluentSetToIntMap set_indices_;
 // first is unsat pcs for operator
 // second is unsat pcs for conditional noops
-    std::vector<std::pair<int, std::vector<int> > > unsat_pc_count_;
+    std::vector<std::pair<int, std::vector<int>>> unsat_pc_count_;
 // variable pairs worth looking at
-    std::vector<std::vector<bool> > interesting_;
+    std::vector<std::vector<bool>> interesting_;
 
     void get_m_sets_(int m, int num_included, int current_var,
                      FluentSet &current,
@@ -141,10 +139,12 @@ protected:
     void get_m_sets(int m, std::vector<FluentSet> &subsets, const FluentSet &superset);
 
     void get_m_sets(int m, std::vector<FluentSet> &subsets,
-                    const State &s);
+                    const GlobalState &s);
 
     void get_split_m_sets(int m, std::vector<FluentSet> &subsets,
                           const FluentSet &superset1, const FluentSet &superset2);
+    void print_proposition(const std::pair<int, int> &fluent) const;
 };
+}
 
 #endif
