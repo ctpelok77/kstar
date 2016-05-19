@@ -11,6 +11,7 @@
 #include "causal_graph.h"
 #include "domain_transition_graph.h"
 #include "state.h"
+#include "mutex_group.h"
 #include "operator.h"
 #include "axiom.h"
 #include "variable.h"
@@ -22,7 +23,8 @@ int main(int argc, const char **) {
     vector<Variable *> variables;
     vector<Variable> internal_variables;
     State initial_state;
-    vector<pair<Variable *, int> > goals;
+    vector<pair<Variable *, int>> goals;
+    vector<MutexGroup> mutexes;
     vector<Operator> operators;
     vector<Axiom> axioms;
     vector<DomainTransitionGraph> transition_graphs;
@@ -33,7 +35,7 @@ int main(int argc, const char **) {
     }
 
     read_preprocessed_problem_description
-        (cin, metric, internal_variables, variables, initial_state, goals, operators, axioms);
+        (cin, metric, internal_variables, variables, mutexes, initial_state, goals, operators, axioms);
     //dump_preprocessed_problem_description
     //  (variables, initial_state, goals, operators, axioms);
 
@@ -44,6 +46,7 @@ int main(int argc, const char **) {
 
     // Remove unnecessary effects from operators and axioms, then remove
     // operators and axioms without effects.
+    strip_mutexes(mutexes);
     strip_operators(operators);
     strip_axioms(axioms);
 
@@ -70,9 +73,35 @@ int main(int argc, const char **) {
     SuccessorGenerator successor_generator(ordering, operators);
     //successor_generator.dump();
 
+    // Output some task statistics
+    int facts = 0;
+    int derived_vars = 0;
+    for (Variable *var : ordering) {
+        facts += var->get_range();
+        if (var->is_derived())
+            derived_vars++;
+    }
+    cout << "Preprocessor facts: " << facts << endl;
+    cout << "Preprocessor derived variables: " << derived_vars << endl;
+
+    // Calculate the problem size
+    int task_size = ordering.size() + facts + goals.size();
+
+    for (const MutexGroup &mutex : mutexes)
+        task_size += mutex.get_encoding_size();
+
+    for (const Operator &op : operators)
+        task_size += op.get_encoding_size();
+
+    for (const Axiom &axiom : axioms)
+        task_size += axiom.get_encoding_size();
+
+    cout << "Preprocessor task size: " << task_size << endl;
+
     cout << "Writing output..." << endl;
-    generate_cpp_input(solveable_in_poly_time, ordering, metric, initial_state,
-                       goals, operators, axioms, successor_generator,
+    generate_cpp_input(solveable_in_poly_time, ordering, metric,
+                       mutexes, initial_state, goals,
+                       operators, axioms, successor_generator,
                        transition_graphs, causal_graph);
-    cout << "done" << endl << endl;
+    cout << "done" << endl;
 }

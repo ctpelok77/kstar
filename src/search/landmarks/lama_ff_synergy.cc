@@ -1,133 +1,189 @@
 #include "lama_ff_synergy.h"
+
+#include "exploration.h"
+#include "landmark_count_heuristic.h"
+#include "landmark_factory_rpg_sasp.h"
+
+#include "../evaluation_context.h"
+#include "../evaluation_result.h"
 #include "../option_parser.h"
 #include "../plugin.h"
-#include "landmarks_graph_rpg_sasp.h"
 
-static SynergyPlugin lama_ff_synergy_plugin(
-    "lm_ff_syn", LamaFFSynergy::create_heuristics);
+#include "../utils/system.h"
 
+using namespace std;
 
-LamaFFSynergy::HeuristicProxy::HeuristicProxy(LamaFFSynergy *synergy_)
-    : Heuristic(g_default_heuristic_options) {
-    synergy = synergy_;
-    is_first_proxy = false;
-}
+namespace landmarks {
+/*
+  Implementation notes:
 
-void LamaFFSynergy::HeuristicProxy::initialize() {
-    if (!synergy->initialized) {
-        synergy->initialize();
-        is_first_proxy = true;
+  There are four heuristic objects involved at the moment:
+  - two externally visible ones (seen by the search), using the (local)
+    classes LamaMasterHeuristic and FFSlaveHeuristic
+  - two internal ones that appear within the LamaFFSynergy object only,
+    using the "normal" landmark classes LandmarkCountHeuristic and
+    Exploration.
+
+  It should be quite possible to simplify this in the future. In
+  principle, there is no need to have more than two heuristic objects.
+
+  The "master" heuristic is the one that triggers the actual heuristic
+  computation by asking the Synergy object to compute and store the
+  heuristic values. The "slave" heuristic makes sure that the
+  heuristic values stored in the synergy are up to date by asking for
+  the master heuristic's value (which will trigger a computation if
+  necessary).
+*/
+
+class LamaMasterHeuristic : public Heuristic {
+    LamaFFSynergy *synergy;
+
+protected:
+    virtual int compute_heuristic(const GlobalState & /*state*/) override {
+        ABORT("This method should never be called.");
     }
+
+public:
+    explicit LamaMasterHeuristic(LamaFFSynergy *synergy)
+        : Heuristic(Heuristic::default_options()),
+          synergy(synergy) {
+    }
+
+    virtual ~LamaMasterHeuristic() override = default;
+
+    virtual EvaluationResult compute_result(
+        EvaluationContext &eval_context) override {
+        synergy->compute_heuristics(eval_context);
+        return synergy->lama_result;
+    }
+
+    virtual bool reach_state(
+        const GlobalState &parent_state, const GlobalOperator &op,
+        const GlobalState &state) override {
+        if (synergy->lama_reach_state(parent_state, op, state)) {
+            if (cache_h_values) {
+                heuristic_cache[state].dirty = true;
+            }
+            return true;
+        }
+        return false;
+    }
+};
+
+class FFSlaveHeuristic : public Heuristic {
+    LamaFFSynergy *synergy;
+    LamaMasterHeuristic *master;
+
+protected:
+    virtual int compute_heuristic(const GlobalState & /*state*/) override {
+        ABORT("This method should never be called.");
+    }
+
+public:
+    explicit FFSlaveHeuristic(LamaFFSynergy *synergy,
+                              LamaMasterHeuristic *master)
+        : Heuristic(Heuristic::default_options()),
+          synergy(synergy),
+          master(master) {
+    }
+
+    virtual EvaluationResult compute_result(
+        EvaluationContext &eval_context) override {
+        /*
+           Asking for the master's heuristic value triggers both
+           heuristic computations if they have not been computed yet.
+           If they have been computed yet, then both heuristic values
+           are already cached, and this is just a quick lookup. In
+           either case, the result is subsequently available in the
+           synergy object.
+        */
+        eval_context.get_heuristic_value_or_infinity(master);
+        return synergy->ff_result;
+    }
+
+    virtual ~FFSlaveHeuristic() override = default;
+};
+
+
+LamaFFSynergy::LamaFFSynergy(const Options &opts)
+    : lama_master_heuristic(new LamaMasterHeuristic(this)),
+      ff_slave_heuristic(new FFSlaveHeuristic(
+                             this, lama_master_heuristic.get())),
+      lama_heuristic(new LandmarkCountHeuristic(opts)),
+      exploration(lama_heuristic->get_exploration()) {
+    cout << "Initializing LAMA-FF synergy object" << endl;
 }
 
-LamaFFSynergy::LamaFFSynergy(const HeuristicOptions &options,
-                             LandmarksGraph &lm_graph,
-                             bool lm_pref_, bool lm_admissible_, bool lm_optimal_,
-                             bool use_action_landmarks_)
-    : lama_heuristic_proxy(this), ff_heuristic_proxy(this),
-      lm_pref(lm_pref_), lm_admissible(lm_admissible_),
-      lm_optimal(lm_optimal_),
-      use_action_landmarks(use_action_landmarks_) {
-    cout << "Initializing LAMA-FF Synergy Object" << endl;
-    lama_heuristic = new LandmarkCountHeuristic(options, lm_graph,
-                                                lm_pref, lm_admissible, lm_optimal,
-                                                use_action_landmarks_);
-    //lama_heuristic->initialize(); // must be called here explicitly
-    exploration = lama_heuristic->get_exploration();
-    initialized = false;
-}
-
-void LamaFFSynergy::get_lama_preferred_operators(std::vector<const Operator *> &result) {
-    result.insert(result.end(),
-                  lama_preferred_operators.begin(),
-                  lama_preferred_operators.end());
-}
-
-void LamaFFSynergy::get_ff_preferred_operators(std::vector<const Operator *> &result) {
-    result.insert(result.end(),
-                  ff_preferred_operators.begin(),
-                  ff_preferred_operators.end());
-}
-
-void LamaFFSynergy::compute_heuristics(const State &state) {
-    /* Compute heuristics and pref. ops. and store results;
-       actual work is delegated to the heuristics. */
+void LamaFFSynergy::compute_heuristics(EvaluationContext &eval_context) {
+    /*
+      When this method is called, we know that eval_context contains
+      results for neither of the two synergy heuristics because the
+      method isn't called when a heuristic results is already present,
+      and the two results are always added to the evaluation context
+      together.
+    */
 
     exploration->set_recompute_heuristic();
-    lama_preferred_operators.clear();
-    ff_preferred_operators.clear();
-
-    lama_heuristic->evaluate(state);
-    if (!lama_heuristic->is_dead_end()) {
-        lama_heuristic_value = lama_heuristic->get_heuristic();
-        lama_heuristic->get_preferred_operators(lama_preferred_operators);
-    } else {
-        lama_heuristic_value = -1;
-    }
-
-    exploration->evaluate(state);
-    if (!exploration->is_dead_end()) {
-        ff_heuristic_value = exploration->get_heuristic();
-        exploration->get_preferred_operators(ff_preferred_operators);
-    } else {
-        ff_heuristic_value = -1;
-    }
+    lama_result = lama_heuristic->compute_result(eval_context);
+    ff_result = exploration->compute_result(eval_context);
 }
 
-bool LamaFFSynergy::lama_reach_state(const State &parent_state,
-                                     const Operator &op, const State &state) {
+bool LamaFFSynergy::lama_reach_state(
+    const GlobalState &parent_state, const GlobalOperator &op,
+    const GlobalState &state) {
     return lama_heuristic->reach_state(parent_state, op, state);
 }
 
-void
-LamaFFSynergy::create_heuristics(const std::vector<string> &config,
-                                 int start, int &end,
-                                 vector<Heuristic *> &heuristics) {
-    bool lm_admissible_ = false;
-    bool lm_optimal_ = false;
-    bool use_action_landmarks_ = true;
-    HeuristicOptions common_options;
+Heuristic *LamaFFSynergy::get_lama_heuristic_proxy() const {
+    return lama_master_heuristic.get();
+}
 
-    if (config[start + 1] != "(")
-        throw ParseError(start + 1);
+Heuristic *LamaFFSynergy::get_ff_heuristic_proxy() const {
+    return ff_slave_heuristic.get();
+}
 
-    LandmarksGraph *lm_graph = OptionParser::instance()->parse_lm_graph(
-        config, start + 2, end, false);
-    ++end;
+static Synergy *_parse(OptionParser &parser) {
+    parser.document_synopsis(
+        "LAMA-FF synergy",
+        "If the FF heuristic should be used "
+        "(for its estimates or its preferred operators) "
+        "and we want to use preferred operators of the "
+        "landmark count heuristic, we can exploit synergy effects by "
+        "using the LAMA-FF synergy. "
+        "This synergy can only be used via Predefinition "
+        "(see OptionSyntax#Predefinitions), for example:\n"
+        "\"hlm,hff=lm_ff_syn(...)\"");
+    parser.add_option<LandmarkGraph *>("lm_graph");
+    parser.add_option<bool>("admissible", "get admissible estimate", "false");
+    parser.add_option<bool>("optimal", "optimal cost sharing", "false");
+    parser.add_option<bool>("alm", "use action landmarks", "true");
+    lp::add_lp_solver_option_to_parser(parser);
+    Heuristic::add_options_to_parser(parser);
 
-    if (lm_graph == 0)
-        throw ParseError(start);
+    Options opts = parser.parse();
+    if (parser.dry_run())
+        return nullptr;
 
-    if (config[end] != ")") {
-        end++;
-        NamedOptionParser option_parser;
+    /*
+      It does not make sense to use the synergy without preferred
+      operators, so they are always enabled. (A landmark heuristic
+      without preferred operators does not need to perform a relaxed
+      exploration, hence no need for a synergy.)
+    */
+    opts.set("pref", true);
 
-        common_options.add_option_to_parser(option_parser);
+    LamaFFSynergy *lama_ff_synergy = new LamaFFSynergy(opts);
+    Synergy *syn = new Synergy;
+    syn->heuristics.push_back(lama_ff_synergy->get_lama_heuristic_proxy());
+    syn->heuristics.push_back(lama_ff_synergy->get_ff_heuristic_proxy());
+    return syn;
+}
 
-        option_parser.add_bool_option("admissible",
-                                      &lm_admissible_,
-                                      "get admissible estimate");
-        option_parser.add_bool_option("optimal",
-                                      &lm_optimal_,
-                                      "optimal cost sharing");
-        option_parser.add_bool_option("alm",
-                                      &use_action_landmarks_,
-                                      "use action landmarks");
-        option_parser.parse_options(config, end, end, false);
-        ++end;
-    }
-    if (config[end] != ")")
-        throw ParseError(end);
 
-    bool lm_pref_ = true; // this will always be the case because it
-                          // does not make sense to use the synergy without
-                          // using lm preferred operators
-    LamaFFSynergy *lama_ff_synergy = new LamaFFSynergy(
-        common_options, *lm_graph,
-        lm_pref_, lm_admissible_,
-        lm_optimal_, use_action_landmarks_);
+static PluginTypePlugin<Synergy> _type_plugin(
+    "Synergy",
+    // TODO: Replace empty string by synopsis for the wiki page.
+    "");
 
-    heuristics.push_back(lama_ff_synergy->get_lama_heuristic_proxy());
-    heuristics.push_back(lama_ff_synergy->get_ff_heuristic_proxy());
-    return;
+static Plugin<Synergy> _plugin("lm_ff_syn", _parse);
 }

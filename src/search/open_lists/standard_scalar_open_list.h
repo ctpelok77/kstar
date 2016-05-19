@@ -1,52 +1,26 @@
 #ifndef OPEN_LISTS_STANDARD_SCALAR_OPEN_LIST_H
 #define OPEN_LISTS_STANDARD_SCALAR_OPEN_LIST_H
 
-#include "open_list.h"
+#include "open_list_factory.h"
 
-#include <deque>
-#include <map>
-#include <vector>
-#include <utility>
+#include "../option_parser_util.h"
 
-class ScalarEvaluator;
 
-template<class Entry>
-class StandardScalarOpenList : public OpenList<Entry> {
-    typedef std::deque<Entry> Bucket;
+/*
+  Open list indexed by a single int, using FIFO tie-breaking.
 
-    std::map<int, Bucket> buckets;
-    int size;
-    mutable int lowest_bucket;
+  Implemented as a map from int to deques.
+*/
 
-    ScalarEvaluator *evaluator;
-    int last_evaluated_value;
-    int last_preferred;
-    bool dead_end;
-    bool dead_end_reliable;
-protected:
-    ScalarEvaluator *get_evaluator() {return evaluator; }
 
+class StandardScalarOpenListFactory : public OpenListFactory {
+    Options options;
 public:
-    StandardScalarOpenList(ScalarEvaluator *eval,
-                           bool preferred_only);
-    ~StandardScalarOpenList();
+    explicit StandardScalarOpenListFactory(const Options &options);
+    virtual ~StandardScalarOpenListFactory() override = default;
 
-    int insert(const Entry &entry);
-    Entry remove_min(std::vector<int> *key = 0);
-    bool empty() const;
-    void clear();
-
-    void evaluate(int g, bool preferred);
-    bool is_dead_end() const;
-    bool dead_end_is_reliable() const;
-    void get_involved_heuristics(std::set<Heuristic *> &hset);
-
-    static OpenList<Entry> *create(const std::vector<std::string> &config,
-                                   int start, int &end, bool dry_run = false);
+    virtual std::unique_ptr<StateOpenList> create_state_open_list() override;
+    virtual std::unique_ptr<EdgeOpenList> create_edge_open_list() override;
 };
-
-#include "standard_scalar_open_list.cc"
-
-// HACK! Need a better strategy of dealing with templates, also in the Makefile.
 
 #endif

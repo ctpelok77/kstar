@@ -1,56 +1,62 @@
 #ifndef SEARCH_ENGINE_H
 #define SEARCH_ENGINE_H
 
+#include "global_operator.h"
+#include "operator_cost.h"
+#include "search_progress.h"
+#include "search_space.h"
+#include "search_statistics.h"
+
 #include <vector>
 
 class Heuristic;
 
-#include "operator.h"
-#include "search_space.h"
-#include "search_progress.h"
-#include "operator_cost.h"
+namespace options {
+class OptionParser;
+class Options;
+}
 
-struct SearchEngineOptions {
-    int cost_type;
-    int bound;
-
-    SearchEngineOptions();
-    ~SearchEngineOptions();
-
-    void add_options_to_parser(NamedOptionParser &option_parser);
-};
+enum SearchStatus {IN_PROGRESS, TIMEOUT, FAILED, SOLVED};
 
 class SearchEngine {
 public:
-    typedef std::vector<const Operator *> Plan;
+    typedef std::vector<const GlobalOperator *> Plan;
 private:
-    bool solved;
+    SearchStatus status;
+    bool solution_found;
     Plan plan;
 protected:
     SearchSpace search_space;
     SearchProgress search_progress;
+    SearchStatistics statistics;
     int bound;
     OperatorCost cost_type;
+    double max_time;
 
-    enum {FAILED, SOLVED, IN_PROGRESS};
     virtual void initialize() {}
-    virtual int step() = 0;
+    virtual SearchStatus step() = 0;
 
     void set_plan(const Plan &plan);
-    bool check_goal_and_set_plan(const State &state);
-    int get_adjusted_cost(const Operator &op) const;
+    bool check_goal_and_set_plan(const GlobalState &state);
+    int get_adjusted_cost(const GlobalOperator &op) const;
 public:
-    SearchEngine(const SearchEngineOptions &options);
+    SearchEngine(const options::Options &opts);
     virtual ~SearchEngine();
-    virtual void statistics() const;
-    virtual void heuristic_statistics() const {}
+    virtual void print_statistics() const;
     virtual void save_plan_if_necessary() const;
     bool found_solution() const;
+    SearchStatus get_status() const;
     const Plan &get_plan() const;
     void search();
-    SearchProgress get_search_progress() const {return search_progress; }
+    const SearchStatistics &get_statistics() const {return statistics; }
     void set_bound(int b) {bound = b; }
     int get_bound() {return bound; }
+    static void add_options_to_parser(options::OptionParser &parser);
 };
+
+/*
+  Print heuristic values of all heuristics evaluated in the evaluation context.
+*/
+void print_initial_h_values(const EvaluationContext &eval_context);
 
 #endif

@@ -1,29 +1,31 @@
 #ifndef LANDMARKS_LANDMARK_STATUS_MANAGER_H
 #define LANDMARKS_LANDMARK_STATUS_MANAGER_H
 
-#include "landmarks_graph.h"
-#include "../state_proxy.h"
+#include "landmark_graph.h"
 
+#include "../per_state_information.h"
+
+namespace landmarks {
 class LandmarkStatusManager {
 private:
-    hash_map<StateProxy, vector<bool> > reached_lms;
+    PerStateInformation<std::vector<bool>> reached_lms;
 
     bool do_intersection;
-    LandmarksGraph &lm_graph;
+    LandmarkGraph &lm_graph;
 
-    bool landmark_is_leaf(const LandmarkNode &node, const vector<bool> &reached) const;
+    bool landmark_is_leaf(const LandmarkNode &node, const std::vector<bool> &reached) const;
     bool check_lost_landmark_children_needed_again(const LandmarkNode &node) const;
 public:
-    LandmarkStatusManager(LandmarksGraph &graph);
+    LandmarkStatusManager(LandmarkGraph &graph);
     virtual ~LandmarkStatusManager();
 
-    void clear_reached();
-    vector<bool> &get_reached_landmarks(const State &state);
+    std::vector<bool> &get_reached_landmarks(const GlobalState &state);
 
-    bool update_lm_status(const State &state);
+    bool update_lm_status(const GlobalState &state);
 
     void set_landmarks_for_initial_state();
-    bool update_reached_lms(const State &parent_state, const Operator &op, const State &state);
+    bool update_reached_lms(const GlobalState &parent_state, const GlobalOperator &op, const GlobalState &state);
 };
+}
 
 #endif
