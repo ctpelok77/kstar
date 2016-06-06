@@ -14,8 +14,6 @@ set(CORE_SOURCES
         abstract_task.cc
         axioms.cc
         causal_graph.cc
-        cost_adapted_task.cc
-        delegating_task.cc
         equivalence_relation.cc
         evaluation_context.cc
         evaluation_result.cc
@@ -32,7 +30,6 @@ set(CORE_SOURCES
         plugin.h
         pruning_method.cc
         priority_queue.cc
-        root_task.cc
         sampling.cc
         scalar_evaluator.cc
         search_engine.cc
@@ -135,6 +132,7 @@ fast_downward_plugin(
         utils/math.cc
         utils/memory.cc
         utils/rng.cc
+        utils/rng_options.cc
         utils/system.cc
         utils/system_unix.cc
         utils/system_windows.cc
@@ -282,13 +280,6 @@ fast_downward_plugin(
 )
 
 fast_downward_plugin(
-    NAME IPC_MAX_HEURISTIC
-    HELP "The IPC max heuristic"
-    SOURCES
-        heuristics/ipc_max_heuristic.cc
-)
-
-fast_downward_plugin(
     NAME ADDITIVE_HEURISTIC
     HELP "The additive heuristic"
     SOURCES
@@ -366,6 +357,16 @@ fast_downward_plugin(
 )
 
 fast_downward_plugin(
+    NAME CORE_TASKS
+    HELP "Core task transformations"
+    SOURCES
+        tasks/cost_adapted_task.cc
+        tasks/delegating_task.cc
+        tasks/root_task.cc
+    CORE_PLUGIN
+)
+
+fast_downward_plugin(
     NAME EXTRA_TASKS
     HELP "Non-core task transformations"
     SOURCES
@@ -384,7 +385,8 @@ fast_downward_plugin(
         cegar/abstract_search.cc
         cegar/abstract_state.cc
         cegar/additive_cartesian_heuristic.cc
-        cegar/cartesian_heuristic.cc
+        cegar/arc.cc
+        cegar/cartesian_heuristic_function.cc
         cegar/domains.cc
         cegar/refinement_hierarchy.cc
         cegar/split_selector.cc
@@ -409,6 +411,9 @@ fast_downward_plugin(
         merge_and_shrink/merge_dfp.cc
         merge_and_shrink/merge_linear.cc
         merge_and_shrink/merge_strategy.cc
+        merge_and_shrink/merge_strategy_factory.cc
+        merge_and_shrink/merge_strategy_factory_dfp.cc
+        merge_and_shrink/merge_strategy_factory_linear.cc
         merge_and_shrink/shrink_bisimulation.cc
         merge_and_shrink/shrink_bucket_based.cc
         merge_and_shrink/shrink_fh.cc

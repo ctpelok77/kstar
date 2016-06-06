@@ -537,8 +537,8 @@ void LandmarkFactory::edge_add(LandmarkNode &from, LandmarkNode &to,
     reduce cycles. If the edge is already present, the stronger edge type wins.
     */
     assert(&from != &to);
-    assert(from.parents.find(&to) == from.parents.end() || type <= reasonable);
-    assert(to.children.find(&from) == to.children.end() || type <= reasonable);
+    assert(from.parents.find(&to) == from.parents.end() || type <= EdgeType::reasonable);
+    assert(to.children.find(&from) == to.children.end() || type <= EdgeType::reasonable);
 
     if (type == EdgeType::reasonable || type == EdgeType::obedient_reasonable) { // simple cycle test
         if (from.parents.find(&to) != from.parents.end()) { // Edge in opposite direction exists
