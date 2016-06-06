@@ -6,9 +6,10 @@
 #include "global_state.h"
 #include "heuristic.h"
 #include "int_packer.h"
-#include "root_task.h"
 #include "state_registry.h"
 #include "successor_generator.h"
+
+#include "tasks/root_task.h"
 
 #include "utils/logging.h"
 #include "utils/rng.h"
@@ -364,8 +365,15 @@ const GlobalState &g_initial_state() {
 }
 
 const shared_ptr<AbstractTask> g_root_task() {
-    static shared_ptr<AbstractTask> root_task = make_shared<RootTask>();
+    static shared_ptr<AbstractTask> root_task = make_shared<tasks::RootTask>();
     return root_task;
+}
+
+shared_ptr<utils::RandomNumberGenerator> g_rng() {
+    // Use an arbitrary default seed.
+    static shared_ptr<utils::RandomNumberGenerator> rng =
+        make_shared<utils::RandomNumberGenerator>(2011);
+    return rng;
 }
 
 bool g_use_metric;
@@ -387,7 +395,6 @@ SuccessorGenerator *g_successor_generator;
 string g_plan_filename = "sas_plan";
 int g_num_previously_generated_plans = 0;
 bool g_is_part_of_anytime_portfolio = false;
-utils::RandomNumberGenerator g_rng(2011); // Use an arbitrary default seed.
 StateRegistry *g_state_registry = 0;
 
 utils::Log g_log;
