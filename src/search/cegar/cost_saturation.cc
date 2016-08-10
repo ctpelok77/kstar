@@ -47,7 +47,7 @@ CostSaturation::CostSaturation(
 }
 
 vector<CartesianHeuristicFunction> CostSaturation::generate_heuristic_functions(
-    const std::shared_ptr<AbstractTask> &task) {
+    const shared_ptr<AbstractTask> &task) {
     // For simplicity this is a member object. Make sure it is in a valid state.
     assert(heuristic_functions.empty());
 
