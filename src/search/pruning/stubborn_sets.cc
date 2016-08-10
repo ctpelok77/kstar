@@ -1,7 +1,6 @@
 #include "stubborn_sets.h"
 
-#include "../global_operator.h"
-#include "../globals.h"
+#include "../task_tools.h"
 
 #include <algorithm>
 #include <cassert>
@@ -14,14 +13,6 @@ struct SortFactsByVariable {
         return lhs.var < rhs.var;
     }
 };
-
-/* TODO: get_op_index belongs to a central place.
-   We currently have copies of it in different parts of the code. */
-static inline int get_op_index(const GlobalOperator *op) {
-    int op_index = op - &*g_operators.begin();
-    assert(op_index >= 0 && op_index < static_cast<int>(g_operators.size()));
-    return op_index;
-}
 
 // Relies on both fact sets being sorted by variable.
 bool contain_conflicting_fact(const vector<FactPair> &facts1,
@@ -43,58 +34,80 @@ bool contain_conflicting_fact(const vector<FactPair> &facts1,
     return false;
 }
 
-template<typename T>
-vector<FactPair> get_sorted_fact_set(const vector<T> &facts) {
-    vector<FactPair> result;
-    for (const T &fact : facts) {
-        result.emplace_back(fact.var, fact.val);
-    }
-    sort(result.begin(), result.end(), SortFactsByVariable());
-    return result;
-}
-
 StubbornSets::StubbornSets()
     : num_unpruned_successors_generated(0),
       num_pruned_successors_generated(0) {
-    verify_no_axioms_no_conditional_effects();
+    verify_no_axioms(task_proxy);
+    verify_no_conditional_effects(task_proxy);
     compute_sorted_operators();
     compute_achievers();
 }
 
+FactPair StubbornSets::find_unsatisfied_goal(const State &state) {
+    for (FactProxy goal : task_proxy.get_goals()) {
+        VariableProxy goal_var = goal.get_variable();
+        if (state[goal_var] != goal)
+            return goal.get_pair();
+    }
+    return FactPair(-1, -1);
+}
+
+FactPair StubbornSets::find_unsatisfied_precondition(
+    OperatorProxy op, const State &state) {
+    for (FactProxy precondition : op.get_preconditions()) {
+        VariableProxy var = precondition.get_variable();
+        if (state[var] != precondition)
+            return precondition.get_pair();
+    }
+    return FactPair(-1, -1);
+}
+
 // Relies on op_preconds and op_effects being sorted by variable.
-bool StubbornSets::can_disable(int op1_no, int op2_no) {
-    return contain_conflicting_fact(sorted_op_effects[op1_no],
-                                    sorted_op_preconditions[op2_no]);
+bool StubbornSets::can_disable(OperatorProxy op1, OperatorProxy op2) {
+    return contain_conflicting_fact(sorted_op_effects[op1.get_id()],
+                                    sorted_op_preconditions[op2.get_id()]);
 }
 
 // Relies on op_effect being sorted by variable.
-bool StubbornSets::can_conflict(int op1_no, int op2_no) {
-    return contain_conflicting_fact(sorted_op_effects[op1_no],
-                                    sorted_op_effects[op2_no]);
+bool StubbornSets::can_conflict(OperatorProxy op1, OperatorProxy op2) {
+    return contain_conflicting_fact(sorted_op_effects[op1.get_id()],
+                                    sorted_op_effects[op2.get_id()]);
 }
 
 void StubbornSets::compute_sorted_operators() {
     assert(sorted_op_preconditions.empty());
     assert(sorted_op_effects.empty());
 
-    for (const GlobalOperator &op : g_operators) {
-        sorted_op_preconditions.push_back(
-            get_sorted_fact_set(op.get_preconditions()));
-        sorted_op_effects.push_back(
-            get_sorted_fact_set(op.get_effects()));
+    for (const OperatorProxy op : task_proxy.get_operators()) {
+        vector<FactPair> preconditions;
+        for (const FactProxy pre : op.get_preconditions()) {
+            preconditions.push_back(pre.get_pair());
+        }
+        sort(preconditions.begin(), preconditions.end(), SortFactsByVariable());
+        sorted_op_preconditions.push_back(preconditions);
+
+        vector<FactPair> effects;
+        for (const EffectProxy eff : op.get_effects()) {
+            effects.push_back(eff.get_fact().get_pair());
+        }
+        sort(effects.begin(), effects.end(), SortFactsByVariable());
+        sorted_op_effects.push_back(effects);
     }
 }
 
 void StubbornSets::compute_achievers() {
-    achievers.reserve(g_variable_domain.size());
-    for (int domain_size : g_variable_domain) {
-        achievers.push_back(vector<vector<int>>(domain_size));
+    VariablesProxy vars = task_proxy.get_variables();
+    achievers.reserve(vars.size());
+    for (const VariableProxy var : vars) {
+        achievers.push_back(vector<vector<int>>(var.get_domain_size()));
     }
 
-    for (size_t op_no = 0; op_no < g_operators.size(); ++op_no) {
-        const GlobalOperator &op = g_operators[op_no];
-        for (const GlobalEffect &effect : op.get_effects()) {
-            achievers[effect.var][effect.val].push_back(op_no);
+    for (const OperatorProxy op : task_proxy.get_operators()) {
+        for (const EffectProxy effect : op.get_effects()) {
+            FactProxy fact = effect.get_fact();
+            int var_id = fact.get_variable().get_id();
+            int value = fact.get_value();
+            achievers[var_id][value].push_back(op.get_id());
         }
     }
 }
@@ -109,12 +122,12 @@ bool StubbornSets::mark_as_stubborn(int op_no) {
 }
 
 void StubbornSets::prune_operators(
-    const GlobalState &state, vector<const GlobalOperator *> &ops) {
+    const State &state, vector<OperatorProxy> &ops) {
     num_unpruned_successors_generated += ops.size();
 
     // Clear stubborn set from previous call.
     stubborn.clear();
-    stubborn.assign(g_operators.size(), false);
+    stubborn.assign(task_proxy.get_operators().size(), false);
     assert(stubborn_queue.empty());
 
     initialize_stubborn_set(state);
@@ -123,20 +136,19 @@ void StubbornSets::prune_operators(
     while (!stubborn_queue.empty()) {
         int op_no = stubborn_queue.back();
         stubborn_queue.pop_back();
-        handle_stubborn_operator(state, op_no);
+        OperatorProxy op = task_proxy.get_operators()[op_no];
+        handle_stubborn_operator(state, op);
     }
 
     // Now check which applicable operators are in the stubborn set.
-    vector<const GlobalOperator *> remaining_ops;
+    vector<OperatorProxy> remaining_ops;
     remaining_ops.reserve(ops.size());
-    for (const GlobalOperator *op : ops) {
-        int op_no = get_op_index(op);
-        if (stubborn[op_no])
+    for (OperatorProxy op : ops) {
+        if (stubborn[op.get_id()])
             remaining_ops.push_back(op);
     }
     if (remaining_ops.size() != ops.size()) {
         ops.swap(remaining_ops);
-        sort(ops.begin(), ops.end());
     }
 
     num_pruned_successors_generated += ops.size();
