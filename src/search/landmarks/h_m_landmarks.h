@@ -3,7 +3,6 @@
 
 #include "landmark_factory.h"
 #include "landmark_graph.h"
-#include "../globals.h"
 
 namespace landmarks {
 using Fluent = std::pair<int, int>;
@@ -73,15 +72,13 @@ public:
     virtual ~HMLandmarks() override = default;
 
     virtual bool supports_conditional_effects() const override;
-// should be used together in a tuple?
-    bool interesting(int var1, int val1, int var2, int val2);
 private:
 //  typedef std::set<std::pair<int,int> > TriggerSet;
     typedef std::unordered_map<int, std::set<int>> TriggerSet;
 
-    virtual void generate_landmarks(Exploration &exploration) override;
+    virtual void generate_landmarks(const TaskProxy &task_proxy, Exploration &exploration) override;
 
-    void compute_h_m_landmarks();
+    void compute_h_m_landmarks(const TaskProxy &task_proxy);
     void compute_noop_landmarks(int op_index, int noop_index,
                                 std::list<int> const &local_landmarks,
                                 std::list<int> const &local_necessary,
@@ -91,19 +88,24 @@ private:
     void propagate_pm_fact(int fact, bool newly_discovered,
                            TriggerSet &trigger);
 
-    bool possible_noop_set(const FluentSet &fs1, const FluentSet &fs2);
-    void build_pm_ops();
-
+    bool possible_noop_set(const VariablesProxy &variables,
+                           const FluentSet &fs1,
+                           const FluentSet &fs2);
+    void build_pm_ops(const TaskProxy &task_proxy);
+// should be used together in a tuple?
+    bool interesting(const VariablesProxy &variables,
+                     int var1, int val1,
+                     int var2, int val2) const;
 // already generated, so just return
-    virtual void calc_achievers(Exploration &exploration) override;
+    virtual void calc_achievers(const TaskProxy &task_proxy, Exploration &exploration) override;
 
     void add_lm_node(int set_index, bool goal = false);
 
-    void init();
+    void init(const TaskProxy &task_proxy);
     void free_unneeded_memory();
 
-    void print_fluentset(const FluentSet &fs);
-    void print_pm_op(const PMOp &op);
+    void print_fluentset(const VariablesProxy &variables, const FluentSet &fs);
+    void print_pm_op(const VariablesProxy &variables, const PMOp &op);
 
     int m_;
 
@@ -119,33 +121,39 @@ private:
 // variable pairs worth looking at
     std::vector<std::vector<bool>> interesting_;
 
-    void get_m_sets_(int m, int num_included, int current_var,
+    void get_m_sets_(const VariablesProxy &variables, int m, int num_included, int current_var,
                      FluentSet &current,
-                     std::vector<FluentSet > &subsets);
+                     std::vector<FluentSet> &subsets);
 
-    void get_m_sets_of_set_(int m, int num_included, int current_var_index,
-                            FluentSet &current,
-                            std::vector<FluentSet > &subsets,
-                            const FluentSet &superset);
-
-    void get_split_m_sets_(int m,
-                           int ss1_num_included, int ss2_num_included,
-                           int ss1_var_index, int ss2_var_index,
+    void get_m_sets_of_set(const VariablesProxy &variables,
+                           int m, int num_included,
+                           int current_var_index,
                            FluentSet &current,
                            std::vector<FluentSet> &subsets,
-                           const FluentSet &superset1, const FluentSet &superset2);
+                           const FluentSet &superset);
 
-    void get_m_sets(int m, std::vector<FluentSet> &subsets);
-
-    void get_m_sets(int m, std::vector<FluentSet> &subsets, const FluentSet &superset);
-
-    void get_m_sets(int m, std::vector<FluentSet> &subsets,
-                    const GlobalState &s);
-
-    void get_split_m_sets(int m, std::vector<FluentSet> &subsets,
+    void get_split_m_sets(const VariablesProxy &variables, int m,
+                          int ss1_num_included, int ss2_num_included,
+                          int ss1_var_index, int ss2_var_index,
+                          FluentSet &current,
+                          std::vector<FluentSet> &subsets,
                           const FluentSet &superset1, const FluentSet &superset2);
-    void print_proposition(const std::pair<int, int> &fluent) const;
+
+    void get_m_sets(const VariablesProxy &variables, int m, std::vector<FluentSet> &subsets);
+
+    void get_m_sets(const VariablesProxy &variables, int m, std::vector<FluentSet> &subsets,
+                    const FluentSet &superset);
+
+    void get_m_sets(const VariablesProxy &variables, int m, std::vector<FluentSet> &subsets,
+                    const State &state);
+
+    void get_split_m_sets(const VariablesProxy &variables, int m, std::vector<FluentSet> &subsets,
+                          const FluentSet &superset1, const FluentSet &superset2);
+    void print_proposition(const VariablesProxy &variables, const std::pair<int, int> &fluent) const;
 };
+
+extern FluentSet get_operator_precondition(const OperatorProxy &op);
+extern FluentSet get_operator_postcondition(int num_vars, const OperatorProxy &op);
 }
 
 #endif

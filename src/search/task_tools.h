@@ -3,7 +3,6 @@
 
 #include "task_proxy.h"
 
-
 inline bool is_applicable(OperatorProxy op, const State &state) {
     for (FactProxy precondition : op.get_preconditions()) {
         if (state[precondition.get_variable()] != precondition)
