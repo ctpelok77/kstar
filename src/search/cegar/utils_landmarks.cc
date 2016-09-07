@@ -4,6 +4,7 @@
 
 #include "../landmarks/exploration.h"
 #include "../landmarks/h_m_landmarks.h"
+#include "../landmarks/landmark_graph.h"
 
 #include "../utils/memory.h"
 
@@ -22,6 +23,9 @@ static FactPair get_fact(const LandmarkNode &node) {
 }
 
 shared_ptr<LandmarkGraph> get_landmark_graph() {
+    // TODO: pass task_proxy from cegar heuristic
+    TaskProxy task_proxy(*g_root_task());
+
     Options exploration_opts = Options();
     exploration_opts.set<int>("cost_type", NORMAL);
     exploration_opts.set<bool>("cache_estimates", false);
@@ -38,7 +42,7 @@ shared_ptr<LandmarkGraph> get_landmark_graph() {
     hm_opts.set<int>("lm_cost_type", NORMAL);
     HMLandmarks lm_graph_factory(hm_opts);
 
-    return lm_graph_factory.compute_lm_graph(exploration);
+    return lm_graph_factory.compute_lm_graph(task_proxy, exploration);
 }
 
 vector<FactPair> get_fact_landmarks(const LandmarkGraph &graph) {

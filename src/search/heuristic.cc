@@ -35,7 +35,7 @@ void Heuristic::set_preferred(const GlobalOperator *op) {
     }
 }
 
-void Heuristic::set_preferred(OperatorProxy op) {
+void Heuristic::set_preferred(const OperatorProxy &op) {
     set_preferred(op.get_global_operator());
 }
 
@@ -44,10 +44,6 @@ bool Heuristic::notify_state_transition(
     const GlobalOperator & /*op*/,
     const GlobalState & /*state*/) {
     return false;
-}
-
-int Heuristic::get_adjusted_cost(const GlobalOperator &op) const {
-    return get_adjusted_action_cost(op, cost_type);
 }
 
 State Heuristic::convert_global_state(const GlobalState &global_state) const {

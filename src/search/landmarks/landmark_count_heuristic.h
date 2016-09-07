@@ -17,7 +17,7 @@ class LandmarkCountHeuristic : public Heuristic {
     const bool use_preferred_operators;
     const bool ff_search_disjunctive_lms;
     const bool conditional_effects_supported;
-    const bool use_cost_sharing;
+    const bool admissible;
 
     std::unique_ptr<LandmarkStatusManager> lm_status_manager;
     std::unique_ptr<LandmarkCostAssignment> lm_cost_assignment;
@@ -35,9 +35,9 @@ class LandmarkCountHeuristic : public Heuristic {
 
     void add_node_children(LandmarkNode &node, const LandmarkSet &reached) const;
 
-    bool landmark_is_interesting(const GlobalState &s, const LandmarkSet &reached,
+    bool landmark_is_interesting(const State &s, const LandmarkSet &reached,
                                  LandmarkNode &lm) const;
-    bool generate_helpful_actions(const GlobalState &state,
+    bool generate_helpful_actions(const State &state,
                                   const LandmarkSet &reached);
     void set_exploration_goals(const GlobalState &state);
 
