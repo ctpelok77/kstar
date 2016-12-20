@@ -1,7 +1,6 @@
 #include "stubborn_sets.h"
 
-#include "../global_operator.h"
-#include "../globals.h"
+#include "../task_tools.h"
 
 #include <algorithm>
 #include <cassert>
@@ -9,20 +8,6 @@
 using namespace std;
 
 namespace stubborn_sets {
-struct SortFactsByVariable {
-    bool operator()(const FactPair &lhs, const FactPair &rhs) {
-        return lhs.var < rhs.var;
-    }
-};
-
-/* TODO: get_op_index belongs to a central place.
-   We currently have copies of it in different parts of the code. */
-static inline int get_op_index(const GlobalOperator *op) {
-    int op_index = op - &*g_operators.begin();
-    assert(op_index >= 0 && op_index < static_cast<int>(g_operators.size()));
-    return op_index;
-}
-
 // Relies on both fact sets being sorted by variable.
 bool contain_conflicting_fact(const vector<FactPair> &facts1,
                               const vector<FactPair> &facts2) {
@@ -43,22 +28,20 @@ bool contain_conflicting_fact(const vector<FactPair> &facts1,
     return false;
 }
 
-template<typename T>
-vector<FactPair> get_sorted_fact_set(const vector<T> &facts) {
-    vector<FactPair> result;
-    for (const T &fact : facts) {
-        result.emplace_back(fact.var, fact.val);
+void StubbornSets::initialize(const shared_ptr<AbstractTask> &task) {
+    PruningMethod::initialize(task);
+    TaskProxy task_proxy(*task);
+    verify_no_axioms(task_proxy);
+    verify_no_conditional_effects(task_proxy);
+    compute_sorted_operators(task_proxy);
+    GoalsProxy task_goals = task_proxy.get_goals();
+    goals.reserve(task_goals.size());
+    for (FactProxy goal : task_goals) {
+        goals.push_back(goal.get_pair());
     }
-    sort(result.begin(), result.end(), SortFactsByVariable());
-    return result;
-}
-
-StubbornSets::StubbornSets()
-    : num_unpruned_successors_generated(0),
-      num_pruned_successors_generated(0) {
-    verify_no_axioms_no_conditional_effects();
-    compute_sorted_operators();
-    compute_achievers();
+    compute_achievers(task_proxy);
+    num_unpruned_successors_generated = 0;
+    num_pruned_successors_generated = 0;
 }
 
 // Relies on op_preconds and op_effects being sorted by variable.
@@ -73,28 +56,42 @@ bool StubbornSets::can_conflict(int op1_no, int op2_no) {
                                     sorted_op_effects[op2_no]);
 }
 
-void StubbornSets::compute_sorted_operators() {
+void StubbornSets::compute_sorted_operators(const TaskProxy &task_proxy) {
     assert(sorted_op_preconditions.empty());
     assert(sorted_op_effects.empty());
 
-    for (const GlobalOperator &op : g_operators) {
-        sorted_op_preconditions.push_back(
-            get_sorted_fact_set(op.get_preconditions()));
-        sorted_op_effects.push_back(
-            get_sorted_fact_set(op.get_effects()));
+    for (const OperatorProxy op : task_proxy.get_operators()) {
+        PreconditionsProxy preconditions = op.get_preconditions();
+        vector<FactPair> sorted_preconditions;
+        sorted_preconditions.reserve(preconditions.size());
+        for (const FactProxy pre : preconditions) {
+            sorted_preconditions.push_back(pre.get_pair());
+        }
+        sort(sorted_preconditions.begin(), sorted_preconditions.end());
+        sorted_op_preconditions.push_back(sorted_preconditions);
+
+        EffectsProxy effects = op.get_effects();
+        vector<FactPair> sorted_effects;
+        sorted_effects.reserve(effects.size());
+        for (const EffectProxy eff : effects) {
+            sorted_effects.push_back(eff.get_fact().get_pair());
+        }
+        sort(sorted_effects.begin(), sorted_effects.end());
+        sorted_op_effects.push_back(sorted_effects);
     }
 }
 
-void StubbornSets::compute_achievers() {
-    achievers.reserve(g_variable_domain.size());
-    for (int domain_size : g_variable_domain) {
-        achievers.push_back(vector<vector<int>>(domain_size));
+void StubbornSets::compute_achievers(const TaskProxy &task_proxy) {
+    VariablesProxy vars = task_proxy.get_variables();
+    achievers.reserve(vars.size());
+    for (const VariableProxy var : vars) {
+        achievers.push_back(vector<vector<int>>(var.get_domain_size()));
     }
 
-    for (size_t op_no = 0; op_no < g_operators.size(); ++op_no) {
-        const GlobalOperator &op = g_operators[op_no];
-        for (const GlobalEffect &effect : op.get_effects()) {
-            achievers[effect.var][effect.val].push_back(op_no);
+    for (const OperatorProxy op : task_proxy.get_operators()) {
+        for (const EffectProxy effect : op.get_effects()) {
+            FactPair fact = effect.get_fact().get_pair();
+            achievers[fact.var][fact.value].push_back(op.get_id());
         }
     }
 }
@@ -109,12 +106,13 @@ bool StubbornSets::mark_as_stubborn(int op_no) {
 }
 
 void StubbornSets::prune_operators(
-    const GlobalState &state, vector<const GlobalOperator *> &ops) {
-    num_unpruned_successors_generated += ops.size();
+    const State &state, vector<int> &op_ids) {
+    num_unpruned_successors_generated += op_ids.size();
 
     // Clear stubborn set from previous call.
     stubborn.clear();
-    stubborn.assign(g_operators.size(), false);
+    int num_operators = sorted_op_effects.size();
+    stubborn.assign(num_operators, false);
     assert(stubborn_queue.empty());
 
     initialize_stubborn_set(state);
@@ -127,19 +125,18 @@ void StubbornSets::prune_operators(
     }
 
     // Now check which applicable operators are in the stubborn set.
-    vector<const GlobalOperator *> remaining_ops;
-    remaining_ops.reserve(ops.size());
-    for (const GlobalOperator *op : ops) {
-        int op_no = get_op_index(op);
-        if (stubborn[op_no])
-            remaining_ops.push_back(op);
+    vector<int> remaining_op_ids;
+    remaining_op_ids.reserve(op_ids.size());
+    for (int op_id : op_ids) {
+        if (stubborn[op_id]) {
+            remaining_op_ids.push_back(op_id);
+        }
     }
-    if (remaining_ops.size() != ops.size()) {
-        ops.swap(remaining_ops);
-        sort(ops.begin(), ops.end());
+    if (remaining_op_ids.size() != op_ids.size()) {
+        op_ids.swap(remaining_op_ids);
     }
 
-    num_pruned_successors_generated += ops.size();
+    num_pruned_successors_generated += op_ids.size();
 }
 
 void StubbornSets::print_statistics() const {
