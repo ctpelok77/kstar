@@ -59,7 +59,6 @@ fast_downward_plugin(
         global_state
         heuristic_cache
         heuristic
-        int_packer
         operator_cost
         option_parser
         option_parser_util
@@ -136,6 +135,13 @@ fast_downward_plugin(
         utils/system_windows
         utils/timer
     CORE_PLUGIN
+)
+
+fast_downward_plugin(
+    NAME INT_PACKER
+    HELP "Pack lots of unsigned integers tightly into memory"
+    SOURCES
+        algorithms/int_packer
 )
 
 fast_downward_plugin(
