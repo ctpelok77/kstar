@@ -1,5 +1,5 @@
-#ifndef INT_PACKER_H
-#define INT_PACKER_H
+#ifndef ALGORITHMS_INT_PACKER_H
+#define ALGORITHMS_INT_PACKER_H
 
 #include <vector>
 
@@ -17,7 +17,7 @@
   should be close to optimal in most cases. (See code comments for
   details.)
 */
-
+namespace int_packer {
 class IntPacker {
     class VariableInfo;
 
@@ -26,7 +26,9 @@ class IntPacker {
 
     int pack_one_bin(const std::vector<int> &ranges,
                      std::vector<std::vector<int>> &bits_to_vars);
+
     void pack_bins(const std::vector<int> &ranges);
+
 public:
     typedef unsigned int Bin;
 
@@ -37,12 +39,15 @@ public:
       a variable can take up at most 31 bits if int is 32-bit.
     */
     explicit IntPacker(const std::vector<int> &ranges);
+
     ~IntPacker();
 
     int get(const Bin *buffer, int var) const;
+
     void set(Bin *buffer, int var, int value) const;
 
     int get_num_bins() const {return num_bins; }
 };
+}
 
 #endif

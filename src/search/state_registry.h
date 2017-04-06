@@ -4,10 +4,10 @@
 #include "abstract_task.h"
 #include "axioms.h"
 #include "global_state.h"
-#include "int_packer.h"
 #include "segmented_vector.h"
 #include "state_id.h"
 
+#include "algorithms/int_packer.h"
 #include "utils/hash.h"
 
 #include <set>
@@ -151,7 +151,7 @@ class StateRegistry {
 
     /* TODO: When we switch StateRegistry to the task interface, the next three
              members should come from the task. */
-    const IntPacker &state_packer;
+    const int_packer::IntPacker &state_packer;
     AxiomEvaluator &axiom_evaluator;
     const std::vector<int> &initial_state_data;
     const int num_variables;
@@ -166,7 +166,7 @@ class StateRegistry {
     int get_bins_per_state() const;
 public:
     StateRegistry(
-        const AbstractTask &task, const IntPacker &state_packer,
+        const AbstractTask &task, const int_packer::IntPacker &state_packer,
         AxiomEvaluator &axiom_evaluator, const std::vector<int> &initial_state_data);
     ~StateRegistry();
 

@@ -1,6 +1,8 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
+#include "algorithms/int_packer.h"
+
 #include <iosfwd>
 #include <memory>
 #include <string>
@@ -57,7 +59,7 @@ extern std::vector<std::vector<std::string>> g_fact_names;
 extern std::vector<int> g_axiom_layers;
 extern std::vector<int> g_default_axiom_values;
 
-extern IntPacker *g_state_packer;
+extern int_packer::IntPacker *g_state_packer;
 // This vector holds the initial values *before* the axioms have been evaluated.
 // Use a state registry to obtain the real initial state.
 extern std::vector<int> g_initial_state_data;

@@ -1,9 +1,10 @@
 #include "int_packer.h"
 
 #include <cassert>
+
 using namespace std;
 
-
+namespace int_packer {
 static const int BITS_PER_BIN = sizeof(IntPacker::Bin) * 8;
 
 
@@ -137,4 +138,5 @@ int IntPacker::pack_one_bin(const vector<int> &ranges,
         used_bits += bits;
         ++num_vars_in_bin;
     }
+}
 }
