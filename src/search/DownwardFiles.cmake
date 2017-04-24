@@ -565,6 +565,14 @@ fast_downward_plugin(
     DEPENDS LP_SOLVER
 )
 
+fast_downward_plugin(
+    NAME TOP_K_EAGER_SEARCH
+    HELP "Top K Eager search algorithm"
+    SOURCES
+        search_engines/top_k_eager_search
+    DEPENDS NULL_PRUNING_METHOD ORDERED_SET SEARCH_COMMON
+)
+
 fast_downward_add_plugin_sources(PLANNER_SOURCES)
 
 # The order in PLANNER_SOURCES influences the order in which object
