@@ -1,4 +1,4 @@
-#include "top_k_eager_search.h"
+#include "forbid_plan_eager_search.h"
 
 #include "search_common.h"
 
@@ -21,11 +21,11 @@
 
 using namespace std;
 
-namespace top_k_eager_search {
-TopKEagerSearch::TopKEagerSearch(const Options &opts)
+namespace forbid_plan_eager_search {
+ForbidPlanEagerSearch::ForbidPlanEagerSearch(const Options &opts)
     : SearchEngine(opts),
       reopen_closed_nodes(opts.get<bool>("reopen_closed")),
-      number_of_plans(opts.get<int>("K")),
+      use_multi_path_dependence(opts.get<bool>("mpd")),
       open_list(opts.get<shared_ptr<OpenListFactory>>("open")->
                 create_state_open_list()),
       f_evaluator(opts.get<ScalarEvaluator *>("f_eval", nullptr)),
@@ -33,11 +33,13 @@ TopKEagerSearch::TopKEagerSearch(const Options &opts)
       pruning_method(opts.get<shared_ptr<PruningMethod>>("pruning")) {
 }
 
-void TopKEagerSearch::initialize() {
+void ForbidPlanEagerSearch::initialize() {
     cout << "Conducting best first search"
          << (reopen_closed_nodes ? " with" : " without")
          << " reopening closed nodes, (real) bound = " << bound
          << endl;
+    if (use_multi_path_dependence)
+        cout << "Using multi-path dependence (LM-A*)" << endl;
     assert(open_list);
 
     set<Heuristic *> hset;
@@ -86,34 +88,19 @@ void TopKEagerSearch::initialize() {
     pruning_method->initialize(g_root_task());
 }
 
-void TopKEagerSearch::print_checkpoint_line(int g) const {
+void ForbidPlanEagerSearch::print_checkpoint_line(int g) const {
     cout << "[g=" << g << ", ";
     statistics.print_basic_statistics();
     cout << "]" << endl;
 }
 
-void TopKEagerSearch::print_statistics() const {
+void ForbidPlanEagerSearch::print_statistics() const {
     statistics.print_detailed_statistics();
     search_space.print_statistics();
     pruning_method->print_statistics();
 }
 
-bool TopKEagerSearch::check_goal_and_get_plans(const GlobalState &state) {
-	// Checking for goal
-	if (!check_goal_and_set_plan(state))
-		return false;
-
-	// In case there is only one plan needed, the same behavior as eager search
-	if (number_of_plans == 1)
-		return true;
-
-	cout << "Starting solution reconstruction phase" << endl;
-	int plan_count = 1;
-
-}
-
-
-SearchStatus TopKEagerSearch::step() {
+SearchStatus ForbidPlanEagerSearch::step() {
     pair<SearchNode, bool> n = fetch_next_node();
     if (!n.second) {
         return FAILED;
@@ -121,8 +108,10 @@ SearchStatus TopKEagerSearch::step() {
     SearchNode node = n.first;
 
     GlobalState s = node.get_state();
-    if (check_goal_and_get_plans(s))
+    if (check_goal_and_set_plan(s)) {
+    	dump_reformulated_sas("reformulated_output.sas");
         return SOLVED;
+    }
 
     vector<const GlobalOperator *> applicable_ops;
     g_successor_generator->generate_applicable_ops(s, applicable_ops);
@@ -153,7 +142,7 @@ SearchStatus TopKEagerSearch::step() {
             continue;
 
         // update new path
-        if (succ_node.is_new()) {
+        if (use_multi_path_dependence || succ_node.is_new()) {
             /*
               Note: we must call notify_state_transition for each heuristic, so
               don't break out of the for loop early.
@@ -236,7 +225,7 @@ SearchStatus TopKEagerSearch::step() {
     return IN_PROGRESS;
 }
 
-pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
+pair<SearchNode, bool> ForbidPlanEagerSearch::fetch_next_node() {
     /* TODO: The bulk of this code deals with multi-path dependence,
        which is a bit unfortunate since that is a special case that
        makes the common case look more complicated than it would need
@@ -253,7 +242,9 @@ pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
             SearchNode dummy_node = search_space.get_node(initial_state);
             return make_pair(dummy_node, false);
         }
-        StateID id = open_list->remove_min(nullptr);
+        vector<int> last_key_removed;
+        StateID id = open_list->remove_min(
+            use_multi_path_dependence ? &last_key_removed : nullptr);
         // TODO is there a way we can avoid creating the state here and then
         //      recreate it outside of this function with node.get_state()?
         //      One way would be to store GlobalState objects inside SearchNodes
@@ -264,6 +255,29 @@ pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
         if (node.is_closed())
             continue;
 
+        if (use_multi_path_dependence) {
+            assert(last_key_removed.size() == 2);
+            if (node.is_dead_end())
+                continue;
+            int pushed_h = last_key_removed[1];
+
+            if (!node.is_closed()) {
+                EvaluationContext eval_context(
+                    node.get_state(), node.get_g(), false, &statistics);
+
+                if (open_list->is_dead_end(eval_context)) {
+                    node.mark_as_dead_end();
+                    statistics.inc_dead_ends();
+                    continue;
+                }
+                if (pushed_h < eval_context.get_result(heuristics[0]).get_h_value()) {
+                    assert(node.is_open());
+                    open_list->insert(eval_context, node.get_state_id());
+                    continue;
+                }
+            }
+        }
+
         node.close();
         assert(!node.is_dead_end());
         update_f_value_statistics(node);
@@ -272,17 +286,17 @@ pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
     }
 }
 
-void TopKEagerSearch::reward_progress() {
+void ForbidPlanEagerSearch::reward_progress() {
     // Boost the "preferred operator" open lists somewhat whenever
     // one of the heuristics finds a state with a new best h value.
     open_list->boost_preferred();
 }
 
-void TopKEagerSearch::dump_search_space() const {
+void ForbidPlanEagerSearch::dump_search_space() const {
     search_space.dump();
 }
 
-void TopKEagerSearch::start_f_value_statistics(EvaluationContext &eval_context) {
+void ForbidPlanEagerSearch::start_f_value_statistics(EvaluationContext &eval_context) {
     if (f_evaluator) {
         int f_value = eval_context.get_heuristic_value(f_evaluator);
         statistics.report_f_value_progress(f_value);
@@ -291,7 +305,7 @@ void TopKEagerSearch::start_f_value_statistics(EvaluationContext &eval_context) 
 
 /* TODO: HACK! This is very inefficient for simply looking up an h value.
    Also, if h values are not saved it would recompute h for each and every state. */
-void TopKEagerSearch::update_f_value_statistics(const SearchNode &node) {
+void ForbidPlanEagerSearch::update_f_value_statistics(const SearchNode &node) {
     if (f_evaluator) {
         /*
           TODO: This code doesn't fit the idea of supporting
@@ -303,6 +317,132 @@ void TopKEagerSearch::update_f_value_statistics(const SearchNode &node) {
     }
 }
 
+void ForbidPlanEagerSearch::dump_reformulated_sas(const char* filename) const {
+	int v_ind = g_variable_domain.size();
+
+	ofstream os(filename);
+	os << "begin_version" << endl;
+	os << PRE_FILE_VERSION << endl;
+	os << "end_version" << endl;
+
+	os << "begin_metric" << endl;
+	os << g_use_metric << endl;
+	os << "end_metric" << endl;
+
+	/*
+	 * 258
+begin_variable
+var0
+-1
+2
+Atom __at(able-to-analyze-market-and-consumers-better-83)
+NegatedAtom __at(able-to-analyze-market-and-consumers-better-83)
+end_variable
+	 */
+	// The variables are the original ones + n+2 binary variables for a plan of length n
+	os << g_variable_domain.size() + get_plan().size() + 2 << endl;
+	for(size_t i = 0; i < g_variable_domain.size(); ++i) {
+		dump_variable_SAS(os, g_variable_name[i], g_variable_domain[i], g_fact_names[i]);
+	}
+	vector<string> vals;
+	vals.push_back("false");
+	vals.push_back("true");
+	dump_variable_SAS(os, "possible", 2, vals);
+	for(size_t i = 0; i <= get_plan().size(); ++i) {
+		string name = "following" + static_cast<ostringstream*>( &(ostringstream() << i) )->str();
+		dump_variable_SAS(os, name, 2, vals);
+	}
+	os << g_invariant_groups.size() << endl;
+	for (vector<FactPair> invariant_group : g_invariant_groups) {
+		os << "begin_mutex_group" << endl;
+		os << invariant_group.size() << endl;
+		for (FactPair fact : invariant_group) {
+			os << fact.var << endl;
+			os << fact.value << endl;
+		}
+		os << "end_mutex_group" << endl;
+	}
+	os << "begin_state" << endl;
+	for(size_t i = 0; i < g_initial_state_data.size(); ++i)
+		os << g_initial_state_data[i] << endl;
+	os << 1 << endl;
+	os << 1 << endl;
+	for(size_t i = 0; i < get_plan().size(); ++i)
+		os << 0 << endl;
+	os << "end_state" << endl;
+
+	os << "begin_goal" << endl;
+	os << g_goal.size() + 1 << endl;
+	for(size_t i = 0; i < g_goal.size(); ++i)
+		os << g_goal[i].first << " " << g_goal[i].second << endl;
+	os << v_ind << " " << 0 << endl;
+	os << "end_goal" << endl;
+
+	vector<bool> on_plan;
+	int ops_on_plan = 0;
+	on_plan.assign(g_operators.size(), false);
+	for (const GlobalOperator* op : get_plan()) {
+		int op_no = get_op_index_hacked(op);
+		if (!on_plan[op_no]) {
+			ops_on_plan++;
+			on_plan[op_no] = true;
+		}
+	}
+
+	// The operators are the original ones not on the plan + 3 operators for each on the plan
+	os << g_operators.size()  - ops_on_plan + (3 * get_plan().size()) << endl;
+	// The order of the operators might affect computation...
+	// First dumping the original ones, that are not on the plan
+	vector<GlobalCondition> empty_pre;
+	vector<GlobalEffect> empty_eff;
+
+	for(size_t op_no = 0; op_no < g_operators.size(); ++op_no) {
+		if (on_plan[op_no])
+			continue;
+
+		vector<GlobalEffect> eff;
+		eff.push_back(GlobalEffect(v_ind, 0, empty_pre, false));
+		g_operators[op_no].dump_SAS(os, empty_pre, eff);
+	}
+	for(size_t op_no = 0; op_no < get_plan().size(); ++op_no) {
+		const GlobalOperator* op = get_plan()[op_no];
+
+		//Dumping operators on the plan
+		vector<GlobalCondition> pre1, pre2, pre3;
+		vector<GlobalEffect> eff2,eff3;
+
+		pre1.push_back(GlobalCondition(v_ind, 0, false));
+		op->dump_SAS(os, pre1, empty_eff);
+
+		int following_var_from_ind = v_ind + 1 + op_no;
+		pre2.push_back(GlobalCondition(v_ind, 1, false));
+		pre2.push_back(GlobalCondition(following_var_from_ind, 0, false));
+		eff2.push_back(GlobalEffect(v_ind, 0, empty_pre, false));
+		op->dump_SAS(os, pre2, eff2);
+
+		pre3.push_back(GlobalCondition(v_ind, 1, false));
+		pre3.push_back(GlobalCondition(following_var_from_ind, 1, false));
+		eff3.push_back(GlobalEffect(following_var_from_ind, 0, empty_pre, false));
+		eff3.push_back(GlobalEffect(following_var_from_ind+1, 1, empty_pre, false));
+		op->dump_SAS(os, pre3, eff3);
+	}
+	os << g_axioms.size() << endl;
+	for(size_t op_no = 0; op_no < g_axioms.size(); ++op_no) {
+		g_axioms[op_no].dump_SAS(os, empty_pre, empty_eff);
+	}
+}
+
+void ForbidPlanEagerSearch::dump_variable_SAS(std::ofstream& os, std::string name, int domain, const std::vector<string>& values) const {
+	os << "begin_variable" << endl;
+	os << name << endl;
+	os << -1 << endl;
+	os << domain << endl;
+	for (size_t j=0; j < values.size(); ++j)
+		os << values[j] << endl;
+	os << "end_variable" << endl;
+}
+
+
 /* TODO: merge this into SearchEngine::add_options_to_parser when all search
          engines support pruning. */
 void add_pruning_option(OptionParser &parser) {
@@ -312,10 +452,6 @@ void add_pruning_option(OptionParser &parser) {
         "each state and thereby influence the number and order of successor states "
         "that are considered.",
         "null()");
-}
-
-void add_top_k_option(OptionParser &parser) {
-    parser.add_option<int>("K", "Number of plans", "10");
 }
 
 static SearchEngine *_parse(OptionParser &parser) {
@@ -333,14 +469,14 @@ static SearchEngine *_parse(OptionParser &parser) {
         "preferred",
         "use preferred operators of these heuristics", "[]");
 
-    add_top_k_option(parser);
     add_pruning_option(parser);
     SearchEngine::add_options_to_parser(parser);
     Options opts = parser.parse();
 
-    TopKEagerSearch *engine = nullptr;
+    ForbidPlanEagerSearch *engine = nullptr;
     if (!parser.dry_run()) {
-        engine = new TopKEagerSearch(opts);
+        opts.set<bool>("mpd", false);
+        engine = new ForbidPlanEagerSearch(opts);
     }
 
     return engine;
@@ -353,6 +489,12 @@ static SearchEngine *_parse_astar(OptionParser &parser) {
         "as f-function. "
         "We break ties using the evaluator. Closed nodes are re-opened.");
     parser.document_note(
+        "mpd option",
+        "This option is currently only present for the A* algorithm and not "
+        "for the more general eager search, "
+        "because the current implementation of multi-path depedence "
+        "does not support general open lists.");
+    parser.document_note(
         "Equivalent statements using general eager search",
         "\n```\n--search astar(evaluator)\n```\n"
         "is equivalent to\n"
@@ -361,13 +503,14 @@ static SearchEngine *_parse_astar(OptionParser &parser) {
         "               reopen_closed=true, f_eval=sum([g(), h]))\n"
         "```\n", true);
     parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");
+    parser.add_option<bool>("mpd",
+                            "use multi-path dependence (LM-A*)", "false");
 
-    add_top_k_option(parser);
     add_pruning_option(parser);
     SearchEngine::add_options_to_parser(parser);
     Options opts = parser.parse();
 
-    TopKEagerSearch *engine = nullptr;
+    ForbidPlanEagerSearch *engine = nullptr;
     if (!parser.dry_run()) {
         auto temp = search_common::create_astar_open_list_factory_and_f_eval(opts);
         opts.set("open", temp.first);
@@ -375,7 +518,7 @@ static SearchEngine *_parse_astar(OptionParser &parser) {
         opts.set("reopen_closed", true);
         vector<Heuristic *> preferred_list;
         opts.set("preferred", preferred_list);
-        engine = new TopKEagerSearch(opts);
+        engine = new ForbidPlanEagerSearch(opts);
     }
 
     return engine;
@@ -429,25 +572,25 @@ static SearchEngine *_parse_greedy(OptionParser &parser) {
         "boost",
         "boost value for preferred operator open lists", "0");
 
-    add_top_k_option(parser);
     add_pruning_option(parser);
     SearchEngine::add_options_to_parser(parser);
 
     Options opts = parser.parse();
     opts.verify_list_non_empty<ScalarEvaluator *>("evals");
 
-    TopKEagerSearch *engine = nullptr;
+    ForbidPlanEagerSearch *engine = nullptr;
     if (!parser.dry_run()) {
         opts.set("open", search_common::create_greedy_open_list_factory(opts));
         opts.set("reopen_closed", false);
+        opts.set("mpd", false);
         ScalarEvaluator *evaluator = nullptr;
         opts.set("f_eval", evaluator);
-        engine = new TopKEagerSearch(opts);
+        engine = new ForbidPlanEagerSearch(opts);
     }
     return engine;
 }
 
-static Plugin<SearchEngine> _plugin("top_k_eager", _parse);
-static Plugin<SearchEngine> _plugin_astar("top_k_astar", _parse_astar);
-static Plugin<SearchEngine> _plugin_greedy("top_k_eager_greedy", _parse_greedy);
+static Plugin<SearchEngine> _plugin("forbid_eager", _parse);
+static Plugin<SearchEngine> _plugin_astar("forbid_astar", _parse_astar);
+static Plugin<SearchEngine> _plugin_greedy("forbid_eager_greedy", _parse_greedy);
 }

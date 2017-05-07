@@ -29,10 +29,11 @@ GlobalCondition::GlobalCondition(istream &in) {
     check_fact(var, val);
 }
 
-GlobalCondition::GlobalCondition(int variable, int value)
+GlobalCondition::GlobalCondition(int variable, int value, bool check_facts)
     : var(variable),
       val(value) {
-    check_fact(var, val);
+	if (check_facts)
+		check_fact(var, val);
 }
 
 // TODO if the input file format has been changed, we would need something like this
@@ -44,11 +45,12 @@ GlobalCondition::GlobalCondition(int variable, int value)
 //    in >> var >> post;
 //}
 
-GlobalEffect::GlobalEffect(int variable, int value, const vector<GlobalCondition> &conds)
+GlobalEffect::GlobalEffect(int variable, int value, const vector<GlobalCondition> &conds, bool check_facts)
     : var(variable),
       val(value),
       conditions(conds) {
-    check_fact(var, val);
+	if (check_facts)
+		check_fact(var, val);
 }
 
 void GlobalOperator::read_pre_post(istream &in) {
@@ -132,4 +134,63 @@ int get_op_index_hacked(const GlobalOperator *op) {
     int op_index = op - &*g_operators.begin();
     assert(op_index >= 0 && op_index < static_cast<int>(g_operators.size()));
     return op_index;
+}
+
+void GlobalOperator::dump_SAS(ofstream& os, const vector<GlobalCondition>& extra_pre,
+										    const vector<GlobalEffect>& extra_eff) const {
+	// extra_pre and extra_eff are meant to add to the regular pre and eff
+	vector<GlobalCondition> prevail;
+	vector<int> eff_pre_val;
+	vector<GlobalCondition> all_preconditions(preconditions);
+	vector<GlobalEffect> all_effects(effects);
+	all_preconditions.insert(all_preconditions.end(),extra_pre.begin(), extra_pre.end());
+	all_effects.insert(all_effects.end(), extra_eff.begin(), extra_eff.end());
+
+	eff_pre_val.assign(all_effects.size(), -1);
+	for (GlobalCondition c : all_preconditions) {
+		// Checking if in any effect
+		bool found = false;
+		for (size_t i=0; i < all_effects.size(); ++i) {
+			const GlobalEffect& eff = all_effects[i];
+			if (eff.var != c.var)
+				continue;
+			found = true;
+			eff_pre_val[i] = c.val;
+		}
+
+		if (!found)
+			prevail.push_back(c);
+	}
+
+    if (is_an_axiom) {
+        os << "begin_rule" << endl;
+        dump_pre_post_SAS(os, eff_pre_val[0], all_effects[0]);
+        os << "end_rule" << endl;
+    } else {
+        os << "begin_operator" << endl;
+        os << name << endl;
+        os << prevail.size() << endl;
+        for(size_t i = 0; i < prevail.size(); ++i){
+            prevail[i].dump_SAS(os);
+        }
+        os << all_effects.size() << endl;
+        for(size_t i = 0; i < all_effects.size(); ++i){
+        	dump_pre_post_SAS(os, eff_pre_val[i], all_effects[i]);
+        }
+
+        if (g_use_metric)
+            os << cost << endl;
+        else
+            os << "0" << endl;
+
+        os << "end_operator" << endl;
+    }
+}
+
+void GlobalOperator::dump_pre_post_SAS(std::ofstream& os, int pre, GlobalEffect eff) const {
+    os << eff.conditions.size() << std::endl;
+    for(size_t i = 0; i < eff.conditions.size(); ++i){
+    	eff.conditions[i].dump_SAS(os);
+    }
+    os << eff.var << " " << pre << " " << eff.val << std::endl;
 }

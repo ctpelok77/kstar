@@ -6,12 +6,13 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
 
 struct GlobalCondition {
     int var;
     int val;
     explicit GlobalCondition(std::istream &in);
-    GlobalCondition(int variable, int value);
+    GlobalCondition(int variable, int value, bool check_facts=true);
 
     bool is_applicable(const GlobalState &state) const {
         return state[var] == val;
@@ -25,6 +26,10 @@ struct GlobalCondition {
         return !(*this == other);
     }
 
+    void dump_SAS(std::ofstream& os) const {
+        os << var << " " << val << std::endl;
+    }
+
     void dump() const;
 };
 
@@ -33,7 +38,7 @@ struct GlobalEffect {
     int val;
     std::vector<GlobalCondition> conditions;
     explicit GlobalEffect(std::istream &in);
-    GlobalEffect(int variable, int value, const std::vector<GlobalCondition> &conds);
+    GlobalEffect(int variable, int value, const std::vector<GlobalCondition> &conds, bool check_facts=true);
 
     bool does_fire(const GlobalState &state) const {
         for (size_t i = 0; i < conditions.size(); ++i)
@@ -69,6 +74,10 @@ public:
                 return false;
         return true;
     }
+
+    void dump_SAS(std::ofstream& os, const std::vector<GlobalCondition>& extra_pre,
+    								 const std::vector<GlobalEffect>& extra_eff) const;
+    void dump_pre_post_SAS(std::ofstream& os, int pre, GlobalEffect eff) const;
 
     int get_cost() const {return cost; }
 };
