@@ -1,5 +1,5 @@
-#ifndef SEARCH_ENGINES_TOP_K_EAGER_SEARCH_H
-#define SEARCH_ENGINES_TOP_K_EAGER_SEARCH_H
+#ifndef SEARCH_ENGINES_EAGER_SEARCH_H
+#define SEARCH_ENGINES_EAGER_SEARCH_H
 
 #include "../search_engine.h"
 
@@ -17,10 +17,11 @@ namespace options {
 class Options;
 }
 
-namespace top_k_eager_search {
-class TopKEagerSearch : public SearchEngine {
+namespace forbid_plan_eager_search {
+class ForbidPlanEagerSearch : public SearchEngine {
     const bool reopen_closed_nodes;
-    const int number_of_plans;
+    const bool use_multi_path_dependence;
+
     std::unique_ptr<StateOpenList> open_list;
     ScalarEvaluator *f_evaluator;
 
@@ -34,15 +35,16 @@ class TopKEagerSearch : public SearchEngine {
     void update_f_value_statistics(const SearchNode &node);
     void reward_progress();
     void print_checkpoint_line(int g) const;
-    bool check_goal_and_get_plans(const GlobalState &state);
+    void dump_reformulated_sas(const char* filename) const;
+    void dump_variable_SAS(std::ofstream& os, std::string name, int domain, const std::vector<std::string>& values) const;
 
 protected:
     virtual void initialize() override;
     virtual SearchStatus step() override;
 
 public:
-    explicit TopKEagerSearch(const options::Options &opts);
-    virtual ~TopKEagerSearch() = default;
+    explicit ForbidPlanEagerSearch(const options::Options &opts);
+    virtual ~ForbidPlanEagerSearch() = default;
 
     virtual void print_statistics() const override;
 

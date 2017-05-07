@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+
 class AbstractTask;
 class Axiom;
 class AxiomEvaluator;
@@ -49,6 +50,8 @@ void check_magic(std::istream &in, std::string magic);
 
 bool are_mutex(const FactPair &a, const FactPair &b);
 
+extern const int PRE_FILE_VERSION;
+
 extern bool g_use_metric;
 extern int g_min_action_cost;
 extern int g_max_action_cost;
@@ -77,5 +80,6 @@ extern bool g_is_part_of_anytime_portfolio;
 extern const std::shared_ptr<AbstractTask> g_root_task();
 
 extern utils::Log g_log;
+extern std::vector<std::vector<FactPair>> g_invariant_groups;
 
 #endif

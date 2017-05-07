@@ -26,7 +26,7 @@
 using namespace std;
 using utils::ExitCode;
 
-static const int PRE_FILE_VERSION = 3;
+const int PRE_FILE_VERSION = 3;
 
 
 // TODO: This needs a proper type and should be moved to a separate
@@ -153,6 +153,7 @@ void read_mutexes(istream &in) {
        representation takes care of that automatically by using sets.
        If we ever change this representation, this is something to be
        aware of. */
+    vector<vector<FactPair>> g_invariant_groups;
 
     for (int i = 0; i < num_mutex_groups; ++i) {
         check_magic(in, "begin_mutex_group");
@@ -166,6 +167,7 @@ void read_mutexes(istream &in) {
             in >> var >> value;
             invariant_group.emplace_back(var, value);
         }
+        g_invariant_groups.push_back(invariant_group);
         check_magic(in, "end_mutex_group");
         for (const FactPair &fact1 : invariant_group) {
             for (const FactPair &fact2 : invariant_group) {
@@ -375,3 +377,5 @@ int g_num_previously_generated_plans = 0;
 bool g_is_part_of_anytime_portfolio = false;
 
 utils::Log g_log;
+vector<vector<FactPair>> g_invariant_groups;
+
