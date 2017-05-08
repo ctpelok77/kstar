@@ -29,12 +29,14 @@ class EagerSearch : public SearchEngine {
     std::vector<Heuristic *> preferred_operator_heuristics;
 
     std::shared_ptr<PruningMethod> pruning_method;
+    bool dump_forbid_plan_reformulation;
 
     std::pair<SearchNode, bool> fetch_next_node();
     void start_f_value_statistics(EvaluationContext &eval_context);
     void update_f_value_statistics(const SearchNode &node);
     void reward_progress();
     void print_checkpoint_line(int g) const;
+    void dump_reformulated_sas(const char* filename) const;
 
 protected:
     virtual void initialize() override;

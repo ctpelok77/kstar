@@ -573,14 +573,6 @@ fast_downward_plugin(
 #    DEPENDS NULL_PRUNING_METHOD ORDERED_SET SEARCH_COMMON
 #)
 
-fast_downward_plugin(
-    NAME FORBID_PLAN_EAGER_SEARCH
-    HELP "forbid plan eager search algorithm"
-    SOURCES
-        search_engines/forbid_plan_eager_search
-    DEPENDS NULL_PRUNING_METHOD ORDERED_SET SEARCH_COMMON
-)
-
 fast_downward_add_plugin_sources(PLANNER_SOURCES)
 
 # The order in PLANNER_SOURCES influences the order in which object
