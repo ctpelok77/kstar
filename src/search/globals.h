@@ -80,6 +80,12 @@ extern bool g_is_part_of_anytime_portfolio;
 extern const std::shared_ptr<AbstractTask> g_root_task();
 
 extern utils::Log g_log;
+
+// Parts for dumping SAS+ task, used in forbidding plan reformulation
 extern std::vector<std::vector<FactPair>> g_invariant_groups;
+void dump_variable(std::ofstream& os, std::string name, int domain, const std::vector<std::string>& values);
+void dump_version(std::ofstream& os);
+void dump_metric(std::ofstream& os);
+void dump_mutexes(std::ofstream& os);
 
 #endif

@@ -377,5 +377,44 @@ int g_num_previously_generated_plans = 0;
 bool g_is_part_of_anytime_portfolio = false;
 
 utils::Log g_log;
+
+// Parts for dumping SAS+ task, used in forbidding plan reformulation
+void dump_version(std::ofstream& os) {
+	os << "begin_version" << endl;
+	os << PRE_FILE_VERSION << endl;
+	os << "end_version" << endl;
+}
+
+void dump_metric(std::ofstream& os) {
+	os << "begin_metric" << endl;
+	os << g_use_metric << endl;
+	os << "end_metric" << endl;
+}
+
+void dump_variable(std::ofstream& os, std::string name, int domain, const std::vector<std::string>& values) {
+	os << "begin_variable" << endl;
+	os << name << endl;
+	os << -1 << endl;
+	os << domain << endl;
+	for (size_t j=0; j < values.size(); ++j)
+		os << values[j] << endl;
+	os << "end_variable" << endl;
+}
+
+void dump_mutexes(std::ofstream& os) {
+	os << g_invariant_groups.size() << endl;
+	for (vector<FactPair> invariant_group : g_invariant_groups) {
+		os << "begin_mutex_group" << endl;
+		os << invariant_group.size() << endl;
+		for (FactPair fact : invariant_group) {
+			os << fact.var << endl;
+			os << fact.value << endl;
+		}
+		os << "end_mutex_group" << endl;
+	}
+}
+
+
+
 vector<vector<FactPair>> g_invariant_groups;
 

@@ -30,7 +30,8 @@ EagerSearch::EagerSearch(const Options &opts)
                 create_state_open_list()),
       f_evaluator(opts.get<ScalarEvaluator *>("f_eval", nullptr)),
       preferred_operator_heuristics(opts.get_list<Heuristic *>("preferred")),
-      pruning_method(opts.get<shared_ptr<PruningMethod>>("pruning")) {
+      pruning_method(opts.get<shared_ptr<PruningMethod>>("pruning")),
+	  dump_forbid_plan_reformulation(opts.get<bool>("dump_forbid_plan_reformulation")) {
 }
 
 void EagerSearch::initialize() {
@@ -108,8 +109,12 @@ SearchStatus EagerSearch::step() {
     SearchNode node = n.first;
 
     GlobalState s = node.get_state();
-    if (check_goal_and_set_plan(s))
+    if (check_goal_and_set_plan(s)) {
+    	if (dump_forbid_plan_reformulation)
+        	dump_reformulated_sas("reformulated_output.sas");
+
         return SOLVED;
+    }
 
     vector<const GlobalOperator *> applicable_ops;
     g_successor_generator->generate_applicable_ops(s, applicable_ops);
@@ -315,6 +320,106 @@ void EagerSearch::update_f_value_statistics(const SearchNode &node) {
     }
 }
 
+
+void EagerSearch::dump_reformulated_sas(const char* filename) const {
+	int v_ind = g_variable_domain.size();
+	ofstream os(filename);
+	dump_version(os);
+	dump_metric(os);
+
+	// The variables are the original ones + n+2 binary variables for a plan of length n
+	os << g_variable_domain.size() + get_plan().size() + 2 << endl;
+	for(size_t i = 0; i < g_variable_domain.size(); ++i) {
+		dump_variable(os, g_variable_name[i], g_variable_domain[i], g_fact_names[i]);
+	}
+	vector<string> vals;
+	vals.push_back("false");
+	vals.push_back("true");
+	dump_variable(os, "possible", 2, vals);
+	for(size_t i = 0; i <= get_plan().size(); ++i) {
+		string name = "following" + static_cast<ostringstream*>( &(ostringstream() << i) )->str();
+		dump_variable(os, name, 2, vals);
+	}
+	dump_mutexes(os);
+
+	os << "begin_state" << endl;
+	for(size_t i = 0; i < g_initial_state_data.size(); ++i)
+		os << g_initial_state_data[i] << endl;
+	os << 1 << endl;
+	os << 1 << endl;
+	for(size_t i = 0; i < get_plan().size(); ++i)
+		os << 0 << endl;
+	os << "end_state" << endl;
+
+	os << "begin_goal" << endl;
+	os << g_goal.size() + 1 << endl;
+	for(size_t i = 0; i < g_goal.size(); ++i)
+		os << g_goal[i].first << " " << g_goal[i].second << endl;
+	os << v_ind << " " << 0 << endl;
+	os << "end_goal" << endl;
+
+	vector<bool> on_plan;
+	int ops_on_plan = 0;
+	on_plan.assign(g_operators.size(), false);
+	for (const GlobalOperator* op : get_plan()) {
+		int op_no = get_op_index_hacked(op);
+		if (!on_plan[op_no]) {
+			ops_on_plan++;
+			on_plan[op_no] = true;
+		}
+	}
+
+	// The operators are the original ones not on the plan + 3 operators for each on the plan
+	os << g_operators.size()  - ops_on_plan + (3 * get_plan().size()) << endl;
+	// The order of the operators might affect computation...
+	// First dumping the original ones, that are not on the plan
+	vector<GlobalCondition> empty_pre;
+	vector<GlobalEffect> empty_eff;
+
+	for(size_t op_no = 0; op_no < g_operators.size(); ++op_no) {
+		if (on_plan[op_no])
+			continue;
+
+		vector<GlobalEffect> eff;
+		eff.push_back(GlobalEffect(v_ind, 0, empty_pre, false));
+		g_operators[op_no].dump_SAS(os, empty_pre, eff);
+	}
+	for(size_t op_no = 0; op_no < get_plan().size(); ++op_no) {
+		const GlobalOperator* op = get_plan()[op_no];
+
+		//Dumping operators on the plan
+		vector<GlobalCondition> pre1, pre2, pre3;
+		vector<GlobalEffect> eff2,eff3;
+
+		pre1.push_back(GlobalCondition(v_ind, 0, false));
+		op->dump_SAS(os, pre1, empty_eff);
+
+		int following_var_from_ind = v_ind + 1 + op_no;
+		pre2.push_back(GlobalCondition(v_ind, 1, false));
+		pre2.push_back(GlobalCondition(following_var_from_ind, 0, false));
+		eff2.push_back(GlobalEffect(v_ind, 0, empty_pre, false));
+		op->dump_SAS(os, pre2, eff2);
+
+		pre3.push_back(GlobalCondition(v_ind, 1, false));
+		pre3.push_back(GlobalCondition(following_var_from_ind, 1, false));
+		eff3.push_back(GlobalEffect(following_var_from_ind, 0, empty_pre, false));
+		eff3.push_back(GlobalEffect(following_var_from_ind+1, 1, empty_pre, false));
+		op->dump_SAS(os, pre3, eff3);
+	}
+	os << g_axioms.size() << endl;
+	for(size_t op_no = 0; op_no < g_axioms.size(); ++op_no) {
+		g_axioms[op_no].dump_SAS(os, empty_pre, empty_eff);
+	}
+}
+
+void add_forbid_plan_reformulation_option(OptionParser &parser) {
+    parser.add_option<bool>("dump_forbid_plan_reformulation",
+        "Dumping task reformulation that forbids the found plan",
+        "false");
+}
+
+
+
 /* TODO: merge this into SearchEngine::add_options_to_parser when all search
          engines support pruning. */
 void add_pruning_option(OptionParser &parser) {
@@ -342,6 +447,7 @@ static SearchEngine *_parse(OptionParser &parser) {
         "use preferred operators of these heuristics", "[]");
 
     add_pruning_option(parser);
+    add_forbid_plan_reformulation_option(parser);
     SearchEngine::add_options_to_parser(parser);
     Options opts = parser.parse();
 
@@ -379,6 +485,7 @@ static SearchEngine *_parse_astar(OptionParser &parser) {
                             "use multi-path dependence (LM-A*)", "false");
 
     add_pruning_option(parser);
+    add_forbid_plan_reformulation_option(parser);
     SearchEngine::add_options_to_parser(parser);
     Options opts = parser.parse();
 
@@ -445,6 +552,7 @@ static SearchEngine *_parse_greedy(OptionParser &parser) {
         "boost value for preferred operator open lists", "0");
 
     add_pruning_option(parser);
+    add_forbid_plan_reformulation_option(parser);
     SearchEngine::add_options_to_parser(parser);
 
     Options opts = parser.parse();
