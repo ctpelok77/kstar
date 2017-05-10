@@ -143,7 +143,10 @@ ALIASES["seq-opt-lmcut"] = [
 ALIASES["oss-lmcut"] = ["--symmetries", "sym=structural_symmetries(time_bound=0,search_symmetries=oss)",
     "--search", "astar(lmcut(),symmetries=sym)"]
 
-ALIASES["oss-blind-dump"] = ["--symmetries", "sym=structural_symmetries(time_bound=0,search_symmetries=oss,dump=true,stabilize_initial_state=true)",
+ALIASES["oss-i-blind"] = ["--symmetries", "sym=structural_symmetries(time_bound=0,search_symmetries=oss,stabilize_initial_state=true)",
+    "--search", "astar(blind(),symmetries=sym)"]
+
+ALIASES["oss-i-blind-dump"] = ["--symmetries", "sym=structural_symmetries(time_bound=0,search_symmetries=oss,dump=true,stabilize_initial_state=true)",
     "--search", "astar(blind(),symmetries=sym)"]
 
 ALIASES["oss-por-lmcut"] = ["--symmetries", "sym=structural_symmetries(time_bound=0,search_symmetries=oss)",

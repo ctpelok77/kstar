@@ -50,6 +50,8 @@ bool GraphCreator::compute_symmetries(Group *group) {
         cout << "Got " << group->get_num_generators()
              << " group generators" << endl;
 //        group->dump_generators();
+        cout << "Got " << group->num_identity_generators
+             << " additional group generators that are identity on states (but not on operators)" << endl;
         cout << "Done initializing symmetries: " << timer << endl;
         group->statistics();
         success = true;
