@@ -140,6 +140,23 @@ ALIASES["seq-opt-bjolp"] = [
 ALIASES["seq-opt-lmcut"] = [
     "--search", "astar(lmcut())"]
 
+ALIASES["oss-lmcut"] = ["--symmetries", "sym=structural_symmetries(time_bound=0,search_symmetries=oss)",
+    "--search", "astar(lmcut(),symmetries=sym)"]
+
+ALIASES["oss-blind-dump"] = ["--symmetries", "sym=structural_symmetries(time_bound=0,search_symmetries=oss,dump=true,stabilize_initial_state=true)",
+    "--search", "astar(blind(),symmetries=sym)"]
+
+ALIASES["oss-por-lmcut"] = ["--symmetries", "sym=structural_symmetries(time_bound=0,search_symmetries=oss)",
+    "--search", "astar(lmcut(),symmetries=sym,pruning=stubborn_sets_simple())"]
+
+ALIASES["por-lmcut"] = [
+    "--search", "astar(lmcut(),pruning=stubborn_sets_simple())"]
+
+ALIASES["ec-lmcut"] = [
+    "--search", "astar(lmcut(),pruning=stubborn_sets_ec())"]
+
+ALIASES["dks-lmcut"] = ["--symmetries", "sym=structural_symmetries(time_bound=0,search_symmetries=dks)",
+    "--search", "astar(lmcut(),symmetries=sym)"]
 
 PORTFOLIOS = {}
 for portfolio in os.listdir(PORTFOLIO_DIR):

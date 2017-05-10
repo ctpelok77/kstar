@@ -10,6 +10,7 @@
 
 #include <vector>
 
+class Group;
 class Heuristic;
 
 namespace options {
@@ -44,7 +45,8 @@ protected:
     virtual SearchStatus step() = 0;
 
     void set_plan(const Plan &plan);
-    bool check_goal_and_set_plan(const GlobalState &state);
+    bool check_goal_and_set_plan(const GlobalState &state,
+                                 const std::shared_ptr<Group> &group = nullptr);
     int get_adjusted_cost(const GlobalOperator &op) const;
 public:
     SearchEngine(const options::Options &opts);
@@ -59,6 +61,9 @@ public:
     void set_bound(int b) {bound = b; }
     int get_bound() {return bound; }
     static void add_options_to_parser(options::OptionParser &parser);
+    const StateRegistry &get_state_registry() const {
+        return state_registry;
+    }
 };
 
 /*
