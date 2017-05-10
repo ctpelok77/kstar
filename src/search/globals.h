@@ -81,6 +81,10 @@ extern const std::shared_ptr<AbstractTask> g_root_task();
 
 extern utils::Log g_log;
 
+extern int g_symmetrical_states_generated;
+extern int g_symmetry_improved_evaluations;
+extern int g_improving_symmetrical_states;
+
 // Parts for dumping SAS+ task, used in forbidding plan reformulation
 extern std::vector<std::vector<FactPair>> g_invariant_groups;
 void dump_variable(std::ofstream& os, std::string name, int domain, const std::vector<std::string>& values);

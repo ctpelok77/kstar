@@ -378,6 +378,10 @@ bool g_is_part_of_anytime_portfolio = false;
 
 utils::Log g_log;
 
+int g_symmetrical_states_generated;
+int g_symmetry_improved_evaluations;
+int g_improving_symmetrical_states;
+
 // Parts for dumping SAS+ task, used in forbidding plan reformulation
 void dump_version(std::ofstream& os) {
 	os << "begin_version" << endl;
