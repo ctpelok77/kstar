@@ -30,7 +30,6 @@ enum class SymmetricalLookups {
 };
 
 class Group {
-    static int num_identity_generators;
 
     // Options for the type of symmetries used
     bool stabilize_initial_state;
@@ -61,6 +60,7 @@ class Group {
 public:
     explicit Group(const options::Options &opts);
     ~Group();
+    static int num_identity_generators;
     void compute_symmetries();
 
     static void add_permutation(void*, unsigned int, const unsigned int *);
