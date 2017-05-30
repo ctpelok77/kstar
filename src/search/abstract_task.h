@@ -9,6 +9,8 @@
 #include <vector>
 
 class GlobalOperator;
+struct GlobalCondition;
+struct GlobalEffect;
 class GlobalState;
 
 namespace options {
@@ -44,6 +46,7 @@ struct FactPair {
 };
 
 std::ostream &operator<<(std::ostream &os, const FactPair &fact_pair);
+std::ostream &operator<<(std::ostream &os, const GlobalCondition &cond);
 
 namespace std {
 template<>
@@ -57,6 +60,15 @@ struct hash<FactPair> {
 }
 
 class AbstractTask {
+	void dump_operator_pre_post_to_SAS(std::ostream& os, int pre, const GlobalEffect& eff) const;
+	void dump_operators_to_SAS(std::ostream &os) const;
+	void dump_operator_to_SAS(std::ostream &os, int op_no) const;
+	void dump_axioms_to_SAS(std::ostream &os) const;
+	void dump_axiom_to_SAS(std::ostream &os, int op_no) const;
+
+	void dump_variables_to_SAS(std::ostream &os) const;
+	void dump_initial_state_to_SAS(std::ostream &os) const;
+	void dump_goal_to_SAS(std::ostream &os) const;
 public:
     AbstractTask() = default;
     virtual ~AbstractTask() = default;
@@ -102,6 +114,8 @@ public:
     virtual void convert_state_values(
         std::vector<int> &values,
         const AbstractTask *ancestor_task) const = 0;
+
+    virtual void dump_to_SAS(std::ostream &os) const;
 };
 
 #endif

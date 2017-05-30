@@ -425,6 +425,7 @@ fast_downward_plugin(
         tasks/domain_abstracted_task_factory
         tasks/modified_goals_task
         tasks/modified_operator_costs_task
+        tasks/plan_forbid_reformulated_task
     DEPENDENCY_ONLY
 )
 
@@ -590,6 +591,7 @@ fast_downward_plugin(
         structural_symmetries/graph_creator.cc
         structural_symmetries/group.cc
         structural_symmetries/permutation.cc
+        structural_symmetries/operator_permutation.cc
     DEPENDS BLISS
 )
 

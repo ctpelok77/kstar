@@ -1,9 +1,11 @@
-#ifndef SYMMETRIES_PERMUTATION_H
-#define SYMMETRIES_PERMUTATION_H
+#ifndef STRUCTURAL_SYMMETRIES_PERMUTATION_H
+#define STRUCTURAL_SYMMETRIES_PERMUTATION_H
 
 #include <vector>
 
 class GlobalState;
+
+//namespace structural_symmetries {
 
 class Permutation{
 public:
@@ -60,5 +62,5 @@ private:
     void _copy_value_from_permutation(const Permutation &perm);
     void _inverse_value_from_permutation(const Permutation &perm);
 };
-
+//}
 #endif

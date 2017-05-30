@@ -5,7 +5,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-
+#include <ostream>
 
 class AbstractTask;
 class Axiom;
@@ -13,6 +13,8 @@ class AxiomEvaluator;
 class CausalGraph;
 struct FactPair;
 class GlobalOperator;
+struct GlobalCondition;
+struct GlobalEffect;
 class GlobalState;
 class StateRegistry;
 class SuccessorGenerator;
@@ -87,9 +89,17 @@ extern int g_improving_symmetrical_states;
 
 // Parts for dumping SAS+ task, used in forbidding plan reformulation
 extern std::vector<std::vector<FactPair>> g_invariant_groups;
-void dump_variable(std::ofstream& os, std::string name, int domain, const std::vector<std::string>& values);
-void dump_version(std::ofstream& os);
-void dump_metric(std::ofstream& os);
-void dump_mutexes(std::ofstream& os);
+void dump_version(std::ostream& os);
+void dump_metric(std::ostream& os);
+
+void dump_variable(std::ostream& os, std::string name, int axiom_layer, int domain, const std::vector<std::string>& values);
+void dump_version(std::ostream& os);
+void dump_metric(std::ostream& os);
+void dump_mutexes(std::ostream& os);
+void dump_condition_SAS(std::ostream& os, GlobalCondition cond);
+void dump_pre_post_SAS(std::ostream& os, int pre, GlobalEffect eff);
+
+void dump_plan_forbid_reformulation_sas(const char* filename,
+							const std::vector<const GlobalOperator *>& plan);
 
 #endif

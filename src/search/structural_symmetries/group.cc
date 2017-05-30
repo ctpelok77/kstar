@@ -20,6 +20,8 @@
 using namespace std;
 using namespace utils;
 
+//namespace structural_symmetries {
+
 int Group::num_identity_generators;
 
 Group::Group(const options::Options &opts)
@@ -29,6 +31,7 @@ Group::Group(const options::Options &opts)
       rw_length_or_number_symmetric_states(opts.get<int>("symmetry_rw_length_or_number_states")),
       rng(utils::parse_rng_from_options(opts)),
 	  dump(opts.get<bool>("dump")),
+	  keep_operator_symmetries(opts.get<bool>("keep_operator_symmetries")),
       initialized(false) {
     graph_creator = new GraphCreator(opts);
     num_identity_generators = 0;
@@ -70,13 +73,22 @@ void Group::compute_symmetries() {
  * The function will be called from bliss
  */
 void Group::add_permutation(void* param, unsigned int, const unsigned int * full_perm){
+
     Permutation *perm = new Permutation(full_perm);
     if (!perm->identity()){
         ((Group*) param)->add_generator(perm);
+        ((Group*) param)->add_operator_generator(full_perm);
     } else {
     	num_identity_generators++;
         delete perm;
     }
+}
+
+void Group::add_operator_generator(const unsigned int * full_perm) {
+	if (!keep_operator_symmetries)
+		return;
+
+	operator_generators.push_back(new OperatorPermutation(full_perm));
 }
 
 void Group::add_generator(const Permutation *gen) {
@@ -387,6 +399,9 @@ static shared_ptr<Group> _parse(OptionParser &parser) {
                            "Dump the generators",
                            "false");
 
+    parser.add_option<bool>("keep_operator_symmetries",
+                           "Keep the operator symmetries from generators",
+                           "false");
 
     utils::add_rng_options(parser);
 
@@ -405,3 +420,4 @@ static PluginTypePlugin<Group> _type_plugin(
     "");
 
 static PluginShared<Group> _plugin("structural_symmetries", _parse);
+//}
