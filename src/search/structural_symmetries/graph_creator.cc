@@ -15,6 +15,8 @@
 
 using namespace std;
 
+//namespace structural_symmetries {
+
 //TODO: Add vertex for axioms.
 enum color_t {PREDICATE_VERTEX, VALUE_VERTEX, PRECOND_VERTEX, EFFECT_VERTEX,
               GOAL_VERTEX, INIT_VERTEX, CONDITIONAL_EFFECT_VERTEX,
@@ -242,3 +244,4 @@ bool GraphCreator::effect_can_be_overwritten(int ind, const std::vector<GlobalEf
     }
     return false;
 }
+//}

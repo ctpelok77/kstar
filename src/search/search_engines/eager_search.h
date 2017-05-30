@@ -47,7 +47,7 @@ class EagerSearch : public SearchEngine {
     void update_f_value_statistics(const SearchNode &node);
     void reward_progress();
     void print_checkpoint_line(int g) const;
-    void dump_reformulated_sas(const char* filename) const;
+//    void dump_reformulated_sas(const char* filename) const;
 
 protected:
     virtual void initialize() override;

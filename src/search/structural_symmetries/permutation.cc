@@ -13,6 +13,8 @@
 
 using namespace std;
 
+//namespace structural_symmetries {
+
 int Permutation::length;
 vector<int> Permutation::var_by_val;
 vector<int> Permutation::dom_sum_by_var;
@@ -356,3 +358,4 @@ bool Permutation::replace_if_less(int* state) const {
 
     return true;
 }
+//}

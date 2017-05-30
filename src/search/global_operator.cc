@@ -167,8 +167,9 @@ void GlobalOperator::dump_SAS(ofstream& os, const vector<GlobalCondition>& extra
         dump_pre_post_SAS(os, eff_pre_val[0], all_effects[0]);
         os << "end_rule" << endl;
     } else {
+    	int type = extra_pre.size() + (extra_eff.empty() ? 0 : extra_eff.size() - 1);
         os << "begin_operator" << endl;
-        os << name << endl;
+        os << name << " " << type << endl;
         os << prevail.size() << endl;
         for(size_t i = 0; i < prevail.size(); ++i){
             prevail[i].dump_SAS(os);

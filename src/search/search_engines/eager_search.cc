@@ -144,7 +144,8 @@ SearchStatus EagerSearch::step() {
     GlobalState s = node.get_state();
     if (check_goal_and_set_plan(s, group)) {
     	if (dump_forbid_plan_reformulation)
-        	dump_reformulated_sas("reformulated_output.sas");
+    		dump_plan_forbid_reformulation_sas("reformulated_output.sas", get_plan());
+        	//dump_reformulated_sas("reformulated_output.sas");
 
         return SOLVED;
     }
@@ -374,7 +375,7 @@ void EagerSearch::update_f_value_statistics(const SearchNode &node) {
     }
 }
 
-
+/*
 void EagerSearch::dump_reformulated_sas(const char* filename) const {
 	int v_ind = g_variable_domain.size();
 	ofstream os(filename);
@@ -465,7 +466,7 @@ void EagerSearch::dump_reformulated_sas(const char* filename) const {
 		g_axioms[op_no].dump_SAS(os, empty_pre, empty_eff);
 	}
 }
-
+*/
 void add_forbid_plan_reformulation_option(OptionParser &parser) {
     parser.add_option<bool>("dump_forbid_plan_reformulation",
         "Dumping task reformulation that forbids the found plan",

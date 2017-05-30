@@ -1,13 +1,19 @@
-#ifndef SYMMETRIES_GROUP_H
-#define SYMMETRIES_GROUP_H
+#ifndef STRUCTURAL_SYMMETRIES_GROUP_H
+#define STRUCTURAL_SYMMETRIES_GROUP_H
+
+#include "operator_permutation.h"
 
 #include <memory>
 #include <vector>
 
 class GlobalState;
+class StateRegistry;
+
+//namespace structural_symmetries {
 class GraphCreator;
 class Permutation;
-class StateRegistry;
+//class OperatorPermutation;
+//}
 
 namespace options {
 class Options;
@@ -16,6 +22,8 @@ class Options;
 namespace utils {
 class RandomNumberGenerator;
 }
+
+//namespace structural_symmetries {
 
 enum class SearchSymmetries {
     NONE,
@@ -38,9 +46,11 @@ class Group {
     int rw_length_or_number_symmetric_states;
     const std::shared_ptr<utils::RandomNumberGenerator> rng;
     bool dump;
+    bool keep_operator_symmetries;
     bool initialized;
     GraphCreator *graph_creator;
     std::vector<const Permutation *> generators;
+    std::vector<const OperatorPermutation *> operator_generators;
 
     // Methods for SL
     void compute_random_symmetric_state(const GlobalState &state,
@@ -65,6 +75,7 @@ public:
 
     static void add_permutation(void*, unsigned int, const unsigned int *);
     void add_generator(const Permutation *gen);
+    void add_operator_generator(const unsigned int * full_perm);
     int get_num_generators() const;
     void dump_generators() const;
     void dump_variables_equivalence_classes() const;
@@ -96,5 +107,5 @@ public:
     Permutation *create_permutation_from_state_to_state(
         const GlobalState &from_state, const GlobalState &to_state) const;
 };
-
+//}
 #endif
