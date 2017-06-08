@@ -46,7 +46,7 @@ private:
     int* value;
     std::vector<int> vars_affected;
     std::vector<bool> affected;
-    bool borrowed_buffer;
+    //bool borrowed_buffer;
     // Need to keep the connection between affected vars, ie which var goes into which.
     std::vector<int> from_vars;
     // Affected vars by cycles

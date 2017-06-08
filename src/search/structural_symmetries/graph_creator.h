@@ -6,7 +6,7 @@
 namespace bliss {
     class Digraph;
 }
-class GlobalEffect;
+struct GlobalEffect;
 class GlobalOperator;
 
 //namespace structural_symmetries {
