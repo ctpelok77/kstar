@@ -11,6 +11,13 @@ class PlanForbidReformulatedTask : public tasks::DelegatingTask {
 	std::vector<int> reformulated_operator_indexes;
 	int operators_on_plan;
 	std::vector<int> initial_state_values;
+	std::vector<bool> on_plan;
+	std::vector<int> plan_operators_indexes;
+	std::vector<std::vector<int>> plan_operators_indexes_by_parent_operator;
+
+	bool is_operator_on_plan(int op_no) const;
+	int get_num_operator_appearances_on_plan(int op_no) const;
+	int get_plan_index_ordered(int op_no, int appearance_index) const;
 
 	int get_plan_op_index(int index) const;
 	int get_parent_op_index(int index) const;

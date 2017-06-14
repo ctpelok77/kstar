@@ -182,14 +182,14 @@ void GlobalOperator::dump_SAS(ofstream& os, const vector<GlobalCondition>& extra
         if (g_use_metric)
             os << cost << endl;
         else
-            os << "0" << endl;
+            os << "1" << endl;
 
         os << "end_operator" << endl;
     }
 }
 
 void GlobalOperator::dump_pre_post_SAS(std::ofstream& os, int pre, GlobalEffect eff) const {
-    os << eff.conditions.size() << std::endl;
+    os << eff.conditions.size() << " ";
     for(size_t i = 0; i < eff.conditions.size(); ++i){
     	eff.conditions[i].dump_SAS(os);
     }
