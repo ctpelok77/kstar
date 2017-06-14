@@ -483,46 +483,78 @@ void dump_plan_forbid_reformulation_sas(const char* filename,
 	os << "end_goal" << endl;
 
 	vector<bool> on_plan;
-	int ops_on_plan = 0;
+	int num_operators_on_plan = 0;
+	vector<int> plan_operators_without_repetition;
 	on_plan.assign(g_operators.size(), false);
 	for (const GlobalOperator* op : plan) {
 		int op_no = get_op_index_hacked(op);
 		if (!on_plan[op_no]) {
-			ops_on_plan++;
+			num_operators_on_plan++;
 			on_plan[op_no] = true;
+			plan_operators_without_repetition.push_back(op_no);
 		}
 	}
+	// Storing plan indexes per plan operator
+	std::vector<std::vector<int>> plan_operators_indexes_by_parent_operator;
+	plan_operators_indexes_by_parent_operator.assign(g_operators.size(), vector<int>());
+	for (size_t i = 0; i < plan.size(); ++i) {
+		int op_no = get_op_index_hacked(plan[i]);
+		plan_operators_indexes_by_parent_operator[op_no].push_back(i);
+	}
 
-	// The operators are the original ones not on the plan + 3 operators for each on the plan
-	os << g_operators.size()  - ops_on_plan + (3 * plan.size()) << endl;
+	// The operators are the original ones not on the plan + twice the plan operators without repetitions and once plan operators with repetitions
+	os << g_operators.size()  + num_operators_on_plan + plan.size() << endl;
 	// The order of the operators might affect computation...
 	// First dumping the original ones, that are not on the plan
 	vector<GlobalCondition> empty_pre;
 	vector<GlobalEffect> empty_eff;
 
 	for(size_t op_no = 0; op_no < g_operators.size(); ++op_no) {
-		if (on_plan[op_no])
+		if (on_plan[op_no]) {
+			//Dumping operators on the plan
+			vector<GlobalCondition> pre1;
+			pre1.push_back(GlobalCondition(v_ind, 0, false));
+			g_operators[op_no].dump_SAS(os, pre1, empty_eff);
 			continue;
+		}
 
 		vector<GlobalEffect> eff;
 		eff.push_back(GlobalEffect(v_ind, 0, empty_pre, false));
 		g_operators[op_no].dump_SAS(os, empty_pre, eff);
 	}
+	/*
+	for(int op_no : plan_operators_without_repetition) {
+		const GlobalOperator* op = plan[op_no];
+
+		//Dumping operators on the plan
+		vector<GlobalCondition> pre1;
+		pre1.push_back(GlobalCondition(v_ind, 0, false));
+		op->dump_SAS(os, pre1, empty_eff);
+	}
+	*/
+	for(int op_no : plan_operators_without_repetition) {
+		//Dumping operators on the plan
+		vector<GlobalCondition> pre2;
+		vector<GlobalEffect> eff2;
+
+		pre2.push_back(GlobalCondition(v_ind, 1, false));
+
+		for (int op_ind : plan_operators_indexes_by_parent_operator[op_no]) {
+			int following_var_from_ind = v_ind + 1 + op_ind;
+			pre2.push_back(GlobalCondition(following_var_from_ind, 0, false));
+		}
+		eff2.push_back(GlobalEffect(v_ind, 0, empty_pre, false));
+		g_operators[op_no].dump_SAS(os, pre2, eff2);
+	}
+
 	for(size_t op_no = 0; op_no < plan.size(); ++op_no) {
 		const GlobalOperator* op = plan[op_no];
 
 		//Dumping operators on the plan
-		vector<GlobalCondition> pre1, pre2, pre3;
-		vector<GlobalEffect> eff2,eff3;
-
-		pre1.push_back(GlobalCondition(v_ind, 0, false));
-		op->dump_SAS(os, pre1, empty_eff);
+		vector<GlobalCondition> pre3;
+		vector<GlobalEffect> eff3;
 
 		int following_var_from_ind = v_ind + 1 + op_no;
-		pre2.push_back(GlobalCondition(v_ind, 1, false));
-		pre2.push_back(GlobalCondition(following_var_from_ind, 0, false));
-		eff2.push_back(GlobalEffect(v_ind, 0, empty_pre, false));
-		op->dump_SAS(os, pre2, eff2);
 
 		pre3.push_back(GlobalCondition(v_ind, 1, false));
 		pre3.push_back(GlobalCondition(following_var_from_ind, 1, false));
@@ -530,6 +562,7 @@ void dump_plan_forbid_reformulation_sas(const char* filename,
 		eff3.push_back(GlobalEffect(following_var_from_ind+1, 1, empty_pre, false));
 		op->dump_SAS(os, pre3, eff3);
 	}
+
 	os << g_axioms.size() << endl;
 	for(size_t op_no = 0; op_no < g_axioms.size(); ++op_no) {
 		g_axioms[op_no].dump_SAS(os, empty_pre, empty_eff);

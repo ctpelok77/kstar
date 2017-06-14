@@ -18,17 +18,25 @@ PlanForbidReformulatedTask::PlanForbidReformulatedTask(
 	// Compute the indexes for new operators
 	// First go all operators that are not on the plan
 	// Then go all ops from plan with index 1, then 2, then 3.
-	vector<bool> on_plan;
 	on_plan.assign(parent->get_num_operators(), false);
 	for (int op_no : forbidding_plan) {
 		if (!on_plan[op_no]) {
 			operators_on_plan++;
 			on_plan[op_no] = true;
+			plan_operators_indexes.push_back(op_no);
 		}
 	}
-	for (size_t i = 0; i < on_plan.size(); ++i) {
-		if (!on_plan[i])
-			reformulated_operator_indexes.push_back(i);
+	// Getting new indexing for operators not on plan
+	for (int op_no = 0; op_no < parent->get_num_operators(); ++op_no) {
+		if (!is_operator_on_plan(op_no)) {
+			reformulated_operator_indexes.push_back(op_no);
+		}
+	}
+	// Storing plan indexes per plan operator
+	plan_operators_indexes_by_parent_operator.assign(parent->get_num_operators(), vector<int>());
+	for (size_t i = 0; i < forbidding_plan.size(); ++i) {
+		int op_no = forbidding_plan[i];
+		plan_operators_indexes_by_parent_operator[op_no].push_back(i);
 	}
 
 	// Creating initial state values by copying from the parent and pushing the new variables initial values
@@ -38,12 +46,36 @@ PlanForbidReformulatedTask::PlanForbidReformulatedTask(
 	initial_state_values.insert(initial_state_values.end(), forbidding_plan.size(), 0);
 }
 
+bool PlanForbidReformulatedTask::is_operator_on_plan(int op_no) const {
+	return on_plan[op_no];
+}
+
 int PlanForbidReformulatedTask::get_num_non_plan_operators() const {
 	return reformulated_operator_indexes.size();
 }
 
+int PlanForbidReformulatedTask::get_num_operator_appearances_on_plan(int op_no) const {
+	return plan_operators_indexes_by_parent_operator[op_no].size();
+}
+
+int PlanForbidReformulatedTask::get_plan_index_ordered(int op_no, int appearance_index) const {
+	return plan_operators_indexes_by_parent_operator[op_no][appearance_index];
+}
+
+int PlanForbidReformulatedTask::get_plan_op_index(int index) const {
+	// Returns the index on the plan or -1 if not on the plan
+	if (index < get_num_non_plan_operators())
+		return -1;
+
+	int relative_index = index - get_num_non_plan_operators();
+	if (relative_index < 2 * operators_on_plan) {
+		return plan_operators_indexes[relative_index % operators_on_plan];
+	}
+	return relative_index - 2 * operators_on_plan;
+}
 
 int PlanForbidReformulatedTask::get_parent_op_index(int index) const {
+	// Getting the index of the corresponding operator in the parent task
 	int p_index = get_plan_op_index(index);
 	if (p_index < 0)
 		return reformulated_operator_indexes[index];
@@ -52,19 +84,22 @@ int PlanForbidReformulatedTask::get_parent_op_index(int index) const {
 }
 
 int PlanForbidReformulatedTask::get_op_type(int index) const {
+	// Returns type 0 for operators not on plan
+	//         type 1 for operators "already discarded"
+	//         type 2 for operators "discarding pi"
+	//         type 3 for operators "following pi"
 	if (index < get_num_non_plan_operators())
 		return 0;
 
-	return ((index - get_num_non_plan_operators()) / forbidding_plan.size()) + 1;
+	int relative_index = index - get_num_non_plan_operators();
+	if (relative_index < operators_on_plan)
+		return 1;
+	if (relative_index < 2 * operators_on_plan)
+		return 2;
+
+	return 3;
 }
 
-int PlanForbidReformulatedTask::get_plan_op_index(int index) const {
-	// Returns the index on the plan
-	if (index < get_num_non_plan_operators())
-		return -1;
-
-	return (index - get_num_non_plan_operators()) % forbidding_plan.size();
-}
 
 int PlanForbidReformulatedTask::get_possible_var_index() const {
 	return parent->get_num_variables();
@@ -151,7 +186,15 @@ string PlanForbidReformulatedTask::get_operator_name(int index, bool is_axiom) c
 }
 
 int PlanForbidReformulatedTask::get_num_operators() const {
-    return get_num_non_plan_operators() + 3 * forbidding_plan.size();
+	// The number of operators according to the fixed reformulation is
+	// number of operators + number of operators on the plan + plan length (number of operators on the plan with repetitions)
+	// First, we have non-plan operators,
+	// then operators of type 1 (no repetition),
+	// then operators of type 2 (no repetition),
+	// and finally operators of type 3 (with repetitions).
+
+//    return get_num_non_plan_operators() + 3 * forbidding_plan.size();
+    return parent->get_num_operators() + operators_on_plan + forbidding_plan.size();
 }
 
 int PlanForbidReformulatedTask::get_num_operator_preconditions(int index, bool is_axiom) const {
@@ -168,7 +211,10 @@ int PlanForbidReformulatedTask::get_num_operator_preconditions(int index, bool i
 	if (op_type == 1)
 		return parent->get_num_operator_preconditions(parent_op_index, is_axiom) + 1;
 
-	assert(op_type == 2 || op_type == 3);
+	if (op_type == 2)
+		return parent->get_num_operator_preconditions(parent_op_index, is_axiom) + 1 + get_num_operator_appearances_on_plan(parent_op_index);
+
+	assert(op_type == 3);
 	return parent->get_num_operator_preconditions(parent_op_index, is_axiom) + 2;
 }
 
@@ -178,13 +224,13 @@ FactPair PlanForbidReformulatedTask::get_operator_precondition(
 	if (is_axiom)
 		return parent->get_operator_precondition(op_index, fact_index, is_axiom);
 
-	int op_type = get_op_type(op_index);
-	assert(op_type >= 0 && op_type <= 3);
-
 	int parent_op_index = get_parent_op_index(op_index);
 	int parent_num_pre = parent->get_num_operator_preconditions(parent_op_index, is_axiom);
 	if (fact_index < parent_num_pre)
 		return parent->get_operator_precondition(parent_op_index, fact_index, is_axiom);
+
+	int op_type = get_op_type(op_index);
+	assert(op_type >= 0 && op_type <= 3);
 
 	if (op_type == 1)
 		return FactPair(get_possible_var_index(), 0);
@@ -194,10 +240,12 @@ FactPair PlanForbidReformulatedTask::get_operator_precondition(
 	if (fact_index == parent_num_pre)
 		return FactPair(get_possible_var_index(), 1);
 
-	// second additional precondition
-	if (op_type == 2)
-		return FactPair(get_following_var_index(op_index), 0);
-
+	// next additional preconditions
+	if (op_type == 2) {
+		int pre_index_last = fact_index - parent_num_pre - 1;
+		int op_on_plan_index = get_plan_index_ordered(parent_op_index, pre_index_last);
+		return FactPair(get_following_var_index(op_on_plan_index), 0);
+	}
 	assert(op_type == 3);
 	return FactPair(get_following_var_index(op_index), 1);
 }
@@ -246,12 +294,13 @@ FactPair PlanForbidReformulatedTask::get_operator_effect(
 	if (is_axiom)
 		return parent->get_operator_effect(op_index, eff_index, is_axiom);
 
-	int op_type = get_op_type(op_index);
-	assert(op_type >= 0 && op_type <= 3);
 	int parent_op_index = get_parent_op_index(op_index);
 	int parent_num_effs = parent->get_num_operator_effects(parent_op_index, is_axiom);
 	if (eff_index < parent_num_effs)
 		return parent->get_operator_precondition(parent_op_index, eff_index, is_axiom);
+
+	int op_type = get_op_type(op_index);
+	assert(op_type >= 0 && op_type <= 3);
 
 	if (op_type == 0 || op_type == 2)
 		return FactPair(get_possible_var_index(), 0);
