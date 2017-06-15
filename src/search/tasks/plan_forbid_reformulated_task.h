@@ -8,7 +8,7 @@
 namespace extra_tasks {
 class PlanForbidReformulatedTask : public tasks::DelegatingTask {
 	const std::vector<int> forbidding_plan;
-	std::vector<int> reformulated_operator_indexes;
+//	std::vector<int> reformulated_operator_indexes;
 	int operators_on_plan;
 	std::vector<int> initial_state_values;
 	std::vector<bool> on_plan;
@@ -19,14 +19,14 @@ class PlanForbidReformulatedTask : public tasks::DelegatingTask {
 	int get_num_operator_appearances_on_plan(int op_no) const;
 	int get_plan_index_ordered(int op_no, int appearance_index) const;
 
-	int get_plan_op_index(int index) const;
+//	int get_plan_op_index(int index) const;
 	int get_parent_op_index(int index) const;
 	int get_op_type(int index) const;
 
 	int get_possible_var_index() const;
 	int get_following_var_index(int op_index) const;
 
-	int get_num_non_plan_operators() const;
+//	int get_num_non_plan_operators() const;
 public:
     PlanForbidReformulatedTask(
         const std::shared_ptr<AbstractTask> parent,

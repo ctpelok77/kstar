@@ -26,12 +26,6 @@ PlanForbidReformulatedTask::PlanForbidReformulatedTask(
 			plan_operators_indexes.push_back(op_no);
 		}
 	}
-	// Getting new indexing for operators not on plan
-	for (int op_no = 0; op_no < parent->get_num_operators(); ++op_no) {
-		if (!is_operator_on_plan(op_no)) {
-			reformulated_operator_indexes.push_back(op_no);
-		}
-	}
 	// Storing plan indexes per plan operator
 	plan_operators_indexes_by_parent_operator.assign(parent->get_num_operators(), vector<int>());
 	for (size_t i = 0; i < forbidding_plan.size(); ++i) {
@@ -50,10 +44,6 @@ bool PlanForbidReformulatedTask::is_operator_on_plan(int op_no) const {
 	return on_plan[op_no];
 }
 
-int PlanForbidReformulatedTask::get_num_non_plan_operators() const {
-	return reformulated_operator_indexes.size();
-}
-
 int PlanForbidReformulatedTask::get_num_operator_appearances_on_plan(int op_no) const {
 	return plan_operators_indexes_by_parent_operator[op_no].size();
 }
@@ -62,25 +52,20 @@ int PlanForbidReformulatedTask::get_plan_index_ordered(int op_no, int appearance
 	return plan_operators_indexes_by_parent_operator[op_no][appearance_index];
 }
 
-int PlanForbidReformulatedTask::get_plan_op_index(int index) const {
-	// Returns the index on the plan or -1 if not on the plan
-	if (index < get_num_non_plan_operators())
-		return -1;
-
-	int relative_index = index - get_num_non_plan_operators();
-	if (relative_index < 2 * operators_on_plan) {
-		return plan_operators_indexes[relative_index % operators_on_plan];
-	}
-	return relative_index - 2 * operators_on_plan;
-}
-
 int PlanForbidReformulatedTask::get_parent_op_index(int index) const {
 	// Getting the index of the corresponding operator in the parent task
-	int p_index = get_plan_op_index(index);
-	if (p_index < 0)
-		return reformulated_operator_indexes[index];
+	// First go all the operators from the parent task (type 0 for non-plan operators, type 1 for plan opreators)
+	// Then all the plan operators (no repetitions), with type 2
+	// Then all the plan operators with repetitions, with type 3
+	int num_parent_ops = parent->get_num_operators();
+	if (index < num_parent_ops)
+		return index;
+	int relative_index = index - num_parent_ops;
+	if (relative_index < operators_on_plan)
+		return plan_operators_indexes[relative_index];
 
-	return forbidding_plan[p_index];
+	relative_index -= operators_on_plan;
+	return forbidding_plan[relative_index];
 }
 
 int PlanForbidReformulatedTask::get_op_type(int index) const {
@@ -88,25 +73,33 @@ int PlanForbidReformulatedTask::get_op_type(int index) const {
 	//         type 1 for operators "already discarded"
 	//         type 2 for operators "discarding pi"
 	//         type 3 for operators "following pi"
-	if (index < get_num_non_plan_operators())
-		return 0;
+	int num_parent_ops = parent->get_num_operators();
+	if (index < num_parent_ops) {
+		return is_operator_on_plan(index);
+	}
 
-	int relative_index = index - get_num_non_plan_operators();
+	int relative_index = index - num_parent_ops;
 	if (relative_index < operators_on_plan)
-		return 1;
-	if (relative_index < 2 * operators_on_plan)
 		return 2;
 
 	return 3;
 }
-
 
 int PlanForbidReformulatedTask::get_possible_var_index() const {
 	return parent->get_num_variables();
 }
 
 int PlanForbidReformulatedTask::get_following_var_index(int op_index) const {
-	return parent->get_num_variables() + 1 + get_plan_op_index(op_index);
+	// This is valid for type 2 and 3 only.
+	//TODO: Fix this
+	int op_type = get_op_type(op_index);
+	assert(op_type == 2 || op_type == 3);
+	int num_parent_ops = parent->get_num_operators();
+	int plan_op_index = op_index - num_parent_ops; // For type 2
+	if (op_type == 3) {
+		plan_op_index -= operators_on_plan;
+	}
+	return parent->get_num_variables() + 1 + plan_op_index;
 }
 
 int PlanForbidReformulatedTask::get_num_variables() const {
@@ -188,12 +181,10 @@ string PlanForbidReformulatedTask::get_operator_name(int index, bool is_axiom) c
 int PlanForbidReformulatedTask::get_num_operators() const {
 	// The number of operators according to the fixed reformulation is
 	// number of operators + number of operators on the plan + plan length (number of operators on the plan with repetitions)
-	// First, we have non-plan operators,
-	// then operators of type 1 (no repetition),
+	// First, we have all parent operators (non-plan operators of type 0 and plan operators of type 1),
 	// then operators of type 2 (no repetition),
 	// and finally operators of type 3 (with repetitions).
 
-//    return get_num_non_plan_operators() + 3 * forbidding_plan.size();
     return parent->get_num_operators() + operators_on_plan + forbidding_plan.size();
 }
 
@@ -230,7 +221,7 @@ FactPair PlanForbidReformulatedTask::get_operator_precondition(
 		return parent->get_operator_precondition(parent_op_index, fact_index, is_axiom);
 
 	int op_type = get_op_type(op_index);
-	assert(op_type >= 0 && op_type <= 3);
+	assert(op_type >= 1 && op_type <= 3);
 
 	if (op_type == 1)
 		return FactPair(get_possible_var_index(), 0);
@@ -242,9 +233,9 @@ FactPair PlanForbidReformulatedTask::get_operator_precondition(
 
 	// next additional preconditions
 	if (op_type == 2) {
-		int pre_index_last = fact_index - parent_num_pre - 1;
-		int op_on_plan_index = get_plan_index_ordered(parent_op_index, pre_index_last);
-		return FactPair(get_following_var_index(op_on_plan_index), 0);
+		int relative_fact_index = fact_index - parent_num_pre - 1;
+		int op_on_plan_index = parent->get_num_variables() + 1 + get_plan_index_ordered(parent_op_index, relative_fact_index);
+		return FactPair(op_on_plan_index, 0);
 	}
 	assert(op_type == 3);
 	return FactPair(get_following_var_index(op_index), 1);
@@ -297,7 +288,7 @@ FactPair PlanForbidReformulatedTask::get_operator_effect(
 	int parent_op_index = get_parent_op_index(op_index);
 	int parent_num_effs = parent->get_num_operator_effects(parent_op_index, is_axiom);
 	if (eff_index < parent_num_effs)
-		return parent->get_operator_precondition(parent_op_index, eff_index, is_axiom);
+		return parent->get_operator_effect(parent_op_index, eff_index, is_axiom);
 
 	int op_type = get_op_type(op_index);
 	assert(op_type >= 0 && op_type <= 3);

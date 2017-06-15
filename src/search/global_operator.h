@@ -58,6 +58,8 @@ class GlobalOperator {
     int cost;
 
     void read_pre_post(std::istream &in);
+    int get_reformulated_op_type(const std::vector<GlobalCondition>& extra_pre, const std::vector<GlobalEffect>& extra_eff) const;
+
 public:
     explicit GlobalOperator(std::istream &in, bool is_axiom);
     void dump() const;

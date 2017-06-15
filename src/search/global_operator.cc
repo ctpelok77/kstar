@@ -167,7 +167,7 @@ void GlobalOperator::dump_SAS(ofstream& os, const vector<GlobalCondition>& extra
         dump_pre_post_SAS(os, eff_pre_val[0], all_effects[0]);
         os << "end_rule" << endl;
     } else {
-    	int type = extra_pre.size() + (extra_eff.empty() ? 0 : extra_eff.size() - 1);
+    	int type = get_reformulated_op_type(extra_pre, extra_eff);
         os << "begin_operator" << endl;
         os << name << " " << type << endl;
         os << prevail.size() << endl;
@@ -186,6 +186,16 @@ void GlobalOperator::dump_SAS(ofstream& os, const vector<GlobalCondition>& extra
 
         os << "end_operator" << endl;
     }
+}
+
+int GlobalOperator::get_reformulated_op_type(const vector<GlobalCondition>& extra_pre, const vector<GlobalEffect>& extra_eff) const {
+	if (extra_pre.empty())
+		return 0;
+	if (extra_eff.empty())
+		return 1;
+	if (extra_eff.size() == 2)
+		return 3;
+	return 2;
 }
 
 void GlobalOperator::dump_pre_post_SAS(std::ofstream& os, int pre, GlobalEffect eff) const {
