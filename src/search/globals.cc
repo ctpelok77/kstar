@@ -431,7 +431,7 @@ void dump_pre_post_SAS(std::ostream& os, int pre, GlobalEffect eff) {
     os << eff.var << " " << pre << " " << eff.val << std::endl;
 }
 
-/*
+///*
 void dump_plan_forbid_reformulation_sas(const char* filename,
 							const std::vector<const GlobalOperator *>& plan) {
 	ofstream os(filename);
@@ -442,8 +442,8 @@ void dump_plan_forbid_reformulation_sas(const char* filename,
 	shared_ptr<AbstractTask> reformulated_task = make_shared<extra_tasks::PlanForbidReformulatedTask>(g_root_task(), move(forbid_plan));
 	reformulated_task->dump_to_SAS(os);
 }
-*/
-
+//*/
+/*
 void dump_plan_forbid_reformulation_sas(const char* filename,
 							const std::vector<const GlobalOperator *>& plan) {
 	int v_ind = g_variable_domain.size();
@@ -522,16 +522,6 @@ void dump_plan_forbid_reformulation_sas(const char* filename,
 		eff.push_back(GlobalEffect(v_ind, 0, empty_pre, false));
 		g_operators[op_no].dump_SAS(os, empty_pre, eff);
 	}
-	/*
-	for(int op_no : plan_operators_without_repetition) {
-		const GlobalOperator* op = plan[op_no];
-
-		//Dumping operators on the plan
-		vector<GlobalCondition> pre1;
-		pre1.push_back(GlobalCondition(v_ind, 0, false));
-		op->dump_SAS(os, pre1, empty_eff);
-	}
-	*/
 	for(int op_no : plan_operators_without_repetition) {
 		//Dumping operators on the plan
 		vector<GlobalCondition> pre2;

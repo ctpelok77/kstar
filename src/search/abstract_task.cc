@@ -21,7 +21,7 @@ ostream &operator<<(ostream &os, const GlobalCondition &cond) {
 }
 
 void AbstractTask::dump_operator_pre_post_to_SAS(std::ostream& os, int pre, const GlobalEffect& eff) const {
-    os << eff.conditions.size() << std::endl;
+    os << eff.conditions.size() << " ";
     for (GlobalCondition cond : eff.conditions) {
     	os << cond << std::endl;
     }
@@ -68,14 +68,10 @@ void AbstractTask::dump_operator_to_SAS(std::ostream &os, int op_no) const {
 	vector<int> eff_pre_val;
 	vector<GlobalCondition> all_preconditions;
 	vector<GlobalEffect> all_effects;
-    cout << get_operator_name(op_no, false) << endl;
-    cout << "pre: ";
 	for (int pre_ind = 0; pre_ind < get_num_operator_preconditions(op_no, false); ++pre_ind) {
 		FactPair fact = get_operator_precondition(op_no, pre_ind, false);
-		cout <<  "  " << fact.var << ": " << fact.value ;
 		all_preconditions.push_back(GlobalCondition(fact.var, fact.value, false));
 	}
-	cout << endl << "eff: ";
 	for (int eff_ind = 0; eff_ind < get_num_operator_effects(op_no, false); ++eff_ind) {
 		vector<GlobalCondition> cond;
 		for (int cond_ind = 0; cond_ind < get_num_operator_effect_conditions(op_no, eff_ind, false); ++cond_ind) {
@@ -83,7 +79,6 @@ void AbstractTask::dump_operator_to_SAS(std::ostream &os, int op_no) const {
 			cond.push_back(GlobalCondition(fact.var, fact.value, false));
 		}
 		FactPair eff = get_operator_effect(op_no, eff_ind, false);
-		cout <<  "  " << eff.var << ": " << eff.value ;
 		all_effects.push_back(GlobalEffect(eff.var, eff.value, cond, false));
 	}
 	cout << endl;
