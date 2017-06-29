@@ -68,6 +68,7 @@ public:
                     const std::shared_ptr<Group> &group = nullptr) const;
     void dump() const;
     void print_statistics() const;
+	void dump_dot() const;
 };
 
 #endif

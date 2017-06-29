@@ -603,6 +603,14 @@ fast_downward_plugin(
     DEPENDS NULL_PRUNING_METHOD ORDERED_SET SEARCH_COMMON
 )
 
+fast_downward_plugin(
+	NAME KSTAR 
+	HELP "KStar algorithm"
+    SOURCES
+        search_engines/kstar
+    DEPENDS NULL_PRUNING_METHOD ORDERED_SET SEARCH_COMMON TOP_K_EAGER_SEARCH
+)
+
 fast_downward_add_plugin_sources(PLANNER_SOURCES)
 
 # The order in PLANNER_SOURCES influences the order in which object

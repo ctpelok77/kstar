@@ -2,7 +2,7 @@
 #define SEARCH_ENGINES_TOP_K_EAGER_SEARCH_H
 
 #include "../search_engine.h"
-
+#include "../option_parser.h"
 #include "../open_lists/open_list.h"
 
 #include <memory>
@@ -39,7 +39,7 @@ class TopKEagerSearch : public SearchEngine {
 protected:
     virtual void initialize() override;
     virtual SearchStatus step() override;
-
+	
 public:
     explicit TopKEagerSearch(const options::Options &opts);
     virtual ~TopKEagerSearch() = default;
@@ -48,6 +48,9 @@ public:
 
     void dump_search_space() const;
 };
+
+void add_top_k_option(OptionParser &parser);
+void add_pruning_option(OptionParser &parser);
 }
 
 #endif

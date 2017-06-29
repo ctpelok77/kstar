@@ -9,7 +9,9 @@
 #include "structural_symmetries/permutation.h"
 
 #include <cassert>
+#include <sstream>
 #include "search_node_info.h"
+#include "utils/util.h"
 
 using namespace std;
 
@@ -270,6 +272,48 @@ void SearchSpace::dump() const {
             cout << "has no parent" << endl;
         }
     }
+}
+
+void SearchSpace::dump_dot() const {
+	std::stringstream stream, node_stream;	
+	stream << "digraph {\n";
+    for (PerStateInformation<SearchNodeInfo>::const_iterator it =\
+         search_node_infos.begin(&state_registry); 
+		 it != search_node_infos.end(&state_registry); ++it) {   
+		StateID id = *it;
+		stream << id.hash() << " [ peripheries=\"1\", shape=\"rectangle\", ";				
+        GlobalState s = state_registry.lookup_state(id);
+        const SearchNodeInfo &node_info = search_node_infos[s];
+		
+		if (test_goal(s)) {
+			stream << "style=\"rounded, filled\", fillcolor=\"red\", ";
+		}
+		else {
+			stream << "style=\"rounded, filled\", fillcolor=\"yellow\", ";
+		}
+		stream << "label=\"#"<< id.hash() << "\\n" << "s="<< state_label(s) << "\\n";
+		stream << "\" ]\n";
+
+        if (node_info.creating_operator != -1 && node_info.parent_state_id != StateID::no_state) {
+			node_stream << node_info.parent_state_id.hash() << "  ->  " << id.hash();
+			node_stream <<" [ label=\"#" << g_operators[node_info.creating_operator].get_name();
+			node_stream << "/"<< g_operators[node_info.creating_operator].get_cost();
+			node_stream << "\"";
+			if (g_operators[node_info.creating_operator].get_name() == "achieve_goal") {
+				node_stream << " style=\"dashed\" color=\"#A9A9A9 \"";	
+			}
+			node_stream << " ]\n";
+        } 		
+    }
+
+	node_stream << "}\n";
+  
+	// Write state space to dot file
+	std::ofstream file;
+	file.open("state_space.dot", std::ofstream::out);
+	file << stream.rdbuf();
+	file << node_stream.rdbuf();
+	file.close();
 }
 
 void SearchSpace::print_statistics() const {
