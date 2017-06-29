@@ -98,6 +98,7 @@ void TopKEagerSearch::print_statistics() const {
     pruning_method->print_statistics();
 }
 
+// Dominik: Have a look what to do with this method
 bool TopKEagerSearch::check_goal_and_get_plans(const GlobalState &state) {
 	// Checking for goal
 	if (!check_goal_and_set_plan(state))
@@ -108,8 +109,8 @@ bool TopKEagerSearch::check_goal_and_get_plans(const GlobalState &state) {
 		return true;
 
 	cout << "Starting solution reconstruction phase" << endl;
-	int plan_count = 1;
-
+	//int plan_count = 1;
+	return false;
 }
 
 

@@ -34,7 +34,7 @@ class TopKEagerSearch : public SearchEngine {
     void update_f_value_statistics(const SearchNode &node);
     void reward_progress();
     void print_checkpoint_line(int g) const;
-    bool check_goal_and_get_plans(const GlobalState &state);
+    virtual bool check_goal_and_get_plans(const GlobalState &state);
 
 protected:
     virtual void initialize() override;

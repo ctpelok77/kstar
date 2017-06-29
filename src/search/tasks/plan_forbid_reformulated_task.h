@@ -32,7 +32,7 @@ public:
         const std::shared_ptr<AbstractTask> parent,
         std::vector<int>&& plan);
     virtual ~PlanForbidReformulatedTask() override = default;
-
+			
     virtual int get_num_variables() const override;
     virtual std::string get_variable_name(int var) const override;
     virtual int get_variable_domain_size(int var) const override;
