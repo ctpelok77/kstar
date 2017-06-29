@@ -439,8 +439,9 @@ void dump_plan_forbid_reformulation_sas(const char* filename,
 	for(size_t i = 0; i < plan.size(); ++i) {
 		forbid_plan.push_back(get_op_index_hacked(plan[i]));
 	}
-	shared_ptr<AbstractTask> reformulated_task = make_shared<extra_tasks::PlanForbidReformulatedTask>(g_root_task(), move(forbid_plan));
-	reformulated_task->dump_to_SAS(os);
+	// Dominik: commenting this out because otherwise I get a linker error
+	/*shared_ptr<AbstractTask> reformulated_task = make_shared<extra_tasks::PlanForbidReformulatedTask>(g_root_task(), move(forbid_plan));
+	reformulated_task->dump_to_SAS(os);*/
 }
 //*/
 /*
