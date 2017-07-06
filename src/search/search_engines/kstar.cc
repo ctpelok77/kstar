@@ -4,14 +4,34 @@
 #include "../option_parser.h"
 #include "../search_engines/search_common.h"
 #include "../utils/util.h"
+#include "../utils/countdown_timer.h"
+#include "../utils/system.h"
+#include "../utils/timer.h"
 
 namespace kstar{
 	KStar::KStar(const options::Options &opts) 
 	:TopKEagerSearch(opts) {
 	}
 
-
-
+	void KStar::search() {
+		initialize();
+		utils::CountdownTimer timer(max_time);
+		while (status == IN_PROGRESS || status == INTERRUPTED) {
+			status = step();
+			if (timer.is_expired()) {
+				cout << "Time limit reached. Abort search." << endl;
+				status = TIMEOUT;
+				break;
+			}
+			
+			debug(500, _ARGS);
+			if (status == SOLVED) {
+				interrupt();		
+			}
+		}
+		cout << "Actual search time: " << timer
+         << " [t=" << utils::g_timer << "]" << endl;
+	}
 
 static SearchEngine *_parse(OptionParser &parser) {
     parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");

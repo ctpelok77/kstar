@@ -30,7 +30,8 @@ TopKEagerSearch::TopKEagerSearch(const Options &opts)
                 create_state_open_list()),
       f_evaluator(opts.get<ScalarEvaluator *>("f_eval", nullptr)),
       preferred_operator_heuristics(opts.get_list<Heuristic *>("preferred")),
-      pruning_method(opts.get<shared_ptr<PruningMethod>>("pruning")) {
+      pruning_method(opts.get<shared_ptr<PruningMethod>>("pruning")),
+	  interrupt_search(false) {
 }
 
 void TopKEagerSearch::initialize() {
@@ -101,8 +102,9 @@ void TopKEagerSearch::print_statistics() const {
 // Dominik: Have a look what to do with this method
 bool TopKEagerSearch::check_goal_and_get_plans(const GlobalState &state) {
 	// Checking for goal
-	if (!check_goal_and_set_plan(state))
-		return false;
+	// TODO: take care of  that later
+	//if (!check_goal_and_set_plan(state))
+	//	return false;
 
 	// In case there is only one plan needed, the same behavior as eager search
 	if (number_of_plans == 1)
@@ -115,6 +117,9 @@ bool TopKEagerSearch::check_goal_and_get_plans(const GlobalState &state) {
 
 
 SearchStatus TopKEagerSearch::step() {
+	if (interrupt_search) 
+		return INTERRUPTED;
+
     pair<SearchNode, bool> n = fetch_next_node();
     if (!n.second) {
         return FAILED;
@@ -235,6 +240,14 @@ SearchStatus TopKEagerSearch::step() {
     }
 
     return IN_PROGRESS;
+}
+
+void TopKEagerSearch::interrupt() {
+	interrupt_search =  true;			
+}
+
+void TopKEagerSearch::resume() {
+	interrupt_search = false;	
 }
 
 pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
