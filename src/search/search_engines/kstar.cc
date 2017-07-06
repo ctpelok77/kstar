@@ -10,7 +10,8 @@
 
 namespace kstar{
 	KStar::KStar(const options::Options &opts) 
-	:TopKEagerSearch(opts) {
+	:TopKEagerSearch(opts), first_solution_found(false) {
+			//search_common::create_djkstra_search();
 	}
 
 	void KStar::search() {
@@ -25,12 +26,13 @@ namespace kstar{
 			}
 			
 			// Goal state has been reached for the first time	
-			if (status == SOLVED) {
+			if (status == SOLVED && !first_solution_found) {
 				interrupt();		
-				status = INTERRUPTED;
+				first_solution_found = true;
 			}
 
 			if (status == INTERRUPTED) {
+				resume();
 				// Dominik: do dijkstra here		
 			}
 		}
