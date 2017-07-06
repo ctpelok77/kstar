@@ -103,8 +103,8 @@ void TopKEagerSearch::print_statistics() const {
 bool TopKEagerSearch::check_goal_and_get_plans(const GlobalState &state) {
 	// Checking for goal
 	// TODO: take care of  that later
-	//if (!check_goal_and_set_plan(state))
-	//	return false;
+	if (!check_goal_and_set_plan(state))
+		return false;
 
 	// In case there is only one plan needed, the same behavior as eager search
 	if (number_of_plans == 1)
@@ -127,7 +127,7 @@ SearchStatus TopKEagerSearch::step() {
     SearchNode node = n.first;
 
     GlobalState s = node.get_state();
-    if (check_goal_and_get_plans(s))
+    if (test_goal(s))
         return SOLVED;
 
     vector<const GlobalOperator *> applicable_ops;
