@@ -23,11 +23,11 @@ class TopKEagerSearch : public SearchEngine {
     const int number_of_plans;
     std::unique_ptr<StateOpenList> open_list;
     ScalarEvaluator *f_evaluator;
-
     std::vector<Heuristic *> heuristics;
     std::vector<Heuristic *> preferred_operator_heuristics;
 
     std::shared_ptr<PruningMethod> pruning_method;
+	bool interrupt_search;
 
     std::pair<SearchNode, bool> fetch_next_node();
     void start_f_value_statistics(EvaluationContext &eval_context);
@@ -39,7 +39,8 @@ class TopKEagerSearch : public SearchEngine {
 protected:
     virtual void initialize() override;
     virtual SearchStatus step() override;
-	
+	void interrupt();
+	void resume();	
 public:
     explicit TopKEagerSearch(const options::Options &opts);
     virtual ~TopKEagerSearch() = default;

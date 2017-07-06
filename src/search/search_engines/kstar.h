@@ -10,6 +10,7 @@ protected:
 	virtual ~KStar() = default;
 public:
 	KStar (const options::Options &opts);
+	void search() override;
 
 };
 }

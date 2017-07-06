@@ -28,11 +28,10 @@ enum SearchStatus {IN_PROGRESS, TIMEOUT, FAILED, SOLVED, INTERRUPTED};
 class SearchEngine {
 public:
     typedef std::vector<const GlobalOperator *> Plan;
-private:
-    SearchStatus status;
+protected:
+	SearchStatus status;
     bool solution_found;
     Plan plan;
-protected:
     StateRegistry state_registry;
     SearchSpace search_space;
     SearchProgress search_progress;
@@ -56,7 +55,7 @@ public:
     bool found_solution() const;
     SearchStatus get_status() const;
     const Plan &get_plan() const;
-    void search();
+    virtual void search();
     const SearchStatistics &get_statistics() const {return statistics; }
     void set_bound(int b) {bound = b; }
     int get_bound() {return bound; }
