@@ -24,9 +24,14 @@ namespace kstar{
 				break;
 			}
 			
-			debug(500, _ARGS);
+			// Goal state has been reached for the first time	
 			if (status == SOLVED) {
 				interrupt();		
+				status = INTERRUPTED;
+			}
+
+			if (status == INTERRUPTED) {
+				// Dominik: do dijkstra here		
 			}
 		}
 		cout << "Actual search time: " << timer
