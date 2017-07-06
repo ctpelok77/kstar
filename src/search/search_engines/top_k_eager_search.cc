@@ -9,6 +9,7 @@
 #include "../plugin.h"
 #include "../pruning_method.h"
 #include "../successor_generator.h"
+#include "../utils/util.h"
 
 #include "../algorithms/ordered_set.h"
 
@@ -127,6 +128,12 @@ SearchStatus TopKEagerSearch::step() {
     SearchNode node = n.first;
 
     GlobalState s = node.get_state();
+	//print_value(H_in[s].size(),"size", _ARGS);
+	/*if (H_in[s].size() > 1) {
+		H_in[s].pop();
+		print_value(H_in[s].top().delta,"delta", _ARGS);
+	}
+	*/
     if (test_goal(s))
         return SOLVED;
 
@@ -168,6 +175,8 @@ SearchStatus TopKEagerSearch::step() {
                 heuristic->notify_state_transition(s, *op, succ_state);
             }
         }
+		
+
 
         if (succ_node.is_new()) {
             // We have not seen this state before.
@@ -236,17 +245,28 @@ SearchStatus TopKEagerSearch::step() {
                 // the g-value and the actual path that is traced back.
                 succ_node.update_parent(node, op);
             }
+		
         }
+
+		// For K* we store the state action pair that lead to succ node
+		// in succ nodes heap H_in 
+		StateActionPair p;
+		p.state_id = s.get_id();
+		p.op_index = op->get_index();
+		p.delta = node.get_g() + op->get_cost() - succ_node.get_g();  
+		H_in[succ_state].push(p);
     }
 
     return IN_PROGRESS;
 }
 
 void TopKEagerSearch::interrupt() {
+	status = INTERRUPTED;
 	interrupt_search =  true;			
 }
 
 void TopKEagerSearch::resume() {
+	status = IN_PROGRESS;
 	interrupt_search = false;	
 }
 

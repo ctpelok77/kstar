@@ -69,7 +69,8 @@ void GlobalOperator::read_pre_post(istream &in) {
     effects.push_back(GlobalEffect(var, post, conditions));
 }
 
-GlobalOperator::GlobalOperator(istream &in, bool axiom) {
+GlobalOperator::GlobalOperator(istream &in, bool axiom, int index) 
+:index(index){
     is_an_axiom = axiom;
     if (!is_an_axiom) {
         check_magic(in, "begin_operator");

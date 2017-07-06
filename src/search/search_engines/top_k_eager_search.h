@@ -6,18 +6,32 @@
 #include "../open_lists/open_list.h"
 
 #include <memory>
+#include <algorithm>
 #include <vector>
+#include <queue>
 
 class GlobalOperator;
 class Heuristic;
 class PruningMethod;
 class ScalarEvaluator;
-
 namespace options {
 class Options;
 }
 
 namespace top_k_eager_search {
+
+// A state action pair (s1,o) describes a transition (s1,o,s2) with a 
+// corresponding delta value delta(s1,o) = f_s1(s2) - f(s 
+struct StateActionPair {
+	StateID state_id = StateID::no_state;	
+	int op_index = -1;
+	int delta = -1; 
+	bool operator<(const StateActionPair &other) const {            
+		return other.delta < delta;
+	};
+};
+
+
 class TopKEagerSearch : public SearchEngine {
     const bool reopen_closed_nodes;
     const int number_of_plans;
@@ -28,6 +42,10 @@ class TopKEagerSearch : public SearchEngine {
 
     std::shared_ptr<PruningMethod> pruning_method;
 	bool interrupt_search;
+
+	// We store incomming tuples (state, operator) for each node/state 
+	// in a priority queue ordered by sidetrack information 
+    PerStateInformation<std::priority_queue<StateActionPair>> H_in;
 
     std::pair<SearchNode, bool> fetch_next_node();
     void start_f_value_statistics(EvaluationContext &eval_context);
@@ -41,6 +59,7 @@ protected:
     virtual SearchStatus step() override;
 	void interrupt();
 	void resume();	
+
 public:
     explicit TopKEagerSearch(const options::Options &opts);
     virtual ~TopKEagerSearch() = default;

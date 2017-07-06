@@ -217,14 +217,14 @@ void read_operators(istream &in) {
     int count;
     in >> count;
     for (int i = 0; i < count; ++i)
-        g_operators.push_back(GlobalOperator(in, false));
+        g_operators.push_back(GlobalOperator(in, false, i));
 }
 
 void read_axioms(istream &in) {
     int count;
     in >> count;
     for (int i = 0; i < count; ++i)
-        g_axioms.push_back(GlobalOperator(in, true));
+        g_axioms.push_back(GlobalOperator(in, true, -1));
 
     g_axiom_evaluator = new AxiomEvaluator(TaskProxy(*g_root_task()));
 }

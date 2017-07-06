@@ -8,6 +8,7 @@ class KStar : public top_k_eager_search::TopKEagerSearch
 {
 protected:		
 	virtual ~KStar() = default;
+	bool first_solution_found;
 public:
 	KStar (const options::Options &opts);
 	void search() override;

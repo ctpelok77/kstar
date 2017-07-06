@@ -56,12 +56,13 @@ class GlobalOperator {
     std::vector<GlobalEffect> effects;
     std::string name;
     int cost;
+	int index;
 
     void read_pre_post(std::istream &in);
     int get_reformulated_op_type(const std::vector<GlobalCondition>& extra_pre, const std::vector<GlobalEffect>& extra_eff) const;
 
 public:
-    explicit GlobalOperator(std::istream &in, bool is_axiom);
+    explicit GlobalOperator(std::istream &in, bool is_axiom, int index);
     void dump() const;
     const std::string &get_name() const {return name; }
 
@@ -82,6 +83,7 @@ public:
     void dump_pre_post_SAS(std::ofstream& os, int pre, GlobalEffect eff) const;
 
     int get_cost() const {return cost; }
+	int get_index() const {return index; }
 };
 
 extern int get_op_index_hacked(const GlobalOperator *op);
