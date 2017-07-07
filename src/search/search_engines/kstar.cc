@@ -8,37 +8,85 @@
 #include "../utils/system.h"
 #include "../utils/timer.h"
 
+using namespace top_k_eager_search;
+
 namespace kstar{
-	KStar::KStar(const options::Options &opts) 
+KStar::KStar(const options::Options &opts) 	
 	:TopKEagerSearch(opts), first_solution_found(false) {
-			//search_common::create_djkstra_search();
-	}
+	//search_common::create_djkstra_search();
+}
 
-	void KStar::search() {
-		initialize();
-		utils::CountdownTimer timer(max_time);
-		while (status == IN_PROGRESS || status == INTERRUPTED) {
-			status = step();
-			if (timer.is_expired()) {
-				cout << "Time limit reached. Abort search." << endl;
-				status = TIMEOUT;
-				break;
-			}
-			
-			// Goal state has been reached for the first time	
-			if (status == SOLVED && !first_solution_found) {
-				interrupt();		
-				first_solution_found = true;
-			}
-
-			if (status == INTERRUPTED) {
-				resume();
-				// Dominik: do dijkstra here		
-			}
+void KStar::search() {
+	initialize();
+	utils::CountdownTimer timer(max_time);
+	while (status == IN_PROGRESS || status == INTERRUPTED) {
+		status = step();
+		if (timer.is_expired()) {
+			cout << "Time limit reached. Abort search." << endl;
+			status = TIMEOUT;
+			break;
 		}
+			
+		// Goal state has been reached for the first time	
+		if (status == SOLVED && !first_solution_found) {
+			interrupt();		
+		}
+
+		if (status == INTERRUPTED) {
+			resume();
+			djkstra_search();
+		}
+	}
 		cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
-	}
+}
+
+// add all state action pairs (sap) that reached the goal state  	
+void KStar::add_goal_sap() {
+	GlobalState goal_s =  state_registry.lookup_state(goal_state);
+	int size_goal_sap = H_in[goal_s].size();	
+	for (int i = 0; i < size_goal_sap; ++i) {
+				
+	}	
+}
+
+void KStar::djkstra_search() {
+	add_goal_sap();
+
+    while (!queue_djkstra.empty()) {
+		std::pair<int, StateActionPair> top_pair = queue_djkstra.pop();
+        int old_f = top_pair.first;
+		StateActionPair sap = top_pair.second; 
+        const int g = top_pair.first;   
+        int new_f = g;
+        if (new_f < old_f)
+            continue;	
+
+		// TODO: Termination criterion here 
+        //if (goals && goals->count(state) == 1) {
+         //   return state;
+        //}
+
+        /*const Transitions &transitions = state->get_outgoing_transitions();
+        for (const Transition &transition : transitions) {
+            int op_id = transition.op_id;
+            AbstractState *successor = transition.target;
+
+            const int op_cost = operator_costs[op_id];
+            int succ_g = (op_cost == INF) ? INF : g + op_cost;
+            
+			if (succ_g < successor->get_search_info().get_g_value()) {
+                successor->get_search_info().decrease_g_value_to(succ_g);
+                int f = succ_g;
+                assert(f >= 0);
+                queue_djkstra.push(f, successor);
+                successor->get_search_info().set_incoming_transition(
+                    Transition(op_id, state));
+            }
+        }
+		*/
+    }
+}
 
 static SearchEngine *_parse(OptionParser &parser) {
     parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");

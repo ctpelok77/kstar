@@ -128,14 +128,17 @@ SearchStatus TopKEagerSearch::step() {
     SearchNode node = n.first;
 
     GlobalState s = node.get_state();
-	//print_value(H_in[s].size(),"size", _ARGS);
-	/*if (H_in[s].size() > 1) {
+	print_value(H_in[s].size(),"size", _ARGS);
+	// TODO: remove  this later
+	if (H_in[s].size() > 1) {
 		H_in[s].pop();
 		print_value(H_in[s].top().delta,"delta", _ARGS);
 	}
-	*/
-    if (test_goal(s))
+
+    if (test_goal(s)) {
+		goal_state = s.get_id();
         return SOLVED;
+	}	
 
     vector<const GlobalOperator *> applicable_ops;
     g_successor_generator->generate_applicable_ops(s, applicable_ops);
@@ -176,8 +179,6 @@ SearchStatus TopKEagerSearch::step() {
             }
         }
 		
-
-
         if (succ_node.is_new()) {
             // We have not seen this state before.
             // Evaluate and create a new node.
