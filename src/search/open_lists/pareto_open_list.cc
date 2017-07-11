@@ -38,7 +38,7 @@ class ParetoOpenList : public OpenList<Entry> {
     bool is_nondominated(
         const KeyType &vec, KeySet &domination_candidates) const;
     void remove_key(const KeyType &key);
-
+	
 protected:
     virtual void do_insertion(EvaluationContext &eval_context,
                               const Entry &entry) override;
@@ -48,6 +48,7 @@ public:
     virtual ~ParetoOpenList() override = default;
 
     virtual Entry remove_min(vector<int> *key = nullptr) override;
+    virtual Entry top() override;
     virtual bool empty() const override;
     virtual void clear() override;
     virtual void get_involved_heuristics(set<Heuristic *> &hset) override;
@@ -179,6 +180,29 @@ Entry ParetoOpenList<Entry>::remove_min(vector<int> *key) {
     Bucket &bucket = buckets[*selected];
     Entry result = bucket.front();
     bucket.pop_front();
+    if (bucket.empty())
+        remove_key(*selected);
+    return result;
+}
+
+template<class Entry>
+Entry ParetoOpenList<Entry>::top() {
+    typename KeySet::iterator selected = nondominated.begin();
+    int seen = 0;
+    for (typename KeySet::iterator it = nondominated.begin();
+         it != nondominated.end(); ++it) {
+        int numerator;
+        if (state_uniform_selection)
+            numerator = it->size();
+        else
+            numerator = 1;
+        seen += numerator;
+        if ((*rng)(seen) < numerator)
+            selected = it;
+    }
+
+    Bucket &bucket = buckets[*selected];
+    Entry result = bucket.front();
     if (bucket.empty())
         remove_key(*selected);
     return result;

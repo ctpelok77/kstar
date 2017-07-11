@@ -37,6 +37,8 @@ public:
     virtual ~TypeBasedOpenList() override = default;
 
     virtual Entry remove_min(vector<int> *key = nullptr) override;
+    virtual Entry top() override;
+
     virtual bool empty() const override;
     virtual void clear() override;
     virtual bool is_dead_end(EvaluationContext &eval_context) const override;
@@ -93,6 +95,24 @@ Entry TypeBasedOpenList<Entry>::remove_min(vector<int> *key) {
         key_to_bucket_index.erase(min_key);
         utils::swap_and_pop_from_vector(keys_and_buckets, bucket_id);
     }
+    return result;
+}
+
+template<class Entry>
+Entry TypeBasedOpenList<Entry>::top() {
+    size_t bucket_id = (*rng)(keys_and_buckets.size());
+    auto &key_and_bucket = keys_and_buckets[bucket_id];
+    const Key &min_key = key_and_bucket.first;
+    Bucket &bucket = key_and_bucket.second;
+
+    if (bucket.empty()) {
+        // Swap the empty bucket with the last bucket, then delete it.
+        key_to_bucket_index[keys_and_buckets.back().first] = bucket_id;
+        key_to_bucket_index.erase(min_key);
+        utils::swap_and_pop_from_vector(keys_and_buckets, bucket_id);
+    }
+	
+    Entry result = bucket.back();
     return result;
 }
 

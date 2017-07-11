@@ -34,6 +34,7 @@ public:
     virtual ~StandardScalarOpenList() override = default;
 
     virtual Entry remove_min(vector<int> *key = nullptr) override;
+    virtual Entry top() override;
     virtual bool empty() const override;
     virtual void clear() override;
     virtual void get_involved_heuristics(set<Heuristic *> &hset) override;
@@ -81,6 +82,21 @@ Entry StandardScalarOpenList<Entry>::remove_min(vector<int> *key) {
     assert(!bucket.empty());
     Entry result = bucket.front();
     bucket.pop_front();
+    if (bucket.empty())
+        buckets.erase(it);
+    --size;
+    return result;
+}
+
+template<class Entry>
+Entry StandardScalarOpenList<Entry>::top() {
+    assert(size > 0);
+    auto it = buckets.begin();
+    assert(it != buckets.end());
+
+    Bucket &bucket = it->second;
+    assert(!bucket.empty());
+    Entry result = bucket.front();
     if (bucket.empty())
         buckets.erase(it);
     --size;

@@ -60,6 +60,7 @@ public:
       element there.
     */
     virtual Entry remove_min(std::vector<int> *key = 0) = 0;
+	virtual Entry top() = 0;
 
     // Return true if the open list is empty.
     virtual bool empty() const = 0;

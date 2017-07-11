@@ -36,6 +36,7 @@ public:
 
     virtual void push(int key, const Value &value) = 0;
     virtual Entry pop() = 0;
+	virtual Entry top() = 0;
     virtual bool empty() const = 0;
     virtual void clear() = 0;
 
@@ -98,6 +99,12 @@ public:
         assert(!heap.empty());
         Entry result = heap.top();
         heap.pop();
+        return result;
+    }
+
+	virtual Entry top() {
+        assert(!heap.empty());
+        Entry result = heap.top();
         return result;
     }
 
@@ -187,6 +194,15 @@ public:
         return std::make_pair(current_bucket_no, top_element);
     }
 
+	virtual Entry top() {
+        assert(num_entries > 0);
+        --num_entries;
+        update_current_bucket_no();
+        Bucket &current_bucket = buckets[current_bucket_no];
+        Value top_element = current_bucket.back();
+        return std::make_pair(current_bucket_no, top_element);
+    }
+
     virtual bool empty() const {
         return num_entries == 0;
     }
@@ -250,6 +266,10 @@ public:
 
     Entry pop() {
         return wrapped_queue->pop();
+    }
+
+	Entry top() {
+        return wrapped_queue->top();
     }
 
     bool empty() const {
