@@ -51,6 +51,7 @@ public:
     virtual ~EpsilonGreedyOpenList() override = default;
 
     virtual Entry remove_min(vector<int> *key = nullptr) override;
+    virtual Entry top() override;
     virtual bool is_dead_end(
         EvaluationContext &eval_context) const override;
     virtual bool is_reliable_dead_end(
@@ -107,6 +108,20 @@ Entry EpsilonGreedyOpenList<Entry>::remove_min(vector<int> *key) {
         assert(key->empty());
         key->push_back(heap_node.h);
     }
+    --size;
+    return heap_node.entry;
+}
+
+template<class Entry>
+Entry EpsilonGreedyOpenList<Entry>::top() {
+    assert(size > 0);
+    if ((*rng)() < epsilon) {
+        int pos = (*rng)(size);
+        heap[pos].h = numeric_limits<int>::min();
+        adjust_heap_up(heap, pos);
+    }
+    pop_heap(heap.begin(), heap.end(), greater<HeapNode>());
+    HeapNode heap_node = heap.back();
     --size;
     return heap_node.entry;
 }

@@ -12,8 +12,7 @@ using namespace top_k_eager_search;
 
 namespace kstar{
 KStar::KStar(const options::Options &opts) 	
-	:TopKEagerSearch(opts), first_solution_found(false) {
-	//search_common::create_djkstra_search();
+	:TopKEagerSearch(opts), first_plan_found(false) {
 }
 
 void KStar::search() {
@@ -27,66 +26,104 @@ void KStar::search() {
 			break;
 		}
 			
-		// Goal state has been reached for the first time	
-		if (status == SOLVED && !first_solution_found) {
+		// First solution found 
+		if (status == SOLVED && !first_plan_found) {
 			interrupt();		
+			add_first_plan();
+			add_goal_heap_top();
 		}
-
+		
+		// Check whether A* has expanded enough nodes and if yes 
+		// start a djkstra search on P(G)
 		if (status == INTERRUPTED) {
-			resume();
-			djkstra_search();
+			if (open_list->empty() && queue_djkstra.empty()) {
+				output_plans();	
+				return;
+			}	
+		
+			if (open_list->empty()) {
+				djkstra_search();
+			}
+		
+			// g_n = g-value of the top node in Djkstras queue	
+			// f_u = f-value of the top node in Astar queue
+			int g_n = queue_djkstra.top().first;	
+			int f_u = get_f_value(open_list->top());
+			if (optimal_solution_cost + g_n <= f_u) {
+				djkstra_search();				
+			}	
+			else {
+				debug(4, _ARGS);
+				// TODO: add functor struct
+				//resume();
+			}
 		}
 	}
 		cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
 }
 
-// add all state action pairs (sap) that reached the goal state  	
-void KStar::add_goal_sap() {
-	GlobalState goal_s =  state_registry.lookup_state(goal_state);
-	int size_goal_sap = H_in[goal_s].size();	
-	for (int i = 0; i < size_goal_sap; ++i) {
-				
-	}	
+int KStar::get_f_value(StateID id) {
+	GlobalState s = state_registry.lookup_state(id);		
+	int g = search_space.get_node(s).get_g();
+	EvaluationContext eval_context(s, g, false, &statistics);
+	int f = eval_context.get_heuristic_value(f_evaluator);
+	return f;
 }
 
-void KStar::djkstra_search() {
-	add_goal_sap();
+void KStar::add_first_plan() {
+	GlobalState s = state_registry.lookup_state(goal_state);
+	Plan plan;	
+	search_space.trace_path(s, plan, nullptr);
+	optimal_solution_cost = calculate_plan_cost(plan); 
+	top_k_plans.push_back(plan);		
+	first_plan_found = true;
+}
 
+
+// add the top node from the goal heap to the open list  
+void KStar::add_goal_heap_top() {
+	GlobalState s =  state_registry.lookup_state(goal_state);
+	queue_djkstra.push(0, H_in[s].top());	
+}
+
+// Djkstra search on path graph P(G)
+void KStar::djkstra_search() {
+	exit(-1);
     while (!queue_djkstra.empty()) {
 		std::pair<int, StateActionPair> top_pair = queue_djkstra.pop();
         int old_f = top_pair.first;
 		StateActionPair sap = top_pair.second; 
+		GlobalState s = state_registry.lookup_state(sap.state_id);
         const int g = top_pair.first;   
         int new_f = g;
         if (new_f < old_f)
             continue;	
 
-		// TODO: Termination criterion here 
-        //if (goals && goals->count(state) == 1) {
-         //   return state;
-        //}
-
-        /*const Transitions &transitions = state->get_outgoing_transitions();
-        for (const Transition &transition : transitions) {
-            int op_id = transition.op_id;
-            AbstractState *successor = transition.target;
-
-            const int op_cost = operator_costs[op_id];
-            int succ_g = (op_cost == INF) ? INF : g + op_cost;
-            
-			if (succ_g < successor->get_search_info().get_g_value()) {
-                successor->get_search_info().decrease_g_value_to(succ_g);
-                int f = succ_g;
-                assert(f >= 0);
-                queue_djkstra.push(f, successor);
-                successor->get_search_info().set_incoming_transition(
-                    Transition(op_id, state));
-            }
+		// TODO: Termination criterion needed 
+		// TODO: Check whether successor generation is correct,  i.e. agrees  
+        while (!H_in[s].empty()) {
+			GlobalOperator op = g_operators[sap.op_index];
+			GlobalState succ_state = state_registry.get_successor_state(s, op); 
+            StateActionPair succ_sap = H_in[succ_state].top(); 
+			H_in[succ_state].pop();
+			// TODO: make sure that the cost is correct here
+            const int cost = 0; 
+            int succ_g = g + cost;
+            int f = succ_g;
+            queue_djkstra.push(f, succ_sap);
         }
-		*/
     }
 }
+
+void KStar::dump_astar_search_space() {
+	search_space.dump_dot();
+}
+
+void KStar::dump_djkstra_search() {
+			
+}
+
 
 static SearchEngine *_parse(OptionParser &parser) {
     parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");
@@ -109,6 +146,7 @@ static SearchEngine *_parse(OptionParser &parser) {
 
     return engine;
 }
+
 	
 static Plugin<SearchEngine> _plugin("kstar", _parse);
 }

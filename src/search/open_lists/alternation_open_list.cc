@@ -31,6 +31,7 @@ public:
     virtual ~AlternationOpenList() override = default;
 
     virtual Entry remove_min(vector<int> *key = nullptr) override;
+    virtual Entry top() override;
     virtual bool empty() const override;
     virtual void clear() override;
     virtual void boost_preferred() override;
@@ -79,6 +80,20 @@ Entry AlternationOpenList<Entry>::remove_min(vector<int> *key) {
     assert(!best_list->empty());
     ++priorities[best];
     return best_list->remove_min(nullptr);
+}
+
+template<class Entry>
+Entry AlternationOpenList<Entry>::top() { 
+	int best = -1;
+    for (size_t i = 0; i < open_lists.size(); ++i) {
+        if (!open_lists[i]->empty() &&
+            (best == -1 || priorities[i] < priorities[best])) {
+            best = i;
+        }
+    }
+    assert(best != -1);
+    const auto &best_list = open_lists[best];
+	return best_list->top();
 }
 
 template<class Entry>

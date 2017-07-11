@@ -100,23 +100,6 @@ void TopKEagerSearch::print_statistics() const {
     pruning_method->print_statistics();
 }
 
-// Dominik: Have a look what to do with this method
-bool TopKEagerSearch::check_goal_and_get_plans(const GlobalState &state) {
-	// Checking for goal
-	// TODO: take care of  that later
-	if (!check_goal_and_set_plan(state))
-		return false;
-
-	// In case there is only one plan needed, the same behavior as eager search
-	if (number_of_plans == 1)
-		return true;
-
-	cout << "Starting solution reconstruction phase" << endl;
-	//int plan_count = 1;
-	return false;
-}
-
-
 SearchStatus TopKEagerSearch::step() {
 	if (interrupt_search) 
 		return INTERRUPTED;
@@ -128,13 +111,6 @@ SearchStatus TopKEagerSearch::step() {
     SearchNode node = n.first;
 
     GlobalState s = node.get_state();
-	print_value(H_in[s].size(),"size", _ARGS);
-	// TODO: remove  this later
-	if (H_in[s].size() > 1) {
-		H_in[s].pop();
-		print_value(H_in[s].top().delta,"delta", _ARGS);
-	}
-
     if (test_goal(s)) {
 		goal_state = s.get_id();
         return SOLVED;
@@ -266,7 +242,8 @@ void TopKEagerSearch::interrupt() {
 	interrupt_search =  true;			
 }
 
-void TopKEagerSearch::resume() {
+void TopKEagerSearch::resume(SearchControl& search_control) {
+	(void) search_control;
 	status = IN_PROGRESS;
 	interrupt_search = false;	
 }
@@ -311,10 +288,6 @@ void TopKEagerSearch::reward_progress() {
     // Boost the "preferred operator" open lists somewhat whenever
     // one of the heuristics finds a state with a new best h value.
     open_list->boost_preferred();
-}
-
-void TopKEagerSearch::dump_search_space() const {
-    search_space.dump();
 }
 
 void TopKEagerSearch::start_f_value_statistics(EvaluationContext &eval_context) {
@@ -480,6 +453,40 @@ static SearchEngine *_parse_greedy(OptionParser &parser) {
         engine = new TopKEagerSearch(opts);
     }
     return engine;
+}
+void TopKEagerSearch::output_plans() {
+	print_value(top_k_plans.size(),"size", _ARGS);
+	for (size_t i = 0; i < top_k_plans.size(); ++i) {
+		print_in_red("Begin Plan "+ std::to_string(i));
+		print_plan(top_k_plans[i], false);									
+		print_in_red("End Plan "+ std::to_string(i));
+	}	
+}
+
+void TopKEagerSearch::print_plan(Plan plan,
+               bool generates_multiple_plan_files) {
+		
+	ostringstream filename;
+    filename << g_plan_filename;
+    int plan_number = g_num_previously_generated_plans + 1;
+    if (generates_multiple_plan_files || g_is_part_of_anytime_portfolio) {
+        filename << "." << plan_number;
+    } else {
+        assert(plan_number == 1);
+    }
+
+    ofstream outfile(filename.str());
+    for (size_t i = 0; i < plan.size(); ++i) {
+        cout << plan[i]->get_name() << " (" << plan[i]->get_cost() << ")" << endl;
+        outfile << "(" << plan[i]->get_name() << ")" << endl;
+    }
+    int plan_cost = calculate_plan_cost(plan);
+    outfile << "; cost = " << plan_cost << " ("
+            << (is_unit_cost() ? "unit cost" : "general cost") << ")" << endl;
+    outfile.close();
+    cout << "Plan length: " << plan.size() << " step(s)." << endl;
+    cout << "Plan cost: " << plan_cost << endl;
+    ++g_num_previously_generated_plans;
 }
 
 static Plugin<SearchEngine> _plugin("top_k_eager", _parse);

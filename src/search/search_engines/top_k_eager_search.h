@@ -33,9 +33,18 @@ struct StateActionPair {
 
 typedef std::priority_queue<StateActionPair> StateActionHeap;
 
+struct SearchControl {
+	bool interrupt_immediatly = false;
+	bool check_interrupt(int optimal_solution_cost, int g_n, int f_u) {	
+		if (interrupt_immediatly || optimal_solution_cost + g_n <= f_u) 
+			return true; 
+		return false;
+	}
+};
 class TopKEagerSearch : public SearchEngine {
     const bool reopen_closed_nodes;
     const int number_of_plans;
+protected:
     std::unique_ptr<StateOpenList> open_list;
     ScalarEvaluator *f_evaluator;
     std::vector<Heuristic *> heuristics;
@@ -47,19 +56,20 @@ class TopKEagerSearch : public SearchEngine {
     void update_f_value_statistics(const SearchNode &node);
     void reward_progress();
     void print_checkpoint_line(int g) const;
-    virtual bool check_goal_and_get_plans(const GlobalState &state);
 
-protected:
 	// We store incomming tuples (state, operator) for each node/state 
 	// in a priority queue ordered by their delta values. Smaller 
 	// values are better
     PerStateInformation<StateActionHeap> H_in;
 	StateID goal_state = StateID::no_state;
+	std::vector<Plan> top_k_plans;	
     virtual void initialize() override;
     virtual SearchStatus step() override;
+	void output_plans();
+	void print_plan(Plan plan,
+               bool generates_multiple_plan_files);
 	void interrupt();
-	void resume();	
-
+	void resume(SearchControl &search_control);	
 public:
     explicit TopKEagerSearch(const options::Options &opts);
     virtual ~TopKEagerSearch() = default;
