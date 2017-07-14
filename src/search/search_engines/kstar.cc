@@ -13,7 +13,6 @@ using namespace top_k_eager_search;
 namespace kstar{
 KStar::KStar(const options::Options &opts) 	
 	:TopKEagerSearch(opts), first_plan_found(false) {
-	print_set_of_operators(g_operators, "all_operators");
 }
 
 void KStar::search() {
@@ -30,32 +29,34 @@ void KStar::search() {
 		// First solution found 
 		if (status == SOLVED && !first_plan_found) {
 			interrupt();		
-			search_space.dump_dot();	
+			//search_space.dump_dot();	
+			//dump_path_graph();
 			add_first_plan();
+			debug(3, _ARGS);
 			add_goal_heap_top();
 		}
 		
 		// Check whether A* has expanded enough nodes and if yes 
 		// start a djkstra search on P(G)
 		if (status == INTERRUPTED) {
+			debug(4, _ARGS);
 			if (open_list->empty() && queue_djkstra.empty()) {
+				debug(5, _ARGS);
 				output_plans();	
+				debug(6, _ARGS);
 				return;
 			}	
-		
 			if (open_list->empty()) {
 				djkstra_search();
 			}
-		
 			// g_n = g-value of the top node in Djkstras queue	
 			// f_u = f-value of the top node in Astar queue
 			int g_n = queue_djkstra.top().first;	
 			int f_u = get_f_value(open_list->top());
 			if (optimal_solution_cost + g_n <= f_u) {
-				djkstra_search();				
+				//djkstra_search();				
 			}	
 			else {
-				debug(4, _ARGS);
 				// TODO: add functor struct
 				//resume();
 			}
@@ -85,8 +86,11 @@ void KStar::add_first_plan() {
 
 // add the top node from the goal heap to the open list  
 void KStar::add_goal_heap_top() {
+	debug(1, _ARGS);
 	GlobalState s =  state_registry.lookup_state(goal_state);
+	debug(2, _ARGS);
 	queue_djkstra.push(0, H_in[s].top());	
+	debug(3, _ARGS);
 }
 
 // Djkstra search on path graph P(G)
@@ -96,7 +100,8 @@ void KStar::djkstra_search() {
 		std::pair<int, StateActionPair> top_pair = queue_djkstra.pop();
         int old_f = top_pair.first;
 		StateActionPair sap = top_pair.second; 
-		GlobalState s = state_registry.lookup_state(sap.state_id);
+		// TODO: look at  this further 
+		GlobalState s = state_registry.lookup_state(sap.from);
         const int g = top_pair.first;   
         int new_f = g;
         if (new_f < old_f)
