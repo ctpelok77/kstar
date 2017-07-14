@@ -13,6 +13,7 @@ using namespace top_k_eager_search;
 namespace kstar{
 KStar::KStar(const options::Options &opts) 	
 	:TopKEagerSearch(opts), first_plan_found(false) {
+	print_set_of_operators(g_operators, "all_operators");
 }
 
 void KStar::search() {
@@ -29,6 +30,7 @@ void KStar::search() {
 		// First solution found 
 		if (status == SOLVED && !first_plan_found) {
 			interrupt();		
+			search_space.dump_dot();	
 			add_first_plan();
 			add_goal_heap_top();
 		}
