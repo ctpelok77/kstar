@@ -18,6 +18,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <memory>
+#include <string>
 #include <set>
 
 using namespace std;
@@ -224,17 +225,88 @@ SearchStatus TopKEagerSearch::step() {
             }
 		
         }
-
-		// For K* we store the state action pair that lead to succ node
-		// in succ nodes heap H_in 
-		StateActionPair p;
-		p.state_id = s.get_id();
-		p.op_index = op->get_index();
-		p.delta = node.get_g() + op->get_cost() - succ_node.get_g();  
-		H_in[succ_state].push(p);
+		update_path_graph(node, op, succ_node);
     }
 
     return IN_PROGRESS;
+}
+
+void TopKEagerSearch::update_path_graph(SearchNode node, 
+										const GlobalOperator* op,
+										SearchNode succ_node) {
+	GlobalState s = node.get_state(); 
+	GlobalState succ_state = succ_node.get_state(); 
+	// For K* we store the state action pair that lead to succ node
+	// in succ nodes heap H_in 
+	StateActionPair p;
+	p.from = s.get_id();
+	p.to = succ_state.get_id();
+	p.op_index = op->get_index();
+	p.delta = node.get_g() + op->get_cost() - succ_node.get_g();  
+	if(p.delta > 0)
+		H_in[succ_state].push(p);
+	// update tree heap H_T by using H_in of the parent and add the top of   
+	// H_in of the current node  
+	if (!H_in[s].empty()) {
+		StateActionHeap copied_heap(H_in[s]);
+		StateActionPair top_element = H_in[s].top();
+		copied_heap.push(top_element);
+		H_T[s] = copied_heap; 
+	}
+}
+
+// Dump path graph in graphviz format
+void TopKEagerSearch::dump_path_graph() {
+	std::stringstream stream, node_stream;	
+	//int total_num_nodes = 0;
+	stream << "digraph {\n" << endl ;			
+	PerStateInformation<SearchNodeInfo>& search_node_infos = search_space.search_node_infos;
+	for (PerStateInformation<SearchNodeInfo>::const_iterator it =\
+		search_node_infos.begin(&state_registry); 
+		it != search_node_infos.end(&state_registry); ++it) {
+		StateID id = *it;
+		GlobalState s = state_registry.lookup_state(id); 
+		stream << "subgraph " << "cluster_" <<  s[0] << " {" << endl; 	
+		stream << "label=" << "node" <<  s[0] << ";" <<  endl;
+		stream << "style=filled;" << endl;
+		stream << "color=grey;"  << endl;
+		if (H_in[s].empty())  { 
+			add_node(9000, "none", stream);
+			stream << "}" << endl;
+			continue;
+		}
+
+		/*std::string node_name; 
+		int num_nodes = 0;
+		while (!H_in[s].empty()) {
+			StateActionPair top_edge = H_in[s].top();
+			H_in[s].pop();
+			node_name = get_node_name(top_edge);
+			debug(1, _ARGS);
+			add_node(total_num_nodes, node_name, stream);
+			debug(2, _ARGS);
+			//add_edge(total_num_nodes - 1, total_num_nodes, "label" , stream);
+			// TODO: compute cost of edge 
+			//stream << "->" << H_in[s].top().state_id.hash() << endl;
+			++total_num_nodes;
+			++num_nodes;
+		} 
+		*/
+		stream << "}" << endl; 
+	}
+	stream << "}" << endl; 	
+	std::ofstream file;
+	file.open("path_graph.dot", std::ofstream::out);
+	file << stream.rdbuf();
+	file << node_stream.rdbuf();
+	file.close();
+}
+
+std::string TopKEagerSearch::get_node_name(StateActionPair &edge) {
+	int from = state_registry.lookup_state(edge.from)[0];
+	int to = state_registry.lookup_state(edge.to)[0];
+	std::string node_name = std::to_string(from) + std::to_string(to);	
+	return node_name;
 }
 
 void TopKEagerSearch::interrupt() {

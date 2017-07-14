@@ -51,15 +51,14 @@ public:
 
 
 class SearchSpace {
+public:
     PerStateInformation<SearchNodeInfo> search_node_infos;
-
     StateRegistry &state_registry;
     OperatorCost cost_type;
 
     void trace_path_with_symmetries(const GlobalState &goal_state,
                                     std::vector<const GlobalOperator *> &path,
                                     const std::shared_ptr<Group> &group) const;
-public:
     SearchSpace(StateRegistry &state_registry, OperatorCost cost_type);
 
     SearchNode get_node(const GlobalState &state);

@@ -23,7 +23,8 @@ namespace top_k_eager_search {
 // A state action pair (s1,o) describes a transition (s1,o,s2) with a 
 // corresponding delta value delta(s1,o) = f_s1(s2) - f(s2) 
 struct StateActionPair {
-	StateID state_id = StateID::no_state;	
+	StateID from = StateID::no_state;	
+	StateID to = StateID::no_state;
 	int op_index = -1;
 	int delta = -1; 
 	bool operator<(const StateActionPair &other) const {            
@@ -61,6 +62,8 @@ protected:
 	// in a priority queue ordered by their delta values. Smaller 
 	// values are better
     PerStateInformation<StateActionHeap> H_in;
+	// Tree Heap	
+	PerStateInformation<StateActionHeap> H_T;
 	StateID goal_state = StateID::no_state;
 	std::vector<Plan> top_k_plans;	
     virtual void initialize() override;
@@ -70,6 +73,11 @@ protected:
                bool generates_multiple_plan_files);
 	void interrupt();
 	void resume(SearchControl &search_control);	
+	void update_path_graph(SearchNode node, 
+						   const GlobalOperator* op, 
+						   SearchNode succ_node);
+	void dump_path_graph();
+	std::string get_node_name(StateActionPair &edge);
 public:
     explicit TopKEagerSearch(const options::Options &opts);
     virtual ~TopKEagerSearch() = default;
