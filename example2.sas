@@ -2,7 +2,7 @@ begin_version
 3
 end_version
 begin_metric
-0
+1
 end_metric
 1
 begin_variable
@@ -29,21 +29,21 @@ from_s0_to_s1
 0
 1
 0 0 0 1
-1
+3
 end_operator
 begin_operator
 from_s0_to_s2
 0
 1
 0 0 0 2
-1
+2
 end_operator
 begin_operator
 from_s1_to_s1
 0
 1
 0 0 1 1
-1
+2
 end_operator
 begin_operator
 from_s1_to_s2
@@ -64,7 +64,7 @@ from_s2_to_s4
 0
 1
 0 0 2 4
-1
+3
 end_operator
 begin_operator
 from_s2_to_s3
@@ -78,6 +78,6 @@ from_s3_to_s2
 0
 1
 0 0 3 2
-1
+2
 end_operator
 0
