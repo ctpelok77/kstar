@@ -4,6 +4,8 @@
 #include "../search_engine.h"
 #include "../option_parser.h"
 #include "../open_lists/open_list.h"
+#include "../state_action_pair.h"
+#include "../algorithms/heaps.h"
 
 #include <memory>
 #include <algorithm>
@@ -19,20 +21,8 @@ class Options;
 }
 
 namespace top_k_eager_search {
-
-// A state action pair (s1,o) describes a transition (s1,o,s2) with a 
-// corresponding delta value delta(s1,o) = f_s1(s2) - f(s2) 
-struct StateActionPair {
-	StateID from = StateID::no_state;	
-	StateID to = StateID::no_state;
-	int op_index = -1;
-	int delta = -1; 
-	bool operator<(const StateActionPair &other) const {            
-		return other.delta < delta;
-	};
-};
-
-typedef std::priority_queue<StateActionPair> StateActionHeap;
+typedef k_star_heaps::IncomingHeap<StateActionPair> InHeap;
+typedef k_star_heaps::TreeHeap TreeHeap;
 
 struct SearchControl {
 	bool interrupt_immediatly = false;
@@ -61,9 +51,9 @@ protected:
 	// We store incomming tuples (state, operator) for each node/state 
 	// in a priority queue ordered by their delta values. Smaller 
 	// values are better
-    PerStateInformation<StateActionHeap> H_in;
+    PerStateInformation<InHeap> H_in;
 	// Tree Heap	
-	PerStateInformation<StateActionHeap> H_T;
+	PerStateInformation<TreeHeap> H_T;
 	StateID goal_state = StateID::no_state;
 	std::vector<Plan> top_k_plans;	
     virtual void initialize() override;
@@ -73,11 +63,15 @@ protected:
                bool generates_multiple_plan_files);
 	void interrupt();
 	void resume(SearchControl &search_control);	
-	void update_path_graph(SearchNode node, 
+	void update_path_graph(SearchNode &node, 
 						   const GlobalOperator* op, 
-						   SearchNode succ_node);
+						   SearchNode &succ_node);
+	void dump_incomming_heaps();
 	void dump_path_graph();
+	std::string get_node_label(StateActionPair &edge);
 	std::string get_node_name(StateActionPair &edge);
+	int get_cost_heap_edge(StateActionPair& from, StateActionPair& to);
+	int get_cost_cross_edge(StateActionPair&, StateActionPair& to);
 public:
     explicit TopKEagerSearch(const options::Options &opts);
     virtual ~TopKEagerSearch() = default;

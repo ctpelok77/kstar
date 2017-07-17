@@ -87,8 +87,6 @@ GlobalOperator::GlobalOperator(istream &in, bool axiom, int index)
 
         int op_cost;
         in >> op_cost;
-		print_value(op_cost,"op_cost", _ARGS);
-		print_value(g_use_metric,"print_value", _ARGS);
         cost = g_use_metric ? op_cost : 1;
 
         g_min_action_cost = min(g_min_action_cost, cost);

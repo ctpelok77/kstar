@@ -13,6 +13,7 @@ using namespace top_k_eager_search;
 namespace kstar{
 KStar::KStar(const options::Options &opts) 	
 	:TopKEagerSearch(opts), first_plan_found(false) {
+	print_set_of_operators(g_operators, "all ops");
 }
 
 void KStar::search() {
@@ -29,25 +30,26 @@ void KStar::search() {
 		// First solution found 
 		if (status == SOLVED && !first_plan_found) {
 			interrupt();		
-			//search_space.dump_dot();	
-			//dump_path_graph();
+			search_space.dump_dot();	
+			dump_incomming_heaps();
+			dump_path_graph();
 			add_first_plan();
-			debug(3, _ARGS);
-			add_goal_heap_top();
+			//exit(0);	
+			//add_goal_heap_top();
+
 		}
 		
 		// Check whether A* has expanded enough nodes and if yes 
 		// start a djkstra search on P(G)
 		if (status == INTERRUPTED) {
-			debug(4, _ARGS);
+			djkstra_search();
 			if (open_list->empty() && queue_djkstra.empty()) {
-				debug(5, _ARGS);
-				output_plans();	
-				debug(6, _ARGS);
+				//output_plans();	
 				return;
 			}	
+			
 			if (open_list->empty()) {
-				djkstra_search();
+				//djkstra_search();
 			}
 			// g_n = g-value of the top node in Djkstras queue	
 			// f_u = f-value of the top node in Astar queue
@@ -86,16 +88,16 @@ void KStar::add_first_plan() {
 
 // add the top node from the goal heap to the open list  
 void KStar::add_goal_heap_top() {
-	debug(1, _ARGS);
 	GlobalState s =  state_registry.lookup_state(goal_state);
-	debug(2, _ARGS);
-	queue_djkstra.push(0, H_in[s].top());	
-	debug(3, _ARGS);
+	if (!H_T[s].empty()) {
+		queue_djkstra.push(0, H_T[s].top());	
+	}
 }
 
 // Djkstra search on path graph P(G)
 void KStar::djkstra_search() {
-	exit(-1);
+	std::cout << "Switching to djkstra search on path graph" << std::endl;
+	exit(0);
     while (!queue_djkstra.empty()) {
 		std::pair<int, StateActionPair> top_pair = queue_djkstra.pop();
         int old_f = top_pair.first;
@@ -110,7 +112,7 @@ void KStar::djkstra_search() {
 		// TODO: Termination criterion needed 
 		// TODO: Check whether successor generation is correct,  i.e. agrees  
         while (!H_in[s].empty()) {
-			GlobalOperator op = g_operators[sap.op_index];
+			GlobalOperator op = g_operators[sap.op->get_index()];
 			GlobalState succ_state = state_registry.get_successor_state(s, op); 
             StateActionPair succ_sap = H_in[succ_state].top(); 
 			H_in[succ_state].pop();
@@ -153,7 +155,6 @@ static SearchEngine *_parse(OptionParser &parser) {
 
     return engine;
 }
-
 	
 static Plugin<SearchEngine> _plugin("kstar", _parse);
 }
