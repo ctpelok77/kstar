@@ -72,6 +72,7 @@ fast_downward_plugin(
         search_space
         search_statistics
         state_id
+		state_action_pair
         state_registry
         successor_generator
         task_proxy
