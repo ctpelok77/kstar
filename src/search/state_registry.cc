@@ -4,6 +4,7 @@
 #include "per_state_information.h"
 
 #include "structural_symmetries/group.h"
+#include "utils/util.h"
 #include "structural_symmetries/permutation.h"
 
 using namespace std;

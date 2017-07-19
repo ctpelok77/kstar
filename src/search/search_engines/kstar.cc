@@ -31,7 +31,7 @@ void KStar::search() {
 		if (status == SOLVED && !first_plan_found) {
 			interrupt();		
 			search_space.dump_dot();	
-			dump_incomming_heaps();
+			//dump_incomming_heaps();
 			dump_path_graph();
 			add_first_plan();
 			//exit(0);	
@@ -89,9 +89,10 @@ void KStar::add_first_plan() {
 // add the top node from the goal heap to the open list  
 void KStar::add_goal_heap_top() {
 	GlobalState s =  state_registry.lookup_state(goal_state);
-	if (!H_T[s].empty()) {
-		queue_djkstra.push(0, H_T[s].top());	
+	/*if (!H_T[s]->empty()) {
+		queue_djkstra.push(0, H_T[s]->top());	
 	}
+	*/
 }
 
 // Djkstra search on path graph P(G)
