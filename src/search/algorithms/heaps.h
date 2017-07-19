@@ -19,8 +19,18 @@ public:
 		IncomingHeap() : sorted(false), queue_top(-1) { 
 		};
 
+		IncomingHeap(const IncomingHeap &other) {
+			bucket = std::vector<T>(other.bucket);	
+			sorted = other.sorted;
+			queue_top = 0; 
+		}
+
 		bool empty() {
 			return bucket.size() == queue_top || bucket.empty();		
+		}
+
+		size_t size() {
+			return bucket.size();	
 		}
 
 		void push(T &element) {
@@ -43,50 +53,13 @@ public:
 			++queue_top;
 		}
 
+		void reset() {
+			queue_top = 0;			
+		}
+
 		virtual ~IncomingHeap() = default;
 };
 
 typedef IncomingHeap<StateActionPair> InHeap;
-
-class TreeHeap
-{
-		InHeap* ancestor_heap;
-		StateActionPair root;
-		bool root_popped;
-
-public:
-		TreeHeap ()
-		:  root(StateActionPair::no_sap), root_popped(false){
-		};
-		
-		void set_root(StateActionPair& root) {
-			this->root = root;		
-		}	
-
-		void set_ancestor_heap(InHeap* ancestor_heap) {
-			this->ancestor_heap = ancestor_heap; 		
-		}
-
-		bool empty() {
-			if (!ancestor_heap) { 
-				return true;
-			}
-			return ancestor_heap->empty();			
-		}
-
-		StateActionPair& top() {	
-			if (!root_popped) 
-				return root;	
-			return ancestor_heap->top();
-		};		
-
-		void pop() {
-			if (!root_popped) 
-				root_popped = true;					
-			ancestor_heap->pop();
-		};
-
-		virtual ~TreeHeap() = default;
-};
 }
 #endif 

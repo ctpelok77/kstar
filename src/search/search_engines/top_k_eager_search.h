@@ -22,7 +22,6 @@ class Options;
 
 namespace top_k_eager_search {
 typedef k_star_heaps::IncomingHeap<StateActionPair> InHeap;
-typedef k_star_heaps::TreeHeap TreeHeap;
 
 struct SearchControl {
 	bool interrupt_immediatly = false;
@@ -52,15 +51,23 @@ protected:
 	// in a priority queue ordered by their delta values. Smaller 
 	// values are better
     PerStateInformation<InHeap> H_in;
-	// Tree Heap	
-	PerStateInformation<TreeHeap> H_T;
+	// information on whether the root of the tree heap H_T	
+	// is popped
+	PerStateInformation<InHeap> H_T;
+	PerStateInformation<bool> root_popped;	
+	const StateActionPair& top_tree_heap(const GlobalState &s);	
+	void pop_tree_heap(const GlobalState &s);
+	bool empty_tree_heap(const GlobalState &s);
+	void init_tree_heap(const GlobalState& s);
+	void reduce_in_heap(const GlobalState& s);
+		
 	StateID goal_state = StateID::no_state;
 	std::vector<Plan> top_k_plans;	
     virtual void initialize() override;
     virtual SearchStatus step() override;
 	void output_plans();
 	void print_plan(Plan plan,
-               bool generates_multiple_plan_files);
+					bool generates_multiple_plan_files);
 	void interrupt();
 	void resume(SearchControl &search_control);	
 	void update_path_graph(SearchNode &node, 
@@ -72,6 +79,7 @@ protected:
 	std::string get_node_name(StateActionPair &edge);
 	int get_cost_heap_edge(StateActionPair& from, StateActionPair& to);
 	int get_cost_cross_edge(StateActionPair&, StateActionPair& to);
+
 public:
     explicit TopKEagerSearch(const options::Options &opts);
     virtual ~TopKEagerSearch() = default;
