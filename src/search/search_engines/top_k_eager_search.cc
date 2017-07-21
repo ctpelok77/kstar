@@ -104,18 +104,19 @@ SearchStatus TopKEagerSearch::step() {
 		return INTERRUPTED;
 
     pair<SearchNode, bool> n = fetch_next_node();
+
     if (!n.second) {
         return FAILED;
     }
     SearchNode node = n.first;
 
     GlobalState s = node.get_state();
+	std::cout << "Expanding node s_"<< s[0] << std::endl;
     if (test_goal(s)) {
 		goal_state = s.get_id();
         return SOLVED;
 	}	
-	std::cout << "Expanding node s_"<< s[0] << std::endl;
-
+	
     vector<const GlobalOperator *> applicable_ops;
     g_successor_generator->generate_applicable_ops(s, applicable_ops);
 
@@ -131,8 +132,9 @@ SearchStatus TopKEagerSearch::step() {
         collect_preferred_operators(eval_context, preferred_operator_heuristics);
 
     for (const GlobalOperator *op : applicable_ops) {
-        if ((node.get_real_g() + op->get_cost()) >= bound)
+        if ((node.get_real_g() + op->get_cost()) >= bound) {
             continue;
+		}
 
         GlobalState succ_state = state_registry.get_successor_state(s, *op);
         statistics.inc_generated();
@@ -140,13 +142,15 @@ SearchStatus TopKEagerSearch::step() {
 
         SearchNode succ_node = search_space.get_node(succ_state);
 		std::cout << "Inserting edge " << "(" << node.get_state()[0] << "," 
-				  << succ_node.get_state()[0]  << ")"<< std::endl;
+				  << succ_node.get_state()[0]  << ") in H_in["\
+				  << succ_node.get_state()[0] <<"]"<< std::endl;
 
-		update_path_graph(node, op ,succ_node);	
+		update_path_graph(node, op , succ_node);	
 
         // Previously encountered dead end. Don't re-evaluate.
-        if (succ_node.is_dead_end())
+        if (succ_node.is_dead_end()) {
             continue;
+		}
 
         // update new path
         if (succ_node.is_new()) {
@@ -233,79 +237,32 @@ SearchStatus TopKEagerSearch::step() {
 
     return IN_PROGRESS;
 }
-
-
+// For K* we store the state action pair that leads to succ node in 
+// succ nodes heap H_in
 void TopKEagerSearch::update_path_graph(SearchNode& node, 
 										const GlobalOperator* op,
 										SearchNode& succ_node) {
-	// For K* we store the state action pair that leads to succ node
-	// in succ nodes heap H_in 
 	StateActionPair p(node.get_state_id(), succ_node.get_state_id(),op, 
 					  &state_registry, &search_space);
 	GlobalState succ_state = succ_node.get_state();
 	H_in[succ_state].push(p);
 }
 
-const StateActionPair& TopKEagerSearch::top_tree_heap(const GlobalState& s) {
-	StateID parent_id = search_space.search_node_infos[s].parent_state_id;	
-	// Exclude initial state 
-	if (parent_id ==  StateID::no_state) 
-		return StateActionPair::no_sap;
-	if (!root_popped[s]) {
-		return H_in[s].top();		
-	}
-	return H_T[s].top();
-}
-
-void TopKEagerSearch::pop_tree_heap(const GlobalState& s) {
-	StateID parent_id = search_space.search_node_infos[s].parent_state_id;	
-	GlobalState parent = state_registry.lookup_state(parent_id);	
-	// Exclude initial state 
-	if (parent_id ==  StateID::no_state) 
-		return; 
-	if (!root_popped[s]) { 
-		root_popped[s] = true;			
-		return;
-	}
-	H_T[s].pop();
-}
-
-void TopKEagerSearch::reduce_in_heap(const GlobalState& s) {
-	if (H_in[s].empty()) 
-		return;	
-
-	StateActionPair& top_pair =  H_in[s].top(); 
-	while (top_pair.get_delta() == 0) {
-		H_in[s].pop();				
-		top_pair = H_in[s].top();
-	}
-}
-
-void TopKEagerSearch::init_tree_heap(const GlobalState& s) {
-	StateID parent_id = search_space.search_node_infos[s].parent_state_id;
+// We create a copy of the parent in the search tree
+void TopKEagerSearch::init_tree_heap(GlobalState& state) {
+	StateID parent_id = search_space.search_node_infos[state].parent_state_id; 
 	if (parent_id == StateID::no_state) 
-		return;
+		return; 
 	GlobalState parent_state = state_registry.lookup_state(parent_id); 
-	//reduce_in_heap(s);
-	reduce_in_heap(parent_state);
-	H_T[s] = InHeap(H_in[parent_state]);	
+	H_T[state] = InHeap(H_in[parent_state]);	
+	if (!H_in[state].empty()) {
+	InHeap(H_in[parent_state], H_in[state].top());
+	}
+	std::cout << "H_T[" << state[0] << "] = H_in["<< parent_state[0] << "]" << std::endl;
 }
 
-
-bool TopKEagerSearch::empty_tree_heap(const GlobalState& s) {
-	StateID parent_id = search_space.search_node_infos[s].parent_state_id;	
-	if (parent_id ==  StateID::no_state) 
-		return  true; 
-
-	GlobalState parent = state_registry.lookup_state(parent_id);		
-	if (H_T[parent].empty() && root_popped[s]) 
-		return true;
-
-	return false;
-}
-
-// Dump incoming heaps in graphviz format
-void TopKEagerSearch::dump_incomming_heaps() {
+// Dump heap in graphviz format
+void TopKEagerSearch::dump_heaps(PerStateInformation<InHeap>& heap, std::string filename) {
 	std::stringstream stream, node_stream;	
 	int total_num_nodes = 0;
 	stream << "digraph {\n" << endl ;			
@@ -315,26 +272,24 @@ void TopKEagerSearch::dump_incomming_heaps() {
 		it != search_node_infos.end(&state_registry); ++it) {
 		StateID id = *it;
 		GlobalState s = state_registry.lookup_state(id); 
+		dump_heap_elements(heap[s], s);
+
 		stream << "subgraph " << "cluster_" <<  s[0] << " {" << endl; 	
 		stream << "label=" << "node" <<  s[0] << ";" <<  endl;
 		stream << "style=filled;" << endl;
 		stream << "color=grey;"  << endl;
-		// HACK:
 		add_node("9000" + std::to_string(total_num_nodes), "none", stream);
-
 		std::string node_name, node_label; 
 		bool node_has_pred = false;
 		StateActionPair pred = StateActionPair::no_sap;
-		while (!H_in[s].empty()) {
-			StateActionPair top_edge = H_in[s].top();
-			node_label = "";//get_node_label(top_edge);
+		while (!heap[s].empty()) {
+					StateActionPair top_edge = H_in[s].top();
+			node_label = get_node_label(top_edge);
 			node_name = get_node_name(top_edge);
 			bool node_added = false;
-			if (H_in[s].top().get_delta() != 0 ) {
-				add_node(node_name, node_label, stream);
-				node_added = true;
-			}
-			H_in[s].pop();
+			add_node(node_name, node_label, stream);
+			node_added = true;
+			heap[s].pop();
 			if (node_has_pred) {
 				std::string pred_name = get_node_name(pred);
 				add_edge(pred_name, node_name, "" , stream);
@@ -347,71 +302,32 @@ void TopKEagerSearch::dump_incomming_heaps() {
 			++total_num_nodes;
 		} 
 
-		H_in[s].reset();
 		stream << "}" << endl; 
 	}
 	stream << "}" << endl; 	
 	std::ofstream file;
-	file.open("inc_graph.dot", std::ofstream::out);
+	file.open(filename, std::ofstream::out);
 	file << stream.rdbuf();
 	file << node_stream.rdbuf();
 	file.close();
 }
 
-// Dump incomming heaps in graphviz format
-void TopKEagerSearch::dump_path_graph() {
-	std::stringstream stream, node_stream;	
-	int total_num_nodes = 0;
-	stream << "digraph {\n" << endl ;			
-	PerStateInformation<SearchNodeInfo>& search_node_infos = search_space.search_node_infos;
-	for (PerStateInformation<SearchNodeInfo>::const_iterator it =\
-		search_node_infos.begin(&state_registry); 
-		it != search_node_infos.end(&state_registry); ++it) {
-		StateID id = *it;
-		GlobalState s = state_registry.lookup_state(id);
-		stream << "subgraph " << "cluster_" <<  s[0] << " {" << endl; 	
-		stream << "label=" << "node" <<  s[0] << ";" <<  endl;
-		stream << "style=filled;" << endl;
-		stream << "color=grey;"  << endl;
-		// HACK:
-		add_node("9000" + std::to_string(total_num_nodes), "none", stream);
+void TopKEagerSearch::dump_heap_elements(InHeap& heap, GlobalState& s) {
+	print_in_green("Begin state" + std::to_string(s[0]));
 
-		std::string node_name, node_label; 
-		bool node_has_pred = false;
-		StateActionPair pred = StateActionPair::no_sap;
-        init_tree_heap(s);
-		while (!empty_tree_heap(s)) {
-			StateActionPair top_edge = top_tree_heap(s);
-			std::cout << "H[s_"<< s[0] << "] Edge s_" << top_edge.get_from_state()[0]; 
-		    std::cout  << top_edge.get_to_state()[0] << " delta" << top_edge.get_delta() << std::endl;	
-			node_label = get_node_label(top_edge);
-			node_name = get_node_name(top_edge);
-			bool node_added = false; 
-			if (top_tree_heap(s).get_delta() != 0) {
-				add_node(node_name, node_label, stream);
-				node_added = true;
-			}
-			pop_tree_heap(s);
-			if (node_has_pred) {
-				std::string pred_name = get_node_name(pred);
-				add_edge(pred_name, node_name, "" , stream);
-			}
+	while (!heap.empty()) {
+		StateActionPair& sap = heap.top();	
+		sap.dump();
+		std::cout << "delta "  <<  sap.get_delta() << std::endl;
+		//std::cout << "g(u) = " << sap.to_g() << std::endl;
+		//std::cout << "c(u,v) = "<< sap.edge_cost() << std::endl;
+		//std::cout << "g(v) = " << sap.from_g() << std::endl;
+		std::cout << "" << std::endl;
+		heap.pop();
+	}		
 
-			if (node_added) 
-				node_has_pred = true;
+	print_in_green("End state" + std::to_string(s[0]));
 
-			pred = top_edge; 
-			++total_num_nodes;
-		} 
-		
-		stream << "}" << endl; 
-	}
-	stream << "}" << endl; 	
-	std::ofstream file;
-	file.open("path_graph.dot", std::ofstream::out);
-	file << stream.rdbuf();
-	file << node_stream.rdbuf();
-	file.close();
 }
 
 std::string TopKEagerSearch::get_node_label(StateActionPair &edge) {
@@ -427,18 +343,6 @@ std::string TopKEagerSearch::get_node_name(StateActionPair &edge) {
 	int to = state_registry.lookup_state(edge.to)[0];
 	std::string node_name = std::to_string(from) + std::to_string(to);
 	return node_name;
-}
-
-int TopKEagerSearch::get_cost_heap_edge(StateActionPair& from, StateActionPair& to) {
-	int cost_heap_edge = to.get_delta() -from.get_delta();
-	assert(cost_heap_edge >= 0);
-	return cost_heap_edge;	
-}
-
-int TopKEagerSearch::get_cost_cross_edge(StateActionPair&, StateActionPair& to) {
-	int cost_cross_edge = to.get_delta();		
-	assert(cost_cross_edge >= 0);
-	return cost_cross_edge;
 }
 
 void TopKEagerSearch::interrupt() {
@@ -481,11 +385,31 @@ pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
             continue;
 
         node.close();
+		remove_tree_edge(s);
+		init_tree_heap(s);
+				
         assert(!node.is_dead_end());
         update_f_value_statistics(node);
         statistics.inc_expanded();
         return make_pair(node, true);
     }
+}
+
+// remove the tree edge from tree heap H_in
+void TopKEagerSearch::remove_tree_edge(GlobalState& s) {
+	SearchNodeInfo &info = search_space.search_node_infos[s];
+	int op_index = info.creating_operator;
+	while (!H_in[s].empty()) {
+		StateActionPair top_pair = H_in[s].top();
+		if (top_pair.get_delta() > 0) 
+			return;
+		if (top_pair.op->get_index() == op_index) {
+			H_in[s].forbid_top();	
+			break;
+		}
+		H_in[s].pop();
+	}		
+	H_in[s].reset();
 }
 
 void TopKEagerSearch::reward_progress() {
@@ -659,7 +583,6 @@ static SearchEngine *_parse_greedy(OptionParser &parser) {
     return engine;
 }
 void TopKEagerSearch::output_plans() {
-	print_value(top_k_plans.size(),"size", _ARGS);
 	for (size_t i = 0; i < top_k_plans.size(); ++i) {
 		print_in_red("Begin Plan "+ std::to_string(i));
 		print_plan(top_k_plans[i], false);									

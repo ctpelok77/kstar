@@ -46,46 +46,31 @@ protected:
     void update_f_value_statistics(const SearchNode &node);
     void reward_progress();
     void print_checkpoint_line(int g) const;
-
-	// We store incomming tuples (state, operator) for each node/state 
-	// in a priority queue ordered by their delta values. Smaller 
-	// values are better
-    PerStateInformation<InHeap> H_in;
-	// information on whether the root of the tree heap H_T	
-	// is popped
-	PerStateInformation<InHeap> H_T;
-	PerStateInformation<bool> root_popped;	
-	const StateActionPair& top_tree_heap(const GlobalState &s);	
-	void pop_tree_heap(const GlobalState &s);
-	bool empty_tree_heap(const GlobalState &s);
-	void init_tree_heap(const GlobalState& s);
-	void reduce_in_heap(const GlobalState& s);
-		
+	
 	StateID goal_state = StateID::no_state;
 	std::vector<Plan> top_k_plans;	
     virtual void initialize() override;
     virtual SearchStatus step() override;
 	void output_plans();
-	void print_plan(Plan plan,
-					bool generates_multiple_plan_files);
+	void print_plan(Plan plan, bool generates_multiple_plan_files);
 	void interrupt();
 	void resume(SearchControl &search_control);	
-	void update_path_graph(SearchNode &node, 
-						   const GlobalOperator* op, 
-						   SearchNode &succ_node);
-	void dump_incomming_heaps();
-	void dump_path_graph();
+
+	PerStateInformation<InHeap> H_in;
+	PerStateInformation<InHeap> H_T;
+	void init_tree_heap(GlobalState& state);
+	void dump_heap_elements(InHeap& heap, GlobalState& s);
+	void update_path_graph(SearchNode &node, const GlobalOperator* op,
+					       SearchNode &succ_node);
+	void remove_tree_edge(GlobalState& s);
+	void dump_heaps(PerStateInformation<InHeap>& heap, std::string filename);
 	std::string get_node_label(StateActionPair &edge);
 	std::string get_node_name(StateActionPair &edge);
-	int get_cost_heap_edge(StateActionPair& from, StateActionPair& to);
-	int get_cost_cross_edge(StateActionPair&, StateActionPair& to);
 
 public:
     explicit TopKEagerSearch(const options::Options &opts);
     virtual ~TopKEagerSearch() = default;
-
     virtual void print_statistics() const override;
-
     void dump_search_space() const;
 };
 
