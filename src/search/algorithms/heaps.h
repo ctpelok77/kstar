@@ -13,20 +13,36 @@ template<class T> class IncomingHeap
 {
 		std::vector<T> bucket;
 		bool sorted;
-		size_t queue_top;
+		int queue_top;
+		int forbidden = -1;
+
 		
 public:
-		IncomingHeap() : sorted(false), queue_top(-1) { 
+		IncomingHeap() : sorted(false), queue_top(0) , forbidden(-1) {
 		};
 
 		IncomingHeap(const IncomingHeap &other) {
-			bucket = std::vector<T>(other.bucket);	
+			bucket = other.bucket;	
 			sorted = other.sorted;
-			queue_top = 0; 
+			queue_top = other.queue_top; 
+		}
+
+		IncomingHeap(const IncomingHeap &other, const T& new_top) {
+			bucket = other.bucket;
+			sorted = other.sorted;
+            queue_top = other.queue_top;
+			bucket.push_back(new_top);
 		}
 
 		bool empty() {
-			return bucket.size() == queue_top || bucket.empty();		
+			if (bucket.empty()) 
+				return true;
+			int size = bucket.size();
+			if (size == queue_top) 
+			   return true;		
+			if (size == queue_top && forbidden == queue_top)
+				return true;
+			return false;
 		}
 
 		size_t size() {
@@ -36,21 +52,28 @@ public:
 		void push(T &element) {
 			sorted = false;
 			bucket.push_back(element);
-			bucket.shrink_to_fit();
 		}
 
 		T& top() {
+			if (queue_top == forbidden) {
+				++queue_top; 		
+			}	
+
 			if (sorted) {
 				return bucket[queue_top];		
 			}
+			
 			std::sort(bucket.begin(),  bucket.end());
 			sorted = true;	
-			queue_top = 0;
 			return bucket[queue_top];
 		}
 
 		void pop() {
 			++queue_top;
+		}
+
+		void forbid_top() {
+			forbidden = queue_top;			
 		}
 
 		void reset() {

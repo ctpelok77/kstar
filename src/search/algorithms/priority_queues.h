@@ -195,6 +195,7 @@ public:
     }
 
 	virtual Entry top() {
+
         assert(num_entries > 0);
         --num_entries;
         update_current_bucket_no();
