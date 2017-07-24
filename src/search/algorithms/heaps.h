@@ -9,15 +9,22 @@
 #include "../utils/util.h"
 
 namespace k_star_heaps {
+
+template <typename T> struct Cmp {
+	bool operator() (const T &lhs, const T &rhs) {
+		return *lhs < *rhs;			
+	};
+};
+
 template<class T> class IncomingHeap
 {
+public:
 		std::vector<T> bucket;
 		bool sorted;
 		int queue_top;
 		int forbidden = -1;
 
 		
-public:
 		IncomingHeap() : sorted(false), queue_top(0) , forbidden(-1) {
 		};
 
@@ -29,27 +36,26 @@ public:
 
 		IncomingHeap(const IncomingHeap &other, const T& new_top) {
 			bucket = other.bucket;
-			sorted = other.sorted;
+			sorted = false;
             queue_top = other.queue_top;
 			bucket.push_back(new_top);
 		}
 
 		bool empty() {
+			// container empty
 			if (bucket.empty()) 
 				return true;
 			int size = bucket.size();
-			if (size == queue_top) 
-			   return true;		
-			if (size == queue_top && forbidden == queue_top)
+			// one element which is forbidden
+			if (queue_top == size - 1 && forbidden == queue_top)
 				return true;
+            // all elements iterated
+			if (queue_top > size - 1)
+                return true;
 			return false;
 		}
 
-		size_t size() {
-			return bucket.size();	
-		}
-
-		void push(T &element) {
+		void push(T& element) {
 			sorted = false;
 			bucket.push_back(element);
 		}
@@ -63,8 +69,8 @@ public:
 				return bucket[queue_top];		
 			}
 			
-			std::sort(bucket.begin(),  bucket.end());
-			sorted = true;	
+			std::sort(bucket.begin(), bucket.end(), Cmp<T>());
+			sorted = true;
 			return bucket[queue_top];
 		}
 
@@ -83,6 +89,6 @@ public:
 		virtual ~IncomingHeap() = default;
 };
 
-typedef IncomingHeap<StateActionPair> InHeap;
+//typedef IncomingHeap<StateActionPair> InHeap;
 }
 #endif 

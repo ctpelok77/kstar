@@ -145,7 +145,8 @@ SearchStatus TopKEagerSearch::step() {
 				  << succ_node.get_state()[0]  << ") in H_in["\
 				  << succ_node.get_state()[0] <<"]"<< std::endl;
 
-		update_path_graph(node, op , succ_node);	
+        // TODO: see if we can get rid of const cast
+		update_path_graph(node, op , succ_node);
 
         // Previously encountered dead end. Don't re-evaluate.
         if (succ_node.is_dead_end()) {
@@ -242,27 +243,48 @@ SearchStatus TopKEagerSearch::step() {
 void TopKEagerSearch::update_path_graph(SearchNode& node, 
 										const GlobalOperator* op,
 										SearchNode& succ_node) {
-	StateActionPair p(node.get_state_id(), succ_node.get_state_id(),op, 
-					  &state_registry, &search_space);
-	GlobalState succ_state = succ_node.get_state();
-	H_in[succ_state].push(p);
+
+        auto sap = make_shared<StateActionPair>(node.get_state_id(),
+                                                   succ_node.get_state_id(),
+                                                   op,
+                                                   &state_registry,
+                                                   &search_space);
+	    GlobalState succ_state = succ_node.get_state();
+        H_in[succ_state].push(sap);
+}
+void TopKEagerSearch::add_node(InHeap& in, s_StateActionPair& sap) {
+    shared_ptr<StateActionPair> new_sap(new StateActionPair(sap->from, sap->to, sap->op, &state_registry,&search_space ));
+    in.push(new_sap);
+}
+
+InHeap TopKEagerSearch::copy_in_heap(GlobalState& s) {
+    InHeap copied_heap;
+    int queue_top = H_in[s].queue_top;
+    while(!H_in[s].empty()){
+        s_StateActionPair sap = H_in[s].top();
+        add_node(copied_heap, sap);
+        H_in[s].pop();
+    }
+    H_in[s].queue_top = queue_top;
+    return copied_heap;
 }
 
 // We create a copy of the parent in the search tree
 void TopKEagerSearch::init_tree_heap(GlobalState& state) {
-	StateID parent_id = search_space.search_node_infos[state].parent_state_id; 
-	if (parent_id == StateID::no_state) 
-		return; 
-	GlobalState parent_state = state_registry.lookup_state(parent_id); 
-	H_T[state] = InHeap(H_in[parent_state]);	
-	if (!H_in[state].empty()) {
-	InHeap(H_in[parent_state], H_in[state].top());
-	}
-	std::cout << "H_T[" << state[0] << "] = H_in["<< parent_state[0] << "]" << std::endl;
+	    StateID parent_id = search_space.search_node_infos[state].parent_state_id;
+	    if (parent_id == StateID::no_state)
+		    return;
+	    GlobalState parent_state = state_registry.lookup_state(parent_id);
+        H_T[state] = copy_in_heap(parent_state);
+        if (!H_in[state].empty()) {
+            s_StateActionPair p = H_in[state].top();
+            add_node(H_T[state], p);
+        }
+	    //std::cout << "H_T[" << state[0] << "] = H_in["<< parent_state[0] << "]" << std::endl;
 }
 
 // Dump heap in graphviz format
-void TopKEagerSearch::dump_heaps(PerStateInformation<InHeap>& heap, std::string filename) {
+/*void TopKEagerSearch::dump_heaps(PerStateInformation<InHeap>& heap, std::string filename) {
 	std::stringstream stream, node_stream;	
 	int total_num_nodes = 0;
 	stream << "digraph {\n" << endl ;			
@@ -283,7 +305,7 @@ void TopKEagerSearch::dump_heaps(PerStateInformation<InHeap>& heap, std::string 
 		bool node_has_pred = false;
 		StateActionPair pred = StateActionPair::no_sap;
 		while (!heap[s].empty()) {
-					StateActionPair top_edge = H_in[s].top();
+            StateActionPair top_edge = H_in[s].top();
 			node_label = get_node_label(top_edge);
 			node_name = get_node_name(top_edge);
 			bool node_added = false;
@@ -311,23 +333,29 @@ void TopKEagerSearch::dump_heaps(PerStateInformation<InHeap>& heap, std::string 
 	file << node_stream.rdbuf();
 	file.close();
 }
+ */
 
-void TopKEagerSearch::dump_heap_elements(InHeap& heap, GlobalState& s) {
-	print_in_green("Begin state" + std::to_string(s[0]));
-
-	while (!heap.empty()) {
-		StateActionPair& sap = heap.top();	
-		sap.dump();
-		std::cout << "delta "  <<  sap.get_delta() << std::endl;
-		//std::cout << "g(u) = " << sap.to_g() << std::endl;
-		//std::cout << "c(u,v) = "<< sap.edge_cost() << std::endl;
-		//std::cout << "g(v) = " << sap.from_g() << std::endl;
-		std::cout << "" << std::endl;
-		heap.pop();
-	}		
-
-	print_in_green("End state" + std::to_string(s[0]));
-
+void TopKEagerSearch::dump_heap_elements() {
+        PerStateInformation<SearchNodeInfo> &search_node_infos = search_space.search_node_infos;
+        for (PerStateInformation<SearchNodeInfo>::const_iterator it = \
+        search_node_infos.begin(&state_registry);
+             it != search_node_infos.end(&state_registry); ++it) {
+            StateID id = *it;
+            GlobalState s = state_registry.lookup_state(id);
+            print_in_green("Begin state" + std::to_string(s[0]));
+            init_tree_heap(s);
+            while (!H_T[s].empty()) {
+                shared_ptr<StateActionPair> &sap = H_T[s].top();
+                sap->dump();
+                std::cout << "delta " << sap->get_delta() << std::endl;
+                //std::cout << "g(u) = " << sap.to_g() << std::endl;
+                //std::cout << "c(u,v) = "<< sap.edge_cost() << std::endl;
+                //std::cout << "g(v) = " << sap.from_g() << std::endl;
+                std::cout << "" << std::endl;
+                H_T[s].pop();
+            }
+            print_in_green("End state" + std::to_string(s[0]));
+        }
 }
 
 std::string TopKEagerSearch::get_node_label(StateActionPair &edge) {
@@ -386,8 +414,7 @@ pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
 
         node.close();
 		remove_tree_edge(s);
-		init_tree_heap(s);
-				
+
         assert(!node.is_dead_end());
         update_f_value_statistics(node);
         statistics.inc_expanded();
@@ -400,10 +427,10 @@ void TopKEagerSearch::remove_tree_edge(GlobalState& s) {
 	SearchNodeInfo &info = search_space.search_node_infos[s];
 	int op_index = info.creating_operator;
 	while (!H_in[s].empty()) {
-		StateActionPair top_pair = H_in[s].top();
-		if (top_pair.get_delta() > 0) 
+		s_StateActionPair top_pair = H_in[s].top();
+		if (top_pair->get_delta() > 0)
 			return;
-		if (top_pair.op->get_index() == op_index) {
+		if (top_pair->op->get_index() == op_index) {
 			H_in[s].forbid_top();	
 			break;
 		}
@@ -598,7 +625,7 @@ void TopKEagerSearch::print_plan(Plan plan, bool generates_multiple_plan_files) 
     if (generates_multiple_plan_files || g_is_part_of_anytime_portfolio) {
         filename << "." << plan_number;
     } else {
-        assert(plan_number == 1);
+        //assert(plan_number == 1);
     }
 
     ofstream outfile(filename.str());
