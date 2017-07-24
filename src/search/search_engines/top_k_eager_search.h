@@ -21,8 +21,8 @@ class Options;
 }
 
 namespace top_k_eager_search {
-typedef k_star_heaps::IncomingHeap<StateActionPair> InHeap;
-
+typedef k_star_heaps::IncomingHeap<shared_ptr<StateActionPair>> InHeap;
+typedef shared_ptr<StateActionPair> s_StateActionPair;
 struct SearchControl {
 	bool interrupt_immediatly = false;
 	bool check_interrupt(int optimal_solution_cost, int g_n, int f_u) {	
@@ -54,16 +54,18 @@ protected:
 	void output_plans();
 	void print_plan(Plan plan, bool generates_multiple_plan_files);
 	void interrupt();
-	void resume(SearchControl &search_control);	
+	void resume(SearchControl &search_control);
+    InHeap copy_in_heap(GlobalState& s);
+	void add_node(InHeap& in, s_StateActionPair& sap);
 
 	PerStateInformation<InHeap> H_in;
 	PerStateInformation<InHeap> H_T;
 	void init_tree_heap(GlobalState& state);
-	void dump_heap_elements(InHeap& heap, GlobalState& s);
+	void dump_heap_elements();
 	void update_path_graph(SearchNode &node, const GlobalOperator* op,
 					       SearchNode &succ_node);
 	void remove_tree_edge(GlobalState& s);
-	void dump_heaps(PerStateInformation<InHeap>& heap, std::string filename);
+	//void dump_heaps(PerStateInformation<InHeap>& heap, std::string filename);
 	std::string get_node_label(StateActionPair &edge);
 	std::string get_node_name(StateActionPair &edge);
 
@@ -72,6 +74,7 @@ public:
     virtual ~TopKEagerSearch() = default;
     virtual void print_statistics() const override;
     void dump_search_space() const;
+
 };
 
 void add_top_k_option(OptionParser &parser);
