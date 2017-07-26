@@ -111,7 +111,7 @@ SearchStatus TopKEagerSearch::step() {
     SearchNode node = n.first;
 
     GlobalState s = node.get_state();
-	std::cout << "Expanding node s_"<< s[0] << std::endl;
+	//std::cout << "Expanding node s_"<< s[0] << std::endl;
     if (test_goal(s)) {
 		goal_state = s.get_id();
         return SOLVED;
@@ -141,11 +141,10 @@ SearchStatus TopKEagerSearch::step() {
         bool is_preferred = preferred_operators.contains(op);
 
         SearchNode succ_node = search_space.get_node(succ_state);
-		std::cout << "Inserting edge " << "(" << node.get_state()[0] << "," 
-				  << succ_node.get_state()[0]  << ") in H_in["\
-				  << succ_node.get_state()[0] <<"]"<< std::endl;
+		//std::cout << "Inserting edge " << "(" << node.get_state()[0] << ","
+		//		  << succ_node.get_state()[0]  << ") in H_in["\
+		//		  << succ_node.get_state()[0] <<"]"<< std::endl;
 
-        // TODO: see if we can get rid of const cast
 		update_path_graph(node, op , succ_node);
 
         // Previously encountered dead end. Don't re-evaluate.
@@ -155,7 +154,7 @@ SearchStatus TopKEagerSearch::step() {
 
         // update new path
         if (succ_node.is_new()) {
-			std::cout << "Generating node s_"<< succ_state[0] << std::endl;
+			//std::cout << "Generating node s_"<< succ_state[0] << std::endl;
             /*
               Note: we must call notify_state_transition for each heuristic, so
               don't break out of the for loop early.
@@ -243,17 +242,22 @@ SearchStatus TopKEagerSearch::step() {
 void TopKEagerSearch::update_path_graph(SearchNode& node, 
 										const GlobalOperator* op,
 										SearchNode& succ_node) {
+        if(node.get_state_id() == succ_node.get_state_id())
+            return;
 
-        auto sap = make_shared<StateActionPair>(node.get_state_id(),
+        auto sap = make_shared<StateActionPair>(num_saps,node.get_state_id(),
                                                    succ_node.get_state_id(),
                                                    op,
                                                    &state_registry,
                                                    &search_space);
+        ++num_saps;
 	    GlobalState succ_state = succ_node.get_state();
         H_in[succ_state].push(sap);
 }
 void TopKEagerSearch::add_node(InHeap& in, s_StateActionPair& sap) {
-    shared_ptr<StateActionPair> new_sap(new StateActionPair(sap->from, sap->to, sap->op, &state_registry,&search_space ));
+    shared_ptr<StateActionPair> new_sap(new StateActionPair(num_saps,sap->from, sap->to, sap->op,
+                                                             &state_registry,&search_space));
+    ++num_saps;
     in.push(new_sap);
 }
 

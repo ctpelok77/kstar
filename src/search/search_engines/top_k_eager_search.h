@@ -33,14 +33,15 @@ struct SearchControl {
 };
 class TopKEagerSearch : public SearchEngine {
     const bool reopen_closed_nodes;
-    const int number_of_plans;
 protected:
+	const int number_of_plans;
     std::unique_ptr<StateOpenList> open_list;
     ScalarEvaluator *f_evaluator;
     std::vector<Heuristic *> heuristics;
     std::vector<Heuristic *> preferred_operator_heuristics;
     std::shared_ptr<PruningMethod> pruning_method;
 	bool interrupt_search;
+	long int num_saps;
     std::pair<SearchNode, bool> fetch_next_node();
     void start_f_value_statistics(EvaluationContext &eval_context);
     void update_f_value_statistics(const SearchNode &node);
