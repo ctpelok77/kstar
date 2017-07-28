@@ -13,6 +13,10 @@ class StateID {
     friend class PerStateInformation;
 
     int value;
+public:
+    int get_value() const;
+
+private:
     explicit StateID(int value_)
         : value(value_) {
     }

@@ -609,6 +609,7 @@ fast_downward_plugin(
 	HELP "KStar algorithm"
     SOURCES
         search_engines/kstar
+		search_engines/kstar_util
     DEPENDS NULL_PRUNING_METHOD ORDERED_SET SEARCH_COMMON TOP_K_EAGER_SEARCH
 )
 
