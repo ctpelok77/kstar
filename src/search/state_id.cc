@@ -10,3 +10,7 @@ ostream &operator<<(ostream &os, StateID id) {
     os << "#" << id.value;
     return os;
 }
+
+int StateID::get_value() const {
+    return value;
+}

@@ -139,12 +139,7 @@ SearchStatus TopKEagerSearch::step() {
         GlobalState succ_state = state_registry.get_successor_state(s, *op);
         statistics.inc_generated();
         bool is_preferred = preferred_operators.contains(op);
-
         SearchNode succ_node = search_space.get_node(succ_state);
-		//std::cout << "Inserting edge " << "(" << node.get_state()[0] << ","
-		//		  << succ_node.get_state()[0]  << ") in H_in["\
-		//		  << succ_node.get_state()[0] <<"]"<< std::endl;
-
 		update_path_graph(node, op , succ_node);
 
         // Previously encountered dead end. Don't re-evaluate.
@@ -245,17 +240,17 @@ void TopKEagerSearch::update_path_graph(SearchNode& node,
         if(node.get_state_id() == succ_node.get_state_id())
             return;
 
-        auto sap = make_shared<StateActionPair>(num_saps,node.get_state_id(),
-                                                   succ_node.get_state_id(),
-                                                   op,
-                                                   &state_registry,
-                                                   &search_space);
+        auto sap = make_shared<StateActionPair>(node.get_state_id(),
+                                                succ_node.get_state_id(),
+                                                op,
+                                                &state_registry,
+                                                &search_space);
         ++num_saps;
 	    GlobalState succ_state = succ_node.get_state();
         H_in[succ_state].push(sap);
 }
 void TopKEagerSearch::add_node(InHeap& in, s_StateActionPair& sap) {
-    shared_ptr<StateActionPair> new_sap(new StateActionPair(num_saps,sap->from, sap->to, sap->op,
+    shared_ptr<StateActionPair> new_sap(new StateActionPair(sap->from, sap->to, sap->op,
                                                              &state_registry,&search_space));
     ++num_saps;
     in.push(new_sap);
@@ -291,7 +286,7 @@ void TopKEagerSearch::init_tree_heap(GlobalState& state) {
 /*void TopKEagerSearch::dump_heaps(PerStateInformation<InHeap>& heap, std::string filename) {
 	std::stringstream stream, node_stream;	
 	int total_num_nodes = 0;
-	stream << "digraph {\n" << endl ;			
+	stream << "digraph {\n" << endl ;
 	PerStateInformation<SearchNodeInfo>& search_node_infos = search_space.search_node_infos;
 	for (PerStateInformation<SearchNodeInfo>::const_iterator it =\
 		search_node_infos.begin(&state_registry); 
@@ -346,7 +341,7 @@ void TopKEagerSearch::dump_heap_elements() {
              it != search_node_infos.end(&state_registry); ++it) {
             StateID id = *it;
             GlobalState s = state_registry.lookup_state(id);
-            print_in_green("Begin state" + std::to_string(s[0]));
+            print_in_green("Begin state" + std::to_string(s.get_id().get_value()));
             init_tree_heap(s);
             while (!H_T[s].empty()) {
                 shared_ptr<StateActionPair> &sap = H_T[s].top();
@@ -482,7 +477,7 @@ void add_pruning_option(OptionParser &parser) {
 }
 
 void add_top_k_option(OptionParser &parser) {
-    parser.add_option<int>("K", "Number of plans", "10");
+    parser.add_option<int>("K", "Number of plans", "10000");
 }
 
 static SearchEngine *_parse(OptionParser &parser) {
