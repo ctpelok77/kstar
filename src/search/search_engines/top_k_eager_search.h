@@ -25,7 +25,10 @@ typedef k_star_heaps::IncomingHeap<shared_ptr<StateActionPair>> InHeap;
 typedef shared_ptr<StateActionPair> s_StateActionPair;
 struct SearchControl {
 	bool interrupt_immediatly = false;
-	bool check_interrupt(int optimal_solution_cost, int g_n, int f_u) {	
+    int optimal_solution_cost = std::numeric_limits<int>::max();
+	int g_n = -1;
+	int f_u = -1;
+	bool check_interrupt() {
 		if (interrupt_immediatly || optimal_solution_cost + g_n <= f_u) 
 			return true; 
 		return false;
@@ -49,6 +52,7 @@ protected:
     void print_checkpoint_line(int g) const;
 	
 	StateID goal_state = StateID::no_state;
+    SearchControl search_control;
 	std::vector<Plan> top_k_plans;	
     virtual void initialize() override;
     virtual SearchStatus step() override;

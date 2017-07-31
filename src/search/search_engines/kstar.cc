@@ -14,7 +14,14 @@ namespace kstar{
 KStar::KStar(const options::Options &opts) 	
 	:TopKEagerSearch(opts), first_plan_found(false) {
 	print_set_of_operators(g_operators, "all ops");	
-	
+	pg_succ_generator = 
+			unique_ptr<SuccessorGenerator>(new kstar::SuccessorGenerator(	
+															H_T,
+															parent_sap,
+															cross_edge,
+															&state_registry));
+
+
 }
 
 void KStar::init_plan_reconstructor() {
@@ -39,7 +46,8 @@ void KStar::search() {
 			
 		// First solution found. Add R to path graph 
 		if (status == SOLVED && !first_plan_found) {
-			interrupt();		
+            debug(1,_ARGS);
+			interrupt();
 			add_first_plan();
 			init_plan_reconstructor();
 			// remove that part later 
@@ -135,24 +143,6 @@ void KStar::set_initialized(GlobalState &s) {
 	heap_initialized.insert(s.get_id());
 }
 
-void KStar::add_cross_edges(Node& p) {
-    GlobalState from =  p.second->get_from_state();
-    if(!is_initialized(from)){
-		init_tree_heap(from);
-		set_initialized(from);
-	}
-
-	if (H_T[from].empty())
-        return;
-
-	int new_f = p.first + p.second->get_delta();
-	Sap sap =  H_T[from].top();
-    auto new_p  = std::pair<int, Sap>(new_f, sap);
-	queue_djkstra.push(new_p);
-	parent_sap.insert(std::pair<Sap, Sap>(sap, p.second));
-    cross_edge.insert(std::pair<Sap, bool>(sap, true));
-}
-
 bool KStar::enough_plans_found() {
     int num_plans_found = top_k_plans.size();
 	if (num_plans_found >= number_of_plans) {
@@ -161,71 +151,61 @@ bool KStar::enough_plans_found() {
 	return false;
 }
 
+void KStar::initialize_tree_heaps(Sap& sap) {
+	GlobalState s = state_registry.lookup_state(sap->to);
+	if (!is_initialized(s)) {
+		init_tree_heap(s);
+		set_initialized(s);
+	}
+    if(sap->from == StateID::no_state)
+		return;
+
+	GlobalState from =  sap->get_from_state();
+    if(!is_initialized(from)){
+		init_tree_heap(from);
+		set_initialized(from);
+	}
+}
+
 // Djkstra search on path graph P(G)
 void KStar::djkstra_search() {
 	std::cout << "Switching to djkstra search on path graph" << std::endl;
 	reset_initialized();
 	add_goal_heap_top();
+
     while (!queue_djkstra.empty()) {
-		std::pair<int, Sap> top_pair = queue_djkstra.top();
+		Node node = queue_djkstra.top();
 		queue_djkstra.pop();
 
-		if (closed.find(*top_pair.second) != closed.end())
+		if (closed.find(*node.second) != closed.end())
 			continue;
-		closed.insert(*top_pair.second);
+		closed.insert(*node.second);
 
-		notify_expand(top_pair);
-        int old_f = top_pair.first;
-		auto sap = top_pair.second;
-        const int g = top_pair.first;   
-        int new_f = g;
-        if (new_f < old_f)
-            continue;	
-		
-		GlobalState s = state_registry.lookup_state(sap->to);
-		if (!is_initialized(s)) {
-			init_tree_heap(s);
-			set_initialized(s);
-		}
+		notify_expand(node);
+		auto sap = node.second;
+        const int g = node.first;
 
+		initialize_tree_heaps(sap);
+		// handle root node R
 		if (sap->from == StateID::no_state) {
-			GlobalState to_state = sap->get_to_state();
-            auto succ_sap = H_T[to_state].top();
-			H_T[to_state].pop();
-			int f = top_pair.first + succ_sap->get_delta();
-			auto p =  std::pair<int, Sap>(f, succ_sap);
-            queue_djkstra.push(p);
-			parent_sap.insert(std::pair<Sap, Sap>(succ_sap, sap));
-			cross_edge.insert(std::pair<Sap, bool>(succ_sap, true));
+            Node successor;
+			pg_succ_generator->get_successor_R(node, successor);
+			queue_djkstra.push(successor);
 			continue;
 		}
-		add_cross_edges(top_pair);
-		plan_reconstructor->add_plan(top_pair, top_k_plans);
+
+		// For all other nodes
+		plan_reconstructor->add_plan(node, top_k_plans);
         if (enough_plans_found())
 			return;
 
-        while (!H_T[s].empty()) {
-            auto succ_sap = H_T[s].top();
-			H_T[s].pop();
-            int f = g;
-			f += get_cost_heap_edge(sap, succ_sap);
-            auto p =  std::pair<int, Sap>(f, succ_sap);
-            queue_djkstra.push(p);
-            parent_sap.insert(std::pair<Sap, Sap>(succ_sap, sap));
-            cross_edge.insert(std::pair<Sap, bool>(succ_sap, false));
-        }
+		std::vector<Node> successors; 
+		pg_succ_generator->get_successors(node, successors);
+		for (auto& succ : successors) 
+			queue_djkstra.push(succ);
     }
 }
 
-int KStar::get_cost_heap_edge(Sap& from, Sap& to) {
-	int cost_heap_edge = to->get_delta() - from->get_delta();
-	return cost_heap_edge;
-}
-
-int KStar::get_cost_cross_edge(Sap& to) {
-	int cost_cross_edge = to->get_delta();
-	return cost_cross_edge;
-}
 
 static SearchEngine *_parse(OptionParser &parser) {
     parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");
