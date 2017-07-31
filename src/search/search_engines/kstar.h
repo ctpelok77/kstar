@@ -14,6 +14,7 @@ class KStar : public top_k_eager_search::TopKEagerSearch
 {
 private:
 	int get_f_value(StateID id);
+	void initialize_tree_heaps(Sap& sap);
 
 protected:		
 	virtual ~KStar() = default;
@@ -24,6 +25,7 @@ protected:
     std::map<Sap, Sap> parent_sap;
 	std::map<Sap, bool> cross_edge;
 	std::unique_ptr<PlanReconstructor> plan_reconstructor;
+	std::unique_ptr<SuccessorGenerator> pg_succ_generator;
 	std::unordered_set<StateActionPair> closed;
 
 	void djkstra_search();
@@ -41,9 +43,6 @@ protected:
 	void notify_generate(Node &p);
 	void notify_push(Node &p);
 	void notify_expand(Node& p);
-	void add_cross_edges(Node& p);
-	int get_cost_heap_edge(Sap& from, Sap& to);
-	int get_cost_cross_edge(Sap& to);
 public:
 	KStar (const options::Options &opts);
 	void search() override;

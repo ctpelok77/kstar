@@ -13,9 +13,10 @@ using utils::ExitCode;
 int main(int argc, const char **argv) {
     utils::register_event_handlers();
 
-    // Add this to debug
-    //std::ifstream in("/home/dominik/implementations/top_k_repo/FD-topK/output.sas");
-    //std::cin.rdbuf(in.rdbuf());
+#ifndef NDEBUG
+    std::ifstream in("/home/dominik/implementations/top_k_repo/FD-topK/diamond.sas");
+    std::cin.rdbuf(in.rdbuf());
+#endif
     if (argc < 2) {
         cout << OptionParser::usage(argv[0]) << endl;
         utils::exit_with(ExitCode::INPUT_ERROR);

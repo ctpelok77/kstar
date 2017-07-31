@@ -100,14 +100,15 @@ void TopKEagerSearch::print_statistics() const {
 }
 
 SearchStatus TopKEagerSearch::step() {
-	if (interrupt_search) 
+	if (search_control.check_interrupt())
 		return INTERRUPTED;
+    cout << "Beyond";
 
     pair<SearchNode, bool> n = fetch_next_node();
 
-    if (!n.second) {
+    if (!n.second)
         return FAILED;
-    }
+
     SearchNode node = n.first;
 
     GlobalState s = node.get_state();
@@ -347,9 +348,6 @@ void TopKEagerSearch::dump_heap_elements() {
                 shared_ptr<StateActionPair> &sap = H_T[s].top();
                 sap->dump();
                 std::cout << "delta " << sap->get_delta() << std::endl;
-                //std::cout << "g(u) = " << sap.to_g() << std::endl;
-                //std::cout << "c(u,v) = "<< sap.edge_cost() << std::endl;
-                //std::cout << "g(v) = " << sap.from_g() << std::endl;
                 std::cout << "" << std::endl;
                 H_T[s].pop();
             }
@@ -373,14 +371,15 @@ std::string TopKEagerSearch::get_node_name(StateActionPair &edge) {
 }
 
 void TopKEagerSearch::interrupt() {
-	status = INTERRUPTED;
-	interrupt_search =  true;			
+	//status = INTERRUPTED;
+    SearchControl interrupt;
+    interrupt.interrupt_immediatly = true;
+    search_control = interrupt;
 }
 
-void TopKEagerSearch::resume(SearchControl& search_control) {
-	(void) search_control;
-	status = IN_PROGRESS;
-	interrupt_search = false;	
+void TopKEagerSearch::resume(SearchControl& sc) {
+	//status = IN_PROGRESS;
+    search_control = sc;
 }
 
 pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
