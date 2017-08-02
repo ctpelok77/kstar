@@ -82,10 +82,12 @@ SuccessorGenerator::SuccessorGenerator(PerStateInformation<InHeap> &H_T,
 
 }
 
-void SuccessorGenerator::get_successors(Node& node, vector<Node> &successors) { 
+void SuccessorGenerator::get_successors(Node& node,
+										vector<Node> &successors,
+										bool successors_only) {
 	GlobalState s = state_registry->lookup_state(node.second->to);
 	// get all cross edges
-	add_cross_edge(node, successors);
+	add_cross_edge(node, successors, true);
 
 	// get all successor of tree edges	
 	while (!H_T[s].empty()) {
@@ -95,24 +97,27 @@ void SuccessorGenerator::get_successors(Node& node, vector<Node> &successors) {
 		f += get_cost_heap_edge(node.second, succ_sap);
         auto p =  std::pair<int, Sap>(f, succ_sap);
 		successors.push_back(p);
-        parent_sap.insert(pair<Sap, Sap>(succ_sap, node.second));
-        cross_edge.insert(pair<Sap, bool>(succ_sap, false));
+        if (!successors_only) {
+			parent_sap.insert(pair<Sap, Sap>(succ_sap, node.second));
+        	cross_edge.insert(pair<Sap, bool>(succ_sap, false));
+		}
     }
 }
 
+
 int SuccessorGenerator::get_max_successor_delta(Node& node) {
     GlobalState s = state_registry->lookup_state(node.second->to);
+    int max = -1;
+	vector<Node> successors;
+	get_successors(node, successors);
 
-	// get all successor of tree edges
-	while (!H_T[s].empty()) {
-        auto succ_sap = H_T[s].top();
-		H_T[s].pop();
-        int f = node.first;
-		f += get_cost_heap_edge(node.second, succ_sap);
-        auto p =  std::pair<int, Sap>(f, succ_sap);
-        parent_sap.insert(pair<Sap, Sap>(succ_sap, node.second));
-        cross_edge.insert(pair<Sap, bool>(succ_sap, false));
-    }
+	for(auto succ : successors) {
+		if (succ.second->get_delta() > max) {
+			max = succ.second->get_delta();
+		}
+	}
+    H_T[s].reset();
+    return max;
 }
 
 void SuccessorGenerator::get_successor_R(Node& node, Node &successor) {
@@ -137,7 +142,9 @@ int SuccessorGenerator::get_cost_cross_edge(Sap& to) {
 	return cost_cross_edge;
 }
 
-void SuccessorGenerator::add_cross_edge(Node &p, vector<Node> &successors) {
+void SuccessorGenerator::add_cross_edge(Node &p,
+										vector<Node> &successors,
+										bool successors_only) {
     GlobalState from =  p.second->get_from_state();
 	if (H_T[from].empty())
         return;
@@ -146,7 +153,9 @@ void SuccessorGenerator::add_cross_edge(Node &p, vector<Node> &successors) {
 	Sap sap =  H_T[from].top();
     auto new_p  = std::pair<int, Sap>(new_f, sap);
     successors.push_back(p);
-	parent_sap.insert(std::pair<Sap, Sap>(sap, p.second));
-    cross_edge.insert(std::pair<Sap, bool>(sap, true));
+    if(!successors_only) {
+		parent_sap.insert(std::pair<Sap, Sap>(sap, p.second));
+    	cross_edge.insert(std::pair<Sap, bool>(sap, true));
+	}
 }
 }

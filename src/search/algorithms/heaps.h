@@ -89,6 +89,5 @@ public:
 		virtual ~IncomingHeap() = default;
 };
 
-//typedef IncomingHeap<StateActionPair> InHeap;
 }
 #endif 

@@ -4,6 +4,8 @@
 #include "kstar_util.h"
 #include "top_k_eager_search.h"
 #include "../algorithms/priority_queues.h"
+#include "../graphviz_writer.h"
+
 #include <memory>
 
 namespace kstar {
@@ -18,7 +20,6 @@ private:
 
 protected:		
 	virtual ~KStar() = default;
-	bool first_plan_found;
 	int optimal_solution_cost;
 	std::priority_queue<Node> queue_djkstra;
 	std::unordered_set<StateID> heap_initialized;
@@ -26,9 +27,13 @@ protected:
 	std::map<Sap, bool> cross_edge;
 	std::unique_ptr<PlanReconstructor> plan_reconstructor;
 	std::unique_ptr<SuccessorGenerator> pg_succ_generator;
+	std::unique_ptr<graphviz_writer::GraphvizWriter> graphviz_writer;
 	std::unordered_set<StateActionPair> closed;
 
-	void djkstra_search();
+	// djkstra search return true if k solutions have been found and false otherwise
+	bool djkstra_search();
+	bool enough_nodes_expanded();
+	void resume_astar();
 	vector<Sap> djkstra_traceback(Node& top_pair);
 	vector<Sap> compute_sidetrack_seq(Node& top_pair, vector<Sap>& path);
 	bool is_initialized(GlobalState &s);

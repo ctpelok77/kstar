@@ -12,14 +12,18 @@ using namespace top_k_eager_search;
 
 namespace kstar{
 KStar::KStar(const options::Options &opts) 	
-	:TopKEagerSearch(opts), first_plan_found(false) {
+	:TopKEagerSearch(opts) {
 	print_set_of_operators(g_operators, "all ops");	
+	// TODO: think of a way how those unique ptr stuff can be made shorter
 	pg_succ_generator = 
 			unique_ptr<SuccessorGenerator>(new kstar::SuccessorGenerator(	
 															H_T,
 															parent_sap,
 															cross_edge,
 															&state_registry));
+	graphviz_writer = 
+			unique_ptr<graphviz_writer::GraphvizWriter>(new graphviz_writer::GraphvizWriter(&state_registry,&search_space));
+			
 
 
 }
@@ -36,39 +40,76 @@ void KStar::init_plan_reconstructor() {
 void KStar::search() {
 	initialize();
 	utils::CountdownTimer timer(max_time);
-	while (status == IN_PROGRESS || status == INTERRUPTED) {
+	while (status == IN_PROGRESS || status == INTERRUPTED
+		   || status == FIRST_PLAN_FOUND)
+	{
 		status = step();
 		if (timer.is_expired()) {
 			cout << "Time limit reached. Abort search." << endl;
 			status = TIMEOUT;
 			break;
 		}
-			
-		// First solution found. Add R to path graph 
-		if (status == SOLVED && !first_plan_found) {
-            debug(1,_ARGS);
+		// First solution found. Add R to path graph, perfom djkstra
+		if (status == FIRST_PLAN_FOUND) {
 			interrupt();
-			add_first_plan();
+			//add_first_plan();
 			init_plan_reconstructor();
-			// remove that part later 
-			djkstra_search();
+			if (djkstra_search()) {
+				status = SOLVED;
+                solution_found = true;
+			}
+
 			output_plans();
+			search_space.dump_dot();
+			graphviz_writer->dump_inheap(H_in);
 			exit(0);
 		}
-		
-		// Check whether A* has expanded enough nodes and if yes 
+		// Check whether A* has expanded enough nodes and if yes
 		// start a djkstra search on P(G)
 		if (status == INTERRUPTED) {
-			if (!open_list->empty()) {
-				if (!queue_djkstra.empty()) { 	
-					StateID u = open_list->top();					
-					Node top_pair = queue_djkstra.top(); 
+			if (!open_list->empty() && !queue_djkstra.empty()) {
+				// if enough nodes expanded do djkstra search
+				if (enough_nodes_expanded()) {
+					if (djkstra_search()) {
+						status = SOLVED;
+                        output_plans();
+					}
 				}
 			}
+            else if(!open_list->empty()) {
+				resume_astar();
+			}
 		}
+		// Both queues are empty == less than k solutions found
+		//if(open_list->empty() && queue_djkstra.empty()){
+        //   status = FAILED;
+		//}
 	}
 		cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
+}
+
+bool KStar::enough_nodes_expanded() {
+	StateID u = open_list->top();
+	Node n = queue_djkstra.top();
+	int d = pg_succ_generator->get_max_successor_delta(n);
+
+	if (optimal_solution_cost + d <= get_f_value(u))
+		return true;
+	return false;
+}
+// TODO: look what is the problem here 
+void KStar::resume_astar() {
+	SearchControl sc;
+    StateID u = open_list->top();
+	Node n = queue_djkstra.top();
+	int d = pg_succ_generator->get_max_successor_delta(n);
+	(void) d;
+	sc.interrupt_immediatly = false;
+	sc.f_u = get_f_value(u);
+    sc.d = pg_succ_generator->get_max_successor_delta(n);
+	sc.optimal_solution_cost = optimal_solution_cost;
+	resume(sc);
 }
 
 int KStar::get_f_value(StateID id) {
@@ -168,7 +209,7 @@ void KStar::initialize_tree_heaps(Sap& sap) {
 }
 
 // Djkstra search on path graph P(G)
-void KStar::djkstra_search() {
+bool KStar::djkstra_search() {
 	std::cout << "Switching to djkstra search on path graph" << std::endl;
 	reset_initialized();
 	add_goal_heap_top();
@@ -183,9 +224,8 @@ void KStar::djkstra_search() {
 
 		notify_expand(node);
 		auto sap = node.second;
-        const int g = node.first;
-
 		initialize_tree_heaps(sap);
+
 		// handle root node R
 		if (sap->from == StateID::no_state) {
             Node successor;
@@ -197,13 +237,15 @@ void KStar::djkstra_search() {
 		// For all other nodes
 		plan_reconstructor->add_plan(node, top_k_plans);
         if (enough_plans_found())
-			return;
+			return true;
 
 		std::vector<Node> successors; 
 		pg_succ_generator->get_successors(node, successors);
 		for (auto& succ : successors) 
 			queue_djkstra.push(succ);
     }
+
+	return false;
 }
 
 

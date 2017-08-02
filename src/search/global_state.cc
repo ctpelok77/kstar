@@ -42,3 +42,20 @@ void GlobalState::dump_fdr() const {
     State state(registry->get_task(), get_values());
     state.dump_fdr();
 }
+
+void GlobalState::dump_simple() const {
+   vector<int> vals = get_values();
+   for (size_t i = 0; i < vals.size(); ++i) {
+      cout << vals[i];
+   }
+   cout << "" << endl;
+}
+
+std::string GlobalState::simple_string() const {
+   std::string s;
+   vector<int> vals = get_values();
+   for (size_t i = 0; i < vals.size(); ++i) {
+      s += std::to_string(vals[i]);
+   }
+   return s;
+}

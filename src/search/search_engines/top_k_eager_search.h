@@ -26,10 +26,10 @@ typedef shared_ptr<StateActionPair> s_StateActionPair;
 struct SearchControl {
 	bool interrupt_immediatly = false;
     int optimal_solution_cost = std::numeric_limits<int>::max();
-	int g_n = -1;
+	int d = -1;
 	int f_u = -1;
 	bool check_interrupt() {
-		if (interrupt_immediatly || optimal_solution_cost + g_n <= f_u) 
+		if (interrupt_immediatly || optimal_solution_cost + d <= f_u)
 			return true; 
 		return false;
 	}
@@ -38,6 +38,7 @@ class TopKEagerSearch : public SearchEngine {
     const bool reopen_closed_nodes;
 protected:
 	const int number_of_plans;
+	bool first_plan_found;
     std::unique_ptr<StateOpenList> open_list;
     ScalarEvaluator *f_evaluator;
     std::vector<Heuristic *> heuristics;
@@ -70,7 +71,6 @@ protected:
 	void update_path_graph(SearchNode &node, const GlobalOperator* op,
 					       SearchNode &succ_node);
 	void remove_tree_edge(GlobalState& s);
-	//void dump_heaps(PerStateInformation<InHeap>& heap, std::string filename);
 	std::string get_node_label(StateActionPair &edge);
 	std::string get_node_name(StateActionPair &edge);
 
@@ -80,6 +80,7 @@ public:
     virtual void print_statistics() const override;
     void dump_search_space() const;
 
+    void dump_inheap_elements();
 };
 
 void add_top_k_option(OptionParser &parser);

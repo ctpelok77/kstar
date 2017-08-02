@@ -78,6 +78,7 @@ fast_downward_plugin(
         task_proxy
         task_tools
         variable_order_finder
+		graphviz_writer
 
         open_lists/alternation_open_list
         open_lists/epsilon_greedy_open_list

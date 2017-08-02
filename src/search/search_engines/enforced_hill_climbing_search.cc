@@ -178,7 +178,7 @@ SearchStatus EnforcedHillClimbingSearch::step() {
     search_progress.check_progress(current_eval_context);
 
     if (check_goal_and_set_plan(current_eval_context.get_state())) {
-        return SOLVED;
+        return FIRST_PLAN_FOUND;
     }
 
     expand(current_eval_context);

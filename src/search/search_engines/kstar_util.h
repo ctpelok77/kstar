@@ -47,11 +47,11 @@ public:
 
 	virtual ~SuccessorGenerator() = default;
 	void get_successor_R(Node &sap, Node &successor);
-	void get_successors(Node &sap, vector<Node> &successor_sap);
+	void get_successors(Node &sap, vector<Node> &successor_sap, bool successors_only = false);
 	int get_max_successor_delta(Node& sap);
 	int get_cost_cross_edge(Sap& to);
 	int get_cost_heap_edge(Sap& from, Sap& to);
-    void add_cross_edge(Node &p, vector<Node> &successors);
+    void add_cross_edge(Node &p, vector<Node> &successors, bool successors_only = false);
 };
 }
 #endif 

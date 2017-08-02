@@ -147,7 +147,7 @@ SearchStatus EagerSearch::step() {
     		dump_plan_forbid_reformulation_sas("reformulated_output.sas", get_plan());
         	//dump_reformulated_sas("reformulated_output.sas");
 
-        return SOLVED;
+        return FIRST_PLAN_FOUND;
     }
 
     vector<const GlobalOperator *> applicable_ops;
