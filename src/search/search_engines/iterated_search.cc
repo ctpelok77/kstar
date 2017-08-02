@@ -56,7 +56,7 @@ unique_ptr<SearchEngine> IteratedSearch::create_phase(int phase) {
 SearchStatus IteratedSearch::step() {
     unique_ptr<SearchEngine> current_search = create_phase(phase);
     if (!current_search) {
-        return found_solution() ? SOLVED : FAILED;
+        return found_solution() ? FIRST_PLAN_FOUND : FAILED;
     }
     if (pass_bound) {
         current_search->set_bound(best_bound);
@@ -101,7 +101,7 @@ SearchStatus IteratedSearch::step_return_value() {
             return IN_PROGRESS;
         } else {
             cout << "Solution found - stop searching" << endl;
-            return SOLVED;
+            return FIRST_PLAN_FOUND;
         }
     } else {
         if (continue_on_fail) {
@@ -109,7 +109,7 @@ SearchStatus IteratedSearch::step_return_value() {
             return IN_PROGRESS;
         } else {
             cout << "No solution found - stop searching" << endl;
-            return iterated_found_solution ? SOLVED : FAILED;
+            return iterated_found_solution ? FIRST_PLAN_FOUND : FAILED;
         }
     }
 }

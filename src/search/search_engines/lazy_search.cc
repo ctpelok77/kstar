@@ -189,7 +189,7 @@ SearchStatus LazySearch::step() {
             }
             node.close();
             if (check_goal_and_set_plan(current_state))
-                return SOLVED;
+                return FIRST_PLAN_FOUND;
             if (search_progress.check_progress(current_eval_context)) {
                 print_checkpoint_line(current_g);
                 reward_progress();

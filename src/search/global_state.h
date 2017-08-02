@@ -51,6 +51,9 @@ public:
     std::vector<int> get_values() const;
 
     void dump_pddl() const;
+
+    std::string simple_string() const;
+    void dump_simple() const;
     void dump_fdr() const;
 };
 

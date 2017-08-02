@@ -69,7 +69,7 @@ void save_plan(const vector<const GlobalOperator *> &plan,
     if (generates_multiple_plan_files || g_is_part_of_anytime_portfolio) {
         filename << "." << plan_number;
     } else {
-        assert(plan_number == 1);
+        //assert(plan_number == 1);
     }
     ofstream outfile(filename.str());
     for (size_t i = 0; i < plan.size(); ++i) {

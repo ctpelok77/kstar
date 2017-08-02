@@ -102,20 +102,16 @@ void TopKEagerSearch::print_statistics() const {
 SearchStatus TopKEagerSearch::step() {
 	if (search_control.check_interrupt())
 		return INTERRUPTED;
-    cout << "Beyond";
 
     pair<SearchNode, bool> n = fetch_next_node();
-
-    if (!n.second)
-        return FAILED;
-
     SearchNode node = n.first;
 
     GlobalState s = node.get_state();
 	//std::cout << "Expanding node s_"<< s[0] << std::endl;
-    if (test_goal(s)) {
+    if (test_goal(s) && !first_plan_found) {
 		goal_state = s.get_id();
-        return SOLVED;
+        first_plan_found = true;
+        return FIRST_PLAN_FOUND;
 	}	
 	
     vector<const GlobalOperator *> applicable_ops;
@@ -150,7 +146,6 @@ SearchStatus TopKEagerSearch::step() {
 
         // update new path
         if (succ_node.is_new()) {
-			//std::cout << "Generating node s_"<< succ_state[0] << std::endl;
             /*
               Note: we must call notify_state_transition for each heuristic, so
               don't break out of the for loop early.
@@ -280,60 +275,7 @@ void TopKEagerSearch::init_tree_heap(GlobalState& state) {
             s_StateActionPair p = H_in[state].top();
             add_node(H_T[state], p);
         }
-	    //std::cout << "H_T[" << state[0] << "] = H_in["<< parent_state[0] << "]" << std::endl;
 }
-
-// Dump heap in graphviz format
-/*void TopKEagerSearch::dump_heaps(PerStateInformation<InHeap>& heap, std::string filename) {
-	std::stringstream stream, node_stream;	
-	int total_num_nodes = 0;
-	stream << "digraph {\n" << endl ;
-	PerStateInformation<SearchNodeInfo>& search_node_infos = search_space.search_node_infos;
-	for (PerStateInformation<SearchNodeInfo>::const_iterator it =\
-		search_node_infos.begin(&state_registry); 
-		it != search_node_infos.end(&state_registry); ++it) {
-		StateID id = *it;
-		GlobalState s = state_registry.lookup_state(id); 
-		dump_heap_elements(heap[s], s);
-
-		stream << "subgraph " << "cluster_" <<  s[0] << " {" << endl; 	
-		stream << "label=" << "node" <<  s[0] << ";" <<  endl;
-		stream << "style=filled;" << endl;
-		stream << "color=grey;"  << endl;
-		add_node("9000" + std::to_string(total_num_nodes), "none", stream);
-		std::string node_name, node_label; 
-		bool node_has_pred = false;
-		StateActionPair pred = StateActionPair::no_sap;
-		while (!heap[s].empty()) {
-            StateActionPair top_edge = H_in[s].top();
-			node_label = get_node_label(top_edge);
-			node_name = get_node_name(top_edge);
-			bool node_added = false;
-			add_node(node_name, node_label, stream);
-			node_added = true;
-			heap[s].pop();
-			if (node_has_pred) {
-				std::string pred_name = get_node_name(pred);
-				add_edge(pred_name, node_name, "" , stream);
-			}
-
-			if (node_added) 
-				node_has_pred = true;
-
-			pred = top_edge; 
-			++total_num_nodes;
-		} 
-
-		stream << "}" << endl; 
-	}
-	stream << "}" << endl; 	
-	std::ofstream file;
-	file.open(filename, std::ofstream::out);
-	file << stream.rdbuf();
-	file << node_stream.rdbuf();
-	file.close();
-}
- */
 
 void TopKEagerSearch::dump_heap_elements() {
         PerStateInformation<SearchNodeInfo> &search_node_infos = search_space.search_node_infos;
@@ -342,16 +284,40 @@ void TopKEagerSearch::dump_heap_elements() {
              it != search_node_infos.end(&state_registry); ++it) {
             StateID id = *it;
             GlobalState s = state_registry.lookup_state(id);
-            print_in_green("Begin state" + std::to_string(s.get_id().get_value()));
+            print_in_red("Begin state" + s.simple_string());
+            s.dump_simple();
             init_tree_heap(s);
+            cout << "bucket.size " << H_T[s].bucket.size() << endl;
             while (!H_T[s].empty()) {
                 shared_ptr<StateActionPair> &sap = H_T[s].top();
                 sap->dump();
+                cout << sap->op->get_name() << endl;
                 std::cout << "delta " << sap->get_delta() << std::endl;
                 std::cout << "" << std::endl;
                 H_T[s].pop();
             }
-            print_in_green("End state" + std::to_string(s[0]));
+            print_in_red("End state" + s.simple_string());
+        }
+}
+void TopKEagerSearch::dump_inheap_elements() {
+        PerStateInformation<SearchNodeInfo> &search_node_infos = search_space.search_node_infos;
+        for (PerStateInformation<SearchNodeInfo>::const_iterator it = \
+        search_node_infos.begin(&state_registry);
+             it != search_node_infos.end(&state_registry); ++it) {
+            StateID id = *it;
+            GlobalState s = state_registry.lookup_state(id);
+            print_in_green("Begin state" + s.simple_string());
+            s.dump_simple();
+            cout << "bucket.size " << H_in[s].bucket.size() << endl;
+            while (!H_in[s].empty()) {
+                shared_ptr<StateActionPair> &sap = H_in[s].top();
+                sap->dump();
+                cout << sap->op->get_name() << endl;
+                std::cout << "delta " << sap->get_delta() << std::endl;
+                std::cout << "" << std::endl;
+                H_in[s].pop();
+            }
+            print_in_green("End state" + s.simple_string());
         }
 }
 
@@ -371,14 +337,13 @@ std::string TopKEagerSearch::get_node_name(StateActionPair &edge) {
 }
 
 void TopKEagerSearch::interrupt() {
-	//status = INTERRUPTED;
     SearchControl interrupt;
     interrupt.interrupt_immediatly = true;
     search_control = interrupt;
 }
 
 void TopKEagerSearch::resume(SearchControl& sc) {
-	//status = IN_PROGRESS;
+	status = IN_PROGRESS;
     search_control = sc;
 }
 
@@ -393,7 +358,7 @@ pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
 
     while (true) {
         if (open_list->empty()) {
-            cout << "Completely explored state space -- no solution!" << endl;
+            cout << "Completely explored state space!" << endl;
             // HACK! HACK! we do this because SearchNode has no default/copy constructor
             const GlobalState &initial_state = state_registry.get_initial_state();
             SearchNode dummy_node = search_space.get_node(initial_state);
@@ -411,7 +376,7 @@ pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
             continue;
 
         node.close();
-		remove_tree_edge(s);
+		//remove_tree_edge(s);
 
         assert(!node.is_dead_end());
         update_f_value_statistics(node);
@@ -476,7 +441,7 @@ void add_pruning_option(OptionParser &parser) {
 }
 
 void add_top_k_option(OptionParser &parser) {
-    parser.add_option<int>("K", "Number of plans", "10000");
+    parser.add_option<int>("K", "Number of plans", "3");
 }
 
 static SearchEngine *_parse(OptionParser &parser) {
