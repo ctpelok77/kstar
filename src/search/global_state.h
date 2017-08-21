@@ -52,7 +52,7 @@ public:
 
     void dump_pddl() const;
 
-    std::string simple_string() const;
+    std::string get_state_tuple() const;
     void dump_simple() const;
     void dump_fdr() const;
 };

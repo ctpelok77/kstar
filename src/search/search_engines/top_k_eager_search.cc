@@ -13,12 +13,6 @@
 #include "../algorithms/ordered_set.h"
 #include "../open_lists/open_list_factory.h"
 
-#include <cassert>
-#include <cstdlib>
-#include <memory>
-#include <string>
-#include <set>
-
 using namespace std;
 
 namespace top_k_eager_search {
@@ -31,7 +25,7 @@ TopKEagerSearch::TopKEagerSearch(const Options &opts)
       f_evaluator(opts.get<ScalarEvaluator *>("f_eval", nullptr)),
       preferred_operator_heuristics(opts.get_list<Heuristic *>("preferred")),
       pruning_method(opts.get<shared_ptr<PruningMethod>>("pruning")),
-	  interrupt_search(false) {
+	  interrupt_search(false), first_plan_found(false){
 }
 
 void TopKEagerSearch::initialize() {
@@ -100,23 +94,20 @@ void TopKEagerSearch::print_statistics() const {
 }
 
 SearchStatus TopKEagerSearch::step() {
-	if (search_control.check_interrupt())
-		return INTERRUPTED;
-
     pair<SearchNode, bool> n = fetch_next_node();
     SearchNode node = n.first;
-
     GlobalState s = node.get_state();
-	//std::cout << "Expanding node s_"<< s[0] << std::endl;
+    if (search_control.check_interrupt() || all_nodes_expanded)
+        return INTERRUPTED;
+
     if (test_goal(s) && !first_plan_found) {
-		goal_state = s.get_id();
+        goal_state = s.get_id();
         first_plan_found = true;
         return FIRST_PLAN_FOUND;
-	}	
-	
+    }
+
     vector<const GlobalOperator *> applicable_ops;
     g_successor_generator->generate_applicable_ops(s, applicable_ops);
-
     /*
       TODO: When preferred operators are in use, a preferred operator will be
       considered by the preferred operator queues even when it is pruned.
@@ -126,23 +117,23 @@ SearchStatus TopKEagerSearch::step() {
     // This evaluates the expanded state (again) to get preferred ops
     EvaluationContext eval_context(s, node.get_g(), false, &statistics, true);
     ordered_set::OrderedSet<const GlobalOperator *> preferred_operators =
-        collect_preferred_operators(eval_context, preferred_operator_heuristics);
+            collect_preferred_operators(eval_context, preferred_operator_heuristics);
 
     for (const GlobalOperator *op : applicable_ops) {
         if ((node.get_real_g() + op->get_cost()) >= bound) {
             continue;
-		}
+        }
 
         GlobalState succ_state = state_registry.get_successor_state(s, *op);
         statistics.inc_generated();
         bool is_preferred = preferred_operators.contains(op);
         SearchNode succ_node = search_space.get_node(succ_state);
-		update_path_graph(node, op , succ_node);
+        add_incomming_edge(node, op, succ_node);
 
         // Previously encountered dead end. Don't re-evaluate.
         if (succ_node.is_dead_end()) {
             continue;
-		}
+        }
 
         // update new path
         if (succ_node.is_new()) {
@@ -154,7 +145,7 @@ SearchStatus TopKEagerSearch::step() {
                 heuristic->notify_state_transition(s, *op, succ_state);
             }
         }
-		
+
         if (succ_node.is_new()) {
             // We have not seen this state before.
             // Evaluate and create a new node.
@@ -165,7 +156,7 @@ SearchStatus TopKEagerSearch::step() {
             int succ_g = node.get_g() + get_adjusted_cost(*op);
 
             EvaluationContext eval_context(
-                succ_state, succ_g, is_preferred, &statistics);
+                    succ_state, succ_g, is_preferred, &statistics);
             statistics.inc_evaluated_states();
 
             if (open_list->is_dead_end(eval_context)) {
@@ -195,7 +186,7 @@ SearchStatus TopKEagerSearch::step() {
                 succ_node.reopen(node, op);
 
                 EvaluationContext eval_context(
-                    succ_state, succ_node.get_g(), is_preferred, &statistics);
+                        succ_state, succ_node.get_g(), is_preferred, &statistics);
 
                 /*
                   Note: our old code used to retrieve the h value from
@@ -222,117 +213,87 @@ SearchStatus TopKEagerSearch::step() {
                 // the g-value and the actual path that is traced back.
                 succ_node.update_parent(node, op);
             }
-			
+
         }
     }
-
+    if (!open_list->empty()) {
+        StateID u = open_list->top();
+        search_control.f_u = get_f_value(u);
+    }
     return IN_PROGRESS;
 }
-// For K* we store the state action pair that leads to succ node in 
-// succ nodes heap H_in
-void TopKEagerSearch::update_path_graph(SearchNode& node, 
-										const GlobalOperator* op,
-										SearchNode& succ_node) {
-        if(node.get_state_id() == succ_node.get_state_id())
-            return;
 
+void TopKEagerSearch::add_incomming_edge(SearchNode node,
+                                         const GlobalOperator *op,
+                                         SearchNode succ_node) {
+        if (node.get_state_id() == succ_node.get_state_id())
+            return;
         auto sap = make_shared<StateActionPair>(node.get_state_id(),
                                                 succ_node.get_state_id(),
-                                                op,
-                                                &state_registry,
+                                                op, &state_registry,
                                                 &search_space);
-        ++num_saps;
 	    GlobalState succ_state = succ_node.get_state();
-        H_in[succ_state].push(sap);
+        //cout << "Pushed " << get_node_name(*sap) << " to incomming_heap[" << succ_state.get_state_tuple() << "]"<< flush << endl;
+        incomming_heap[succ_state].push_back(sap);
+        std::stable_sort(incomming_heap[succ_state].begin(), incomming_heap[succ_state].end(),Cmp<Sap>());
+        ++num_saps;
 }
-void TopKEagerSearch::add_node(InHeap& in, s_StateActionPair& sap) {
+
+/*void TopKEagerSearch::add_node(InHeap& in, Sap& sap) {
     shared_ptr<StateActionPair> new_sap(new StateActionPair(sap->from, sap->to, sap->op,
                                                              &state_registry,&search_space));
     ++num_saps;
     in.push(new_sap);
 }
 
-InHeap TopKEagerSearch::copy_in_heap(GlobalState& s) {
+InHeap TopKEagerSearch::copy_parent_treeheap(GlobalState &parent) {
     InHeap copied_heap;
-    int queue_top = H_in[s].queue_top;
-    while(!H_in[s].empty()){
-        s_StateActionPair sap = H_in[s].top();
+    int queue_top = tree_heap[parent].queue_top;
+    while(!tree_heap[parent].empty()){
+        Sap sap = tree_heap[parent].top();
         add_node(copied_heap, sap);
-        H_in[s].pop();
+        tree_heap[parent].pop();
     }
-    H_in[s].queue_top = queue_top;
+    tree_heap[parent].queue_top = queue_top;
     return copied_heap;
 }
+*/
 
-// We create a copy of the parent in the search tree
+// Recursively trace the search path to state and add all top elements
+// of incomming heaps
 void TopKEagerSearch::init_tree_heap(GlobalState& state) {
 	    StateID parent_id = search_space.search_node_infos[state].parent_state_id;
-	    if (parent_id == StateID::no_state)
-		    return;
-	    GlobalState parent_state = state_registry.lookup_state(parent_id);
-        H_T[state] = copy_in_heap(parent_state);
-        if (!H_in[state].empty()) {
-            s_StateActionPair p = H_in[state].top();
-            add_node(H_T[state], p);
+		tree_heap[state].clear();
+        if (parent_id != StateID::no_state) {
+            GlobalState parent_state = state_registry.lookup_state(parent_id);
+            init_tree_heap(parent_state);
+            tree_heap[state].insert(tree_heap[state].end(),
+                                    tree_heap[parent_state].begin(),
+                                    tree_heap[parent_state].end());
         }
-}
+        // Copy root_in[state] to tree_heap[heap]
+        if (!incomming_heap[state].empty()) {
+            Sap &p = incomming_heap[state].front();
+            tree_heap[state].push_back(p);
+        }
+        std::stable_sort(tree_heap[state].begin(), tree_heap[state].end(), Cmp<Sap>());
+        //cout << "Initializing " << "H_T[" << state.get_state_tuple() << "]"
+         //    << tree_heap[state].size() << flush << endl;
+    }
 
-void TopKEagerSearch::dump_heap_elements() {
-        PerStateInformation<SearchNodeInfo> &search_node_infos = search_space.search_node_infos;
-        for (PerStateInformation<SearchNodeInfo>::const_iterator it = \
-        search_node_infos.begin(&state_registry);
-             it != search_node_infos.end(&state_registry); ++it) {
-            StateID id = *it;
-            GlobalState s = state_registry.lookup_state(id);
-            print_in_red("Begin state" + s.simple_string());
-            s.dump_simple();
-            init_tree_heap(s);
-            cout << "bucket.size " << H_T[s].bucket.size() << endl;
-            while (!H_T[s].empty()) {
-                shared_ptr<StateActionPair> &sap = H_T[s].top();
-                sap->dump();
-                cout << sap->op->get_name() << endl;
-                std::cout << "delta " << sap->get_delta() << std::endl;
-                std::cout << "" << std::endl;
-                H_T[s].pop();
-            }
-            print_in_red("End state" + s.simple_string());
-        }
-}
-void TopKEagerSearch::dump_inheap_elements() {
-        PerStateInformation<SearchNodeInfo> &search_node_infos = search_space.search_node_infos;
-        for (PerStateInformation<SearchNodeInfo>::const_iterator it = \
-        search_node_infos.begin(&state_registry);
-             it != search_node_infos.end(&state_registry); ++it) {
-            StateID id = *it;
-            GlobalState s = state_registry.lookup_state(id);
-            print_in_green("Begin state" + s.simple_string());
-            s.dump_simple();
-            cout << "bucket.size " << H_in[s].bucket.size() << endl;
-            while (!H_in[s].empty()) {
-                shared_ptr<StateActionPair> &sap = H_in[s].top();
-                sap->dump();
-                cout << sap->op->get_name() << endl;
-                std::cout << "delta " << sap->get_delta() << std::endl;
-                std::cout << "" << std::endl;
-                H_in[s].pop();
-            }
-            print_in_green("End state" + s.simple_string());
-        }
-}
 
 std::string TopKEagerSearch::get_node_label(StateActionPair &edge) {
     int from = state_registry.lookup_state(edge.from)[0];
 	int to = state_registry.lookup_state(edge.to)[0];
 	std::string node_name = std::to_string(from) + std::to_string(to)
-							+ " delta: " + std::to_string(edge.get_delta()); 
+							+ " delta: " + std::to_string(edge.get_delta());
 	return node_name;
 }
 
 std::string TopKEagerSearch::get_node_name(StateActionPair &edge) {
-	int from = state_registry.lookup_state(edge.from)[0];
-	int to = state_registry.lookup_state(edge.to)[0];
-	std::string node_name = std::to_string(from) + std::to_string(to);
+	string from = state_registry.lookup_state(edge.from).get_state_tuple();
+	string to = state_registry.lookup_state(edge.to).get_state_tuple();
+	std::string node_name = "(" + from +","+ to + ") " + edge.op->get_name();
 	return node_name;
 }
 
@@ -345,6 +306,46 @@ void TopKEagerSearch::interrupt() {
 void TopKEagerSearch::resume(SearchControl& sc) {
 	status = IN_PROGRESS;
     search_control = sc;
+}
+
+int TopKEagerSearch::get_f_value(StateID id) {
+	GlobalState s = state_registry.lookup_state(id);
+	int g = search_space.get_node(s).get_g();
+	EvaluationContext eval_context(s, g, false, &statistics);
+	int f = eval_context.get_heuristic_value(f_evaluator);
+	return f;
+}
+
+// removing the tree edge
+void TopKEagerSearch::remove_tree_edge(GlobalState s)  {
+    SearchNodeInfo info = search_space.search_node_infos[s];
+    int creating_op = info.creating_operator;
+    int tree_edge_pos = -1;
+
+    for (size_t i = 0; i < incomming_heap[s].size(); ++i) {
+        Sap sap = incomming_heap[s][i];
+        if (sap->get_delta() > 0)
+            continue;
+        if(sap->op->get_index() == creating_op) {
+            tree_edge_pos = i;
+           break;
+        }
+    }
+
+    if (tree_edge_pos != -1) {
+        /*cout << "Removing " << get_node_name(*incomming_heap[s][tree_edge_pos]) \
+            << " from incomming_heap[" << s.get_state_tuple() << "]" << flush << endl;
+        */
+        incomming_heap[s].erase(incomming_heap[s].begin() + tree_edge_pos);
+    }
+}
+
+
+// Sort the incomming heap edges according to their delta
+// value and remove the tree edge
+void TopKEagerSearch::sort_and_remove(GlobalState s) {
+    std::stable_sort(incomming_heap[s].begin(), incomming_heap[s].end(), Cmp<Sap>());
+    remove_tree_edge(s);
 }
 
 pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
@@ -362,9 +363,11 @@ pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
             // HACK! HACK! we do this because SearchNode has no default/copy constructor
             const GlobalState &initial_state = state_registry.get_initial_state();
             SearchNode dummy_node = search_space.get_node(initial_state);
+            all_nodes_expanded = true;
             return make_pair(dummy_node, false);
         }
         StateID id = open_list->remove_min(nullptr);
+
         // TODO is there a way we can avoid creating the state here and then
         //      recreate it outside of this function with node.get_state()?
         //      One way would be to store GlobalState objects inside SearchNodes
@@ -376,30 +379,13 @@ pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
             continue;
 
         node.close();
-		//remove_tree_edge(s);
+        sort_and_remove(s);
 
         assert(!node.is_dead_end());
         update_f_value_statistics(node);
         statistics.inc_expanded();
         return make_pair(node, true);
     }
-}
-
-// remove the tree edge from tree heap H_in
-void TopKEagerSearch::remove_tree_edge(GlobalState& s) {
-	SearchNodeInfo &info = search_space.search_node_infos[s];
-	int op_index = info.creating_operator;
-	while (!H_in[s].empty()) {
-		s_StateActionPair top_pair = H_in[s].top();
-		if (top_pair->get_delta() > 0)
-			return;
-		if (top_pair->op->get_index() == op_index) {
-			H_in[s].forbid_top();	
-			break;
-		}
-		H_in[s].pop();
-	}		
-	H_in[s].reset();
 }
 
 void TopKEagerSearch::reward_progress() {
@@ -441,7 +427,7 @@ void add_pruning_option(OptionParser &parser) {
 }
 
 void add_top_k_option(OptionParser &parser) {
-    parser.add_option<int>("K", "Number of plans", "3");
+    parser.add_option<int>("K", "Number of plans", "10");
 }
 
 static SearchEngine *_parse(OptionParser &parser) {

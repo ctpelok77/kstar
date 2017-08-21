@@ -14,7 +14,7 @@ int main(int argc, const char **argv) {
     utils::register_event_handlers();
 
 #ifndef NDEBUG
-    std::ifstream in("/home/dominik/implementations/top_k_repo/FD-topK/diamond_easy.sas");
+    std::ifstream in("/home/dominik/implementations/new_kstar/examples/example2.sas");
     std::cin.rdbuf(in.rdbuf());
 #endif
     if (argc < 2) {

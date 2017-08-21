@@ -94,14 +94,12 @@ Entry TieBreakingOpenList<Entry>::remove_min(vector<int> *key) {
 template<class Entry>
 Entry TieBreakingOpenList<Entry>::top() {
     assert(size > 0);
-    typename map<const vector<int>, Bucket>::iterator it;
-    it = buckets.begin();
+    auto it = buckets.begin();
     assert(it != buckets.end());
     assert(!it->second.empty());
-    --size;
     Entry result = it->second.front();
-    if (it->second.empty())
-        buckets.erase(it);
+    //if (it->second.empty())
+    //   buckets.erase(it);
     return result;
 }
 

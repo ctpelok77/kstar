@@ -78,7 +78,6 @@ fast_downward_plugin(
         task_proxy
         task_tools
         variable_order_finder
-		graphviz_writer
 
         open_lists/alternation_open_list
         open_lists/epsilon_greedy_open_list
@@ -609,8 +608,10 @@ fast_downward_plugin(
 	NAME KSTAR 
 	HELP "KStar algorithm"
     SOURCES
-        search_engines/kstar
-		search_engines/kstar_util
+        kstar/kstar
+		kstar/plan_reconstructor
+		kstar/successor_generator
+		kstar/util
     DEPENDS NULL_PRUNING_METHOD ORDERED_SET SEARCH_COMMON TOP_K_EAGER_SEARCH
 )
 
