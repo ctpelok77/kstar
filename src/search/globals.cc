@@ -74,6 +74,7 @@ void save_plan(const vector<const GlobalOperator *> &plan,
     ofstream outfile(filename.str());
     for (size_t i = 0; i < plan.size(); ++i) {
         cout << plan[i]->get_name() << " (" << plan[i]->get_cost() << ")" << endl;
+        plan[i]->dump();
         outfile << "(" << plan[i]->get_name() << ")" << endl;
     }
     int plan_cost = calculate_plan_cost(plan);
@@ -140,6 +141,14 @@ void read_variables(istream &in) {
         g_fact_names.push_back(fact_names);
         check_magic(in, "end_variable");
     }
+    // add extra variable
+    g_variable_domain.push_back(2);
+    g_variable_name.push_back("goal_var");
+    g_axiom_layers.push_back(-1);
+    std::vector<string> fact_names;
+    fact_names.push_back("false");
+    fact_names.push_back("true");
+    g_fact_names.push_back(fact_names);
 }
 
 void read_mutexes(istream &in) {
@@ -219,6 +228,8 @@ void read_operators(istream &in) {
     in >> count;
     for (int i = 0; i < count; ++i)
         g_operators.push_back(GlobalOperator(in, false, i));
+    // adding single goal operator here
+    g_operators.push_back(GlobalOperator(in, false, count, true));
 }
 
 void read_axioms(istream &in) {
@@ -230,6 +241,11 @@ void read_axioms(istream &in) {
     g_axiom_evaluator = new AxiomEvaluator(TaskProxy(*g_root_task()));
 }
 
+void change_goal() {
+   g_goal.clear();
+   g_goal.push_back(make_pair<int,int>(g_variable_domain.size() - 1, 1));
+}
+
 void read_everything(istream &in) {
     cout << "reading input... [t=" << utils::g_timer << "]" << endl;
     read_and_verify_version(in);
@@ -238,14 +254,17 @@ void read_everything(istream &in) {
     read_mutexes(in);
     g_initial_state_data.resize(g_variable_domain.size());
     check_magic(in, "begin_state");
-    for (size_t i = 0; i < g_variable_domain.size(); ++i) {
+    for (size_t i = 0; i < g_variable_domain.size() - 1; ++i) {
         in >> g_initial_state_data[i];
     }
+
+    // For the extra variable
+    g_initial_state_data[g_variable_domain.size() - 1] = 0;
     check_magic(in, "end_state");
     g_default_axiom_values = g_initial_state_data;
-
     read_goal(in);
     read_operators(in);
+    change_goal();
     read_axioms(in);
 
     /* TODO: We should be stricter here and verify that we
@@ -432,7 +451,6 @@ void dump_pre_post_SAS(std::ostream& os, int pre, GlobalEffect eff) {
     os << eff.var << " " << pre << " " << eff.val << std::endl;
 }
 
-///*
 void dump_plan_forbid_reformulation_sas(const char* filename,
 							const std::vector<const GlobalOperator *>& plan) {
 	ofstream os(filename);
@@ -561,6 +579,5 @@ void dump_plan_forbid_reformulation_sas(const char* filename,
 	}
 }
 //*/
-
 vector<vector<FactPair>> g_invariant_groups;
 

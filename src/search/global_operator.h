@@ -62,7 +62,7 @@ class GlobalOperator {
     int get_reformulated_op_type(const std::vector<GlobalCondition>& extra_pre, const std::vector<GlobalEffect>& extra_eff) const;
 
 public:
-    explicit GlobalOperator(std::istream &in, bool is_axiom, int index);
+    explicit GlobalOperator(std::istream &in, bool is_axiom, int index, bool goal_op = false);
     void dump() const;
     const std::string &get_name() const {return name; }
 

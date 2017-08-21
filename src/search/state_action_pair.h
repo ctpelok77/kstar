@@ -1,12 +1,13 @@
 #ifndef STATE_ACTION_PAIR
 #define STATE_ACTION_PAIR 
 
+#include <boost/functional/hash.hpp>
+
 #include "state_id.h"
 #include "state_registry.h"
 #include "search_space.h"
 #include "global_operator.h"
 #include "utils/util.h"
-
 
 class StateActionPair {
 public:
@@ -57,6 +58,8 @@ public:
 	};
 
 	int get_delta() const {
+		if (from == StateID::no_state)
+			return -1;
 		const GlobalState to_state = reg->lookup_state(to);
 		const GlobalState from_state = reg->lookup_state(from);
 		SearchNode from_node = ssp->get_node(from_state);
@@ -65,45 +68,117 @@ public:
 		return from_node.get_g() + op->get_cost() - to_node.get_g();
 	};
 
+	size_t hash() const {
+		size_t value_from = from.hash();
+		size_t value_to = to.hash();
+		size_t seed = 0;
+		boost::hash_combine(seed, value_from);
+		boost::hash_combine(seed, value_to);
+		return seed;
+	}
 
-	bool operator<(const StateActionPair &other) const {            
-		return this->get_delta() <other.get_delta();
-	};
-
-	bool operator==(const StateActionPair& other) const {
-		if (from == other.from || to == other.to)
+	bool operator<(const StateActionPair &other) const {
+		if (this->get_delta() < other.get_delta())
+			return true;
+		if (this->get_delta() > other.get_delta())
+            return false;
+		if (this->hash() < other.hash())
 			return true;
 		return false;
 	};
 
+	bool operator==(const StateActionPair& other) const {
+		if (from != other.from)
+			return false;
+		if (to != other.to)
+			return false;
+
+		return true;
+	};
+
 	bool operator!=(const StateActionPair &other) const {
-		if (*this == other) 
-			return true;		
-		return false;
+		if (*this == other)
+			return false;
+		return true;
+	}
+};
+
+struct Node {
+	int g = -1;
+	shared_ptr<StateActionPair> sap = nullptr;
+	StateID heap_state = StateID::no_state;
+
+	Node() {
+		g = -1;
+		sap = nullptr;
+		heap_state = StateID::no_state;
 	}
 
-	// TODO:
-	void dump() {
-		/*std::cout << "from "<< from << flush << std::endl;
-		std::cout << "to "<< to << flush << std::endl;
-		if (op) {
-			std::cout << op->get_name() << flush << std::endl;
-		}
-		std::cout << "" << std::endl;
-		*/
-		std::cout << "(" << from <<","<< to << ")" << endl;
+	Node (const Node &n) {
+		g = n.g;
+		sap = n.sap;
+		heap_state = n.heap_state;
 	}
+
+	Node(int g, shared_ptr<StateActionPair> sap, StateID heap_state)
+	: g(g), sap(sap), heap_state(heap_state){
+	};
+
+	size_t hash() const{
+		size_t value_sap = sap->hash();
+		size_t value_heap =  this->heap_state.hash();
+		size_t seed = 0;
+		boost::hash_combine(seed, value_sap);
+		boost::hash_combine(seed, value_heap);
+		return seed;
+	}
+
+    bool operator==(const Node& other) const {
+		if (g != other.g)
+			return false;
+		if ((!sap && other.sap) || (sap && !other.sap))
+            return false;
+
+        if (*sap != *other.sap)
+			return false;
+
+		if (heap_state != other.heap_state)
+			return false;
+		return true;
+	};
+
+    bool operator<(const Node &other) const {
+		if (other.g < g)
+            return true;
+        if (other.g > g)
+			return false;
+		// Tie Breaking if they have equal  g_values
+		size_t hash = this->hash();
+		size_t other_hash = other.hash();
+		if (other_hash  < hash)
+			return true;
+		return false;
+	};
 };
 
 namespace std {
 	template<>
 	struct hash<StateActionPair> {
 		std::size_t operator()(const StateActionPair &sap) const {
-            std::hash<long int> hash_function;
-            long int value_from = sap.from.get_value();
-			long int value_to = sap.to.get_value();
-			return hash_function(value_from) + hash_function(value_to);
+			return sap.hash();
+		}
+	};
+    template<>
+	struct hash<Node> {
+		std::size_t operator()(const Node &node) const {
+			return node.hash();
 		}
 	};
 }
-#endif 
+
+template <typename T> struct Cmp {
+    bool operator() (const T &lhs, const T &rhs) {
+		return *lhs < *rhs;
+	};
+};
+#endif

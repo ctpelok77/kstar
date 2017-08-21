@@ -70,29 +70,41 @@ void GlobalOperator::read_pre_post(istream &in) {
     effects.push_back(GlobalEffect(var, post, conditions));
 }
 
-GlobalOperator::GlobalOperator(istream &in, bool axiom, int index) 
+GlobalOperator::GlobalOperator(istream &in, bool axiom, int index, bool goal_op)
 :index(index){
     is_an_axiom = axiom;
     if (!is_an_axiom) {
-        check_magic(in, "begin_operator");
-        in >> ws;
-        getline(in, name);
-        int count;
-        in >> count;
-        for (int i = 0; i < count; ++i)
-            preconditions.push_back(GlobalCondition(in));
-        in >> count;
-        for (int i = 0; i < count; ++i)
-            read_pre_post(in);
+        if (!goal_op) {
+            check_magic(in, "begin_operator");
+            in >> ws;
+            getline(in, name);
+            int count;
+            in >> count;
+            for (int i = 0; i < count; ++i)
+                preconditions.push_back(GlobalCondition(in));
+            in >> count;
+            for (int i = 0; i < count; ++i)
+                read_pre_post(in);
 
-        int op_cost;
-        in >> op_cost;
-        cost = g_use_metric ? op_cost : 1;
-
+            int op_cost;
+            in >> op_cost;
+            cost = g_use_metric ? op_cost : 1;
+            check_magic(in, "end_operator");
+        }
+        else {
+            name = "goal_op";
+            cost = 1;
+            for (pair<int,int> fact: g_goal) {
+               GlobalCondition c(fact.first, fact.second);
+               preconditions.push_back(c);
+            }
+            int extra_var =  g_variable_domain.size() -1;
+            vector<GlobalCondition> empty_cond;
+            GlobalEffect e(extra_var, 1, empty_cond);
+            effects.push_back(e);
+        }
         g_min_action_cost = min(g_min_action_cost, cost);
         g_max_action_cost = max(g_max_action_cost, cost);
-
-        check_magic(in, "end_operator");
     } else {
         name = "<axiom>";
         cost = 0;

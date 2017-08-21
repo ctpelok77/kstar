@@ -51,7 +51,7 @@ void GlobalState::dump_simple() const {
    cout << "" << endl;
 }
 
-std::string GlobalState::simple_string() const {
+std::string GlobalState::get_state_tuple() const {
    std::string s;
    vector<int> vals = get_values();
    for (size_t i = 0; i < vals.size(); ++i) {

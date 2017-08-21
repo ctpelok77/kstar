@@ -82,7 +82,6 @@ extern bool g_is_part_of_anytime_portfolio;
 extern const std::shared_ptr<AbstractTask> g_root_task();
 
 extern utils::Log g_log;
-
 extern int g_symmetrical_states_generated;
 extern int g_symmetry_improved_evaluations;
 extern int g_improving_symmetrical_states;
@@ -98,7 +97,7 @@ void dump_metric(std::ostream& os);
 void dump_mutexes(std::ostream& os);
 void dump_condition_SAS(std::ostream& os, GlobalCondition cond);
 void dump_pre_post_SAS(std::ostream& os, int pre, GlobalEffect eff);
-
+void change_goal();
 void dump_plan_forbid_reformulation_sas(const char* filename,
 							const std::vector<const GlobalOperator *>& plan);
 
