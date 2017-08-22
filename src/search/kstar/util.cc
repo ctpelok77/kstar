@@ -49,9 +49,12 @@ namespace kstar {
     }
 
     void notify_push(Node &node, StateRegistry *state_registry) {
+    	/*
         std::string node_name = get_node_name(node, state_registry);
         cout << "Pushing " << node_name << " " << node.sap->op->get_name()
              << " g= " << node.g << " to queue" << endl;
+    	*/
+    	(void) node; (void) state_registry;
     }
 
     void notify_cross_edge(Node &node, StateRegistry *state_registry) {
@@ -73,6 +76,7 @@ namespace kstar {
     }
 
     void notify_expand(Node &p, StateRegistry *state_registry, int &num_node_expansions) {
+    	/*
         std::string node_name = get_node_name(p, state_registry);
 
         if (node_name != "R") {
@@ -83,6 +87,8 @@ namespace kstar {
             std::cout << num_node_expansions << ". " << "Expanding node "
                       << node_name << " g=" << p.g << std::flush << std::endl;
         }
+        */
+    	(void) p; (void) state_registry;
         ++num_node_expansions;
     }
 
