@@ -1,5 +1,6 @@
 #include "globals.h"
 
+
 #include "axioms.h"
 #include "causal_graph.h"
 #include "global_operator.h"
@@ -24,6 +25,9 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <dirent.h>
+#include <sys/stat.h>
+
 
 using namespace std;
 using utils::ExitCode;
@@ -69,20 +73,22 @@ void save_plan(const vector<const GlobalOperator *> &plan,
     if (generates_multiple_plan_files || g_is_part_of_anytime_portfolio) {
         filename << "." << plan_number;
     } else {
-        //assert(plan_number == 1);
+        assert(plan_number == 1);
     }
-    ofstream outfile(filename.str());
+    std::string dir_name = "found_plans";
+    mkdir("found_plans", 0775);
+    ofstream outfile(dir_name+"/"+filename.str());
     for (size_t i = 0; i < plan.size(); ++i) {
-        cout << plan[i]->get_name() << " (" << plan[i]->get_cost() << ")" << endl;
-        plan[i]->dump();
+        //cout << plan[i]->get_name() << " (" << plan[i]->get_cost() << ")" << endl;
+        //plan[i]->dump();
         outfile << "(" << plan[i]->get_name() << ")" << endl;
     }
     int plan_cost = calculate_plan_cost(plan);
     outfile << "; cost = " << plan_cost << " ("
             << (is_unit_cost() ? "unit cost" : "general cost") << ")" << endl;
     outfile.close();
-    cout << "Plan length: " << plan.size() << " step(s)." << endl;
-    cout << "Plan cost: " << plan_cost << endl;
+    //cout << "Plan length: " << plan.size() << " step(s)." << endl;
+    //cout << "Plan cost: " << plan_cost << endl;
     ++g_num_previously_generated_plans;
 }
 

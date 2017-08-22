@@ -12,7 +12,10 @@ using namespace top_k_eager_search;
 namespace kstar{
 
 KStar::KStar(const options::Options &opts)
-	:TopKEagerSearch(opts) {
+	:TopKEagerSearch(opts),
+	 simple_plans_only(opts.get<bool>("simple_plans_only")),
+	 num_node_expansions(0), djkstra_initialized(false)
+{
 	pg_succ_generator =
 			unique_ptr<SuccessorGenerator>(new SuccessorGenerator(
 															tree_heap,
@@ -26,7 +29,6 @@ KStar::KStar(const options::Options &opts)
 													   goal_state,
 													   &state_registry,
 													   &search_space));
-	num_node_expansions  = 0;
 }
 
 
@@ -44,7 +46,6 @@ void KStar::search() {
 		}
 		// First solution found. Add R to path graph, perfom djkstra
 		if (status == FIRST_PLAN_FOUND) {
-			initialize_djkstra();
 			if (djkstra_search()) {
 				status = SOLVED;
                 solution_found = true;
@@ -81,7 +82,7 @@ void KStar::search() {
 			}
 		}
 	}
-	output_plans();
+    output_plans();
 	cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
 }
@@ -115,6 +116,9 @@ void KStar::set_optimal_plan_cost() {
 }
 
 void KStar::initialize_djkstra() {
+   	if(djkstra_initialized)
+		return;
+
 	GlobalState g = state_registry.lookup_state(goal_state);
     plan_reconstructor->set_goal_state(goal_state);
     init_tree_heap(g);
@@ -125,12 +129,14 @@ void KStar::initialize_djkstra() {
                                            goal_state, nullptr,
                                            &state_registry, &search_space);
     pg_root = make_shared<Node>(0, sap, StateID::no_state);
-	//notify_expand(*pg_root, &state_registry, num_node_expansions);
-    plan_reconstructor->add_plan(*pg_root, top_k_plans);
+	notify_expand(*pg_root, &state_registry, num_node_expansions);
+    plan_reconstructor->add_plan(*pg_root, top_k_plans, simple_plans_only);
     set_optimal_plan_cost();
     Node successor;
     pg_succ_generator->get_successor_pg_root(pg_root, successor);
     queue_djkstra.push(successor);
+    notify_push(successor, &state_registry);
+    djkstra_initialized = true;
 }
 
 bool KStar::enough_plans_found() {
@@ -153,36 +159,39 @@ void KStar::init_tree_heaps(Node node) {
 // Djkstra search on path graph P(G) returns true if enough plans have been found
 bool KStar::djkstra_search() {
 	std::cout << "Switching to djkstra search on path graph" << std::endl;
+	initialize_djkstra();
     while (!queue_djkstra.empty()) {
 		Node node = queue_djkstra.top();
  		if(!enough_nodes_expanded())
 			return false;
 
-		//notify_expand(node, &state_registry, num_node_expansions);
-		plan_reconstructor->add_plan(node, top_k_plans);
+		notify_expand(node, &state_registry, num_node_expansions);
+		plan_reconstructor->add_plan(node, top_k_plans, simple_plans_only);
 		if (enough_plans_found())
 			return true;
+
 		queue_djkstra.pop();
 		init_tree_heaps(node);
 		std::vector<Node> successors;
-       	if (plan_reconstructor->is_simple_path(node)) {
-			pg_succ_generator->get_successors(node, successors);
-		}
-		else {
-			continue;
-		}
+		pg_succ_generator->get_successors(node, successors);
 
         for (auto succ : successors) {
 			queue_djkstra.push(succ);
+			notify_push(succ, &state_registry);
 		}
 	}
 	return false;
+}
+
+void add_simple_plans_only_option(OptionParser &parser) {
+    parser.add_option<bool>("simple_plans_only", "", "false");
 }
 
  static SearchEngine *_parse(OptionParser &parser) {
 	 parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");
 	 top_k_eager_search::add_top_k_option(parser);
 	 top_k_eager_search::add_pruning_option(parser);
+	 add_simple_plans_only_option(parser);
 	 SearchEngine::add_options_to_parser(parser);
 	 Options opts = parser.parse();
 	 KStar *engine = nullptr; if (!parser.dry_run()) {

@@ -143,6 +143,13 @@ ALIASES["seq-opt-lmcut"] = [
 ALIASES["kstar"] = [
     "--search", "kstar(blind())"]
 
+ALIASES["kstar-lmcut"] = [
+    "--search", "kstar(lmcut())"]
+
+ALIASES["kstar-ipdb"] = [
+    "--search", "kstar(ipdb())"]
+
+
 ALIASES["oss-lmcut"] = ["--symmetries", "sym=structural_symmetries(time_bound=0,search_symmetries=oss)",
     "--search", "astar(lmcut(),symmetries=sym)"]
 
