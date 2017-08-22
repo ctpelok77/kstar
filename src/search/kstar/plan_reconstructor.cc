@@ -112,7 +112,7 @@ void PlanReconstructor::extract_plan(vector<Node>& seq,
 
 bool PlanReconstructor::is_simple_plan(StateSequence seq, StateRegistry* state_registry) {
     PerStateInformation<bool> seen;
-    for (int i = 0; i < seq.size(); ++i) {
+    for (size_t i = 0; i < seq.size(); ++i) {
         GlobalState s = state_registry->lookup_state(seq[i]);
         if (!seen[s]) {
            seen[s] = true;
@@ -124,7 +124,9 @@ bool PlanReconstructor::is_simple_plan(StateSequence seq, StateRegistry* state_r
     return true;
 }
 
-void PlanReconstructor::add_plan(Node node, std::vector<Plan>& top_k_plans) {
+void PlanReconstructor::add_plan(Node node,
+								 std::vector<Plan>& top_k_plans,
+								 bool simple_plans_only) {
     vector<Node> path = djkstra_traceback(node);
     vector<Node> seq;
 	if (path.size() > 1) {
@@ -133,8 +135,15 @@ void PlanReconstructor::add_plan(Node node, std::vector<Plan>& top_k_plans) {
 	Plan plan;
 	StateSequence state_seq;
     extract_plan(seq, plan, state_seq);
-	//if (is_simple_plan(state_seq, state_registry)) {
+    if (simple_plans_only) {
+		if (is_simple_plan(state_seq, state_registry)) {
+			top_k_plans.push_back(plan);
+			save_plan(plan, true);
+		}
+	}
+	else {
 		top_k_plans.push_back(plan);
-	//}
+        save_plan(plan, true);
+	}
 }
 }

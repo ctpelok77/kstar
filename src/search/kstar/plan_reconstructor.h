@@ -22,8 +22,7 @@ public:
 	void extract_plan(vector<Node>& seq, Plan &plan, StateSequence &state_seq);
 	// Checks whether an extracted plan is simple
 	bool is_simple_plan(StateSequence seq, StateRegistry* state_registry);
-    //bool is_simple_path(Node node);
 	void set_goal_state(StateID goal_state);
-	void add_plan(Node node, std::vector<Plan>& top_k_plans);
+	void add_plan(Node node, std::vector<Plan>& top_k_plans, bool simple_plans_only);
 };
 }
