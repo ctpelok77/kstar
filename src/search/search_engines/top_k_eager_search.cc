@@ -233,7 +233,7 @@ void TopKEagerSearch::add_incomming_edge(SearchNode node,
                                                 op, &state_registry,
                                                 &search_space);
 	    GlobalState succ_state = succ_node.get_state();
-        cout << "Pushed " << get_node_name(*sap) << " to incomming_heap[" << succ_state.get_state_tuple() << "]"<< flush << endl;
+        //cout << "Pushed " << get_node_name(*sap) << " to incomming_heap[" << succ_state.get_state_tuple() << "]"<< flush << endl;
         incomming_heap[succ_state].push_back(sap);
         std::stable_sort(incomming_heap[succ_state].begin(), incomming_heap[succ_state].end(),Cmp<Sap>());
         ++num_saps;
@@ -333,8 +333,7 @@ void TopKEagerSearch::remove_tree_edge(GlobalState s)  {
     }
 
     if (tree_edge_pos != -1) {
-       cout << "Removing " << get_node_name(*incomming_heap[s][tree_edge_pos]) \
-            << " from incomming_heap[" << s.get_state_tuple() << "]" << flush << endl;
+       //cout << "Removing " << get_node_name(*incomming_heap[s][tree_edge_pos]) << " from incomming_heap[" << s.get_state_tuple() << "]" << flush << endl;
 
         incomming_heap[s].erase(incomming_heap[s].begin() + tree_edge_pos);
     }
