@@ -82,7 +82,7 @@ void KStar::search() {
 			}
 		}
 	}
-    output_plans();
+    //output_plans();
 	cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
 }
@@ -191,7 +191,6 @@ void add_simple_plans_only_option(OptionParser &parser) {
 	 parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");
 	 parser.add_option<int>("plans", "Number of plans", "5");
 
-//	 top_k_eager_search::add_top_k_option(parser);
 	 top_k_eager_search::add_pruning_option(parser);
 	 add_simple_plans_only_option(parser);
 	 SearchEngine::add_options_to_parser(parser);
@@ -206,7 +205,6 @@ void add_simple_plans_only_option(OptionParser &parser) {
 		 opts.set("reopen_closed", true);
 		 std::vector<Heuristic *> preferred_list;
 		 opts.set("preferred", preferred_list);
-
 		 opts.set("K", num_plans);
 
 		 engine = new KStar(opts);
