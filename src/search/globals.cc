@@ -76,7 +76,6 @@ void save_plan(const vector<const GlobalOperator *> &plan,
         assert(plan_number == 1);
     }
     std::string dir_name = "found_plans";
-    mkdir("found_plans", 0775);
     ofstream outfile(dir_name+"/"+filename.str());
     for (size_t i = 0; i < plan.size(); ++i) {
         //cout << plan[i]->get_name() << " (" << plan[i]->get_cost() << ")" << endl;
