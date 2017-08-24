@@ -1,6 +1,10 @@
 #include "plan_reconstructor.h"
 #include "util.h"
 
+#include <dirent.h>
+#include <sys/stat.h>
+
+
 namespace kstar {
 
 PlanReconstructor::PlanReconstructor(std::unordered_map<Node, Node>& parent_sap,
@@ -13,8 +17,12 @@ PlanReconstructor::PlanReconstructor(std::unordered_map<Node, Node>& parent_sap,
  goal_state(goal_state),
  state_registry(state_registry),
  search_space(search_space)  {
-		
+	
+	std::remove("found_plans");
+	mkdir("found_plans", 0775);
+
 }
+
 void PlanReconstructor::set_goal_state(StateID goal_state) {
 	this->goal_state = goal_state;
 }
