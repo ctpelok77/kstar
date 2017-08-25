@@ -20,6 +20,7 @@ SearchStatistics::SearchStatistics() {
     generated_ops = 0;
 
 	num_plans_found = 0;	
+	num_opt_plans = 0;
 	num_djkstra_runs = 0;	
 	total_djkstra_node_generations = 0;
 
@@ -94,6 +95,7 @@ void SearchStatistics::print_detailed_statistics() const {
     }
 
 	cout << "Number of plans found: "<< num_plans_found << std::endl;
+	cout << "Number of optimal plans found: "<< g_num_optimal_plans << std::endl;
 	cout << "Number of djkstra runs: "<< num_djkstra_runs << std::endl;
 	cout << "Total number of djkstra node generations: " 
 			  << total_djkstra_node_generations << std::endl;

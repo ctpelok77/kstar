@@ -385,6 +385,9 @@ const shared_ptr<AbstractTask> g_root_task() {
 bool g_use_metric;
 int g_min_action_cost = numeric_limits<int>::max();
 int g_max_action_cost = 0;
+int g_optimal_cost = -1;
+int g_num_optimal_plans = 0;
+
 vector<string> g_variable_name;
 vector<int> g_variable_domain;
 vector<vector<string>> g_fact_names;

@@ -98,24 +98,6 @@ void PlanReconstructor::extract_plan(vector<Node>& seq,
 	reverse(plan.begin(), plan.end());
 }
 
-// Check whether the traceback of node yields a simple path in
-// the path graph. This is a neccessary condition for the extracted
-// plans to be simple
-/*bool PlanReconstructor::is_simple_path(Node node) {
-	std::unordered_set<Node> seen;
-	vector<Node> path = djkstra_traceback(node);
-    for (int i = 0; i < path.size(); ++i) {
-        if (seen.find(path[i])  == seen.end()) {
-			seen.insert(path[i]);
-        }
-        else {
-           return false;
-        }
-    }
-    return true;
-}
-*/
-
 bool PlanReconstructor::is_simple_plan(StateSequence seq, StateRegistry* state_registry) {
     PerStateInformation<bool> seen;
     for (size_t i = 0; i < seq.size(); ++i) {
@@ -130,25 +112,47 @@ bool PlanReconstructor::is_simple_plan(StateSequence seq, StateRegistry* state_r
     return true;
 }
 
+void PlanReconstructor::inc_optimal_plans(Plan &plan) {
+	int cost = calculate_plan_cost(plan);
+
+	if (g_num_optimal_plans == 0) {
+		++g_num_optimal_plans; 
+		g_optimal_cost = cost;
+		return;
+	}	
+
+	if (cost == g_optimal_cost) {
+		++g_num_optimal_plans;	
+	}
+					
+}
+
 void PlanReconstructor::add_plan(Node node,
 								 std::vector<Plan>& top_k_plans,
 								 bool simple_plans_only) {
     vector<Node> path = djkstra_traceback(node);
     vector<Node> seq;
+
 	if (path.size() > 1) {
 		 seq = compute_sidetrack_seq(path);
 	}
+
 	Plan plan;
 	StateSequence state_seq;
     extract_plan(seq, plan, state_seq);
+	
 	plan.shrink_to_fit();
+	plan.pop_back();
+
     if (simple_plans_only) {
 		if (is_simple_plan(state_seq, state_registry)) {
+			inc_optimal_plans(plan);
 			top_k_plans.push_back(plan);
 			save_plan(plan, true);
 		}
 	}
 	else {
+		inc_optimal_plans(plan);
 		top_k_plans.push_back(plan);
         save_plan(plan, true);
 	}
