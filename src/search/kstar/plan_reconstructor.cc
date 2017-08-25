@@ -18,8 +18,6 @@ PlanReconstructor::PlanReconstructor(std::unordered_map<Node, Node>& parent_sap,
  state_registry(state_registry),
  search_space(search_space)  {
 	
-	std::remove("found_plans");
-	mkdir("found_plans", 0775);
 
 }
 
@@ -143,6 +141,7 @@ void PlanReconstructor::add_plan(Node node,
 	Plan plan;
 	StateSequence state_seq;
     extract_plan(seq, plan, state_seq);
+	plan.shrink_to_fit();
     if (simple_plans_only) {
 		if (is_simple_plan(state_seq, state_registry)) {
 			top_k_plans.push_back(plan);

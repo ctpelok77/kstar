@@ -14,6 +14,7 @@ namespace kstar{
 KStar::KStar(const options::Options &opts)
 	:TopKEagerSearch(opts),
 	 simple_plans_only(opts.get<bool>("simple_plans_only")),
+	 dump_plans(opts.get<bool>("dump_plans")),
 	 num_node_expansions(0), djkstra_initialized(false)
 {
 	pg_succ_generator =
@@ -61,6 +62,7 @@ void KStar::search() {
 				if (enough_nodes_expanded()) {
 					if (djkstra_search()) {
 						status = SOLVED;
+						solution_found = true;
                         break;
 					}
 				}
@@ -82,7 +84,10 @@ void KStar::search() {
 			}
 		}
 	}
-    //output_plans();
+
+	if (dump_plans) 
+		output_plans();
+
 	cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
 }
@@ -131,11 +136,13 @@ void KStar::initialize_djkstra() {
     pg_root = make_shared<Node>(0, sap, StateID::no_state);
 	notify_expand(*pg_root, &state_registry, num_node_expansions);
     plan_reconstructor->add_plan(*pg_root, top_k_plans, simple_plans_only);
+	statistics.inc_plans_found();
     set_optimal_plan_cost();
     Node successor;
     pg_succ_generator->get_successor_pg_root(pg_root, successor);
     queue_djkstra.push(successor);
     notify_push(successor, &state_registry);
+	statistics.inc_total_djkstra_generations(); 
     djkstra_initialized = true;
 }
 
@@ -159,6 +166,7 @@ void KStar::init_tree_heaps(Node node) {
 // Djkstra search on path graph P(G) returns true if enough plans have been found
 bool KStar::djkstra_search() {
 	std::cout << "Switching to djkstra search on path graph" << std::endl;
+	statistics.inc_djkstra_runs();
 	initialize_djkstra();
     while (!queue_djkstra.empty()) {
 		Node node = queue_djkstra.top();
@@ -167,6 +175,7 @@ bool KStar::djkstra_search() {
 
 		notify_expand(node, &state_registry, num_node_expansions);
 		plan_reconstructor->add_plan(node, top_k_plans, simple_plans_only);
+		statistics.inc_plans_found();
 		if (enough_plans_found())
 			return true;
 
@@ -177,6 +186,7 @@ bool KStar::djkstra_search() {
 
         for (auto succ : successors) {
 			queue_djkstra.push(succ);
+			statistics.inc_total_djkstra_generations();
 			notify_push(succ, &state_registry);
 		}
 	}
@@ -189,7 +199,8 @@ void add_simple_plans_only_option(OptionParser &parser) {
 
  static SearchEngine *_parse(OptionParser &parser) {
 	 parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");
-	 parser.add_option<int>("plans", "Number of plans", "5");
+	 parser.add_option<int>("plans", "Number of plans", "5000");
+	 parser.add_option<bool>("dump_plans", "Print plans", "false");
 
 	 top_k_eager_search::add_pruning_option(parser);
 	 add_simple_plans_only_option(parser);
