@@ -106,6 +106,8 @@ SearchStatus TopKEagerSearch::step() {
         return FIRST_PLAN_FOUND;
     }
 
+
+
     vector<const GlobalOperator *> applicable_ops;
     g_successor_generator->generate_applicable_ops(s, applicable_ops);
     /*
@@ -333,9 +335,8 @@ void TopKEagerSearch::remove_tree_edge(GlobalState s)  {
     }
 
     if (tree_edge_pos != -1) {
-        /*cout << "Removing " << get_node_name(*incomming_heap[s][tree_edge_pos]) \
-            << " from incomming_heap[" << s.get_state_tuple() << "]" << flush << endl;
-        */
+       //cout << "Removing " << get_node_name(*incomming_heap[s][tree_edge_pos]) << " from incomming_heap[" << s.get_state_tuple() << "]" << flush << endl;
+
         incomming_heap[s].erase(incomming_heap[s].begin() + tree_edge_pos);
     }
 }
@@ -427,7 +428,7 @@ void add_pruning_option(OptionParser &parser) {
 }
 
 void add_top_k_option(OptionParser &parser) {
-    parser.add_option<int>("K", "Number of plans", "10");
+    parser.add_option<int>("K", "Number of plans", "20");
 }
 
 static SearchEngine *_parse(OptionParser &parser) {
@@ -579,8 +580,9 @@ void TopKEagerSearch::print_plan(Plan plan, bool generates_multiple_plan_files) 
 
     ofstream outfile(filename.str());
     for (size_t i = 0; i < plan.size(); ++i) {
-        cout << plan[i]->get_name() << " (" << plan[i]->get_cost() << ")" << endl;
+        //cout << plan[i]->get_name() << " (" << plan[i]->get_cost() << ")" << endl;
         outfile << "(" << plan[i]->get_name() << ")" << endl;
+		plan[i]->dump(); 
     }
     int plan_cost = calculate_plan_cost(plan);
     outfile << "; cost = " << plan_cost << " ("

@@ -8,4 +8,5 @@ namespace kstar {
 	typedef std::pair<Node, Node> Edge;
 	typedef std::vector<const GlobalOperator*> Plan;
 	typedef std::vector<StateID> StateSequence;
+	typedef std::stringstream Stream;
 }

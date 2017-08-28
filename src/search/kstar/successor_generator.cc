@@ -32,7 +32,7 @@ void SuccessorGenerator::add_cross_edge(Node &node,
 	successors.push_back(succ_node);
 	if (!successors_only) {
 		set_parent(node, succ_node, true);
-		//notify_cross_edge(succ_node, state_registry);
+		notify_cross_edge(succ_node, state_registry);
 	}
 }
 
@@ -47,12 +47,14 @@ void SuccessorGenerator::add_inheap_successors(Node &node,
 			int succ_g = node.g + get_cost_heap_edge(node.sap, sap);
 
             Node succ_node(succ_g, sap, s.get_id());
-			successors.push_back(succ_node);
 
 			if (!successors_only) {
 				set_parent(node, succ_node, false);
-				//notify_inheap_edge(succ_node, state_registry);
+				notify_inheap_edge(succ_node, state_registry);
+				succ_node.is_inheap_node = true;
 			}
+
+			successors.push_back(succ_node);
 		}
 }
 
@@ -86,7 +88,7 @@ void SuccessorGenerator::add_treeheap_successors(Node &node,
 
 			if (!successors_only) {
 				set_parent(node, succ_node, false);
-                //notify_tree_heap_edge(succ_node, state_registry);
+				notify_tree_heap_edge(succ_node, state_registry);
 			}
 		}
 }
@@ -100,7 +102,7 @@ void SuccessorGenerator::get_successors(Node &node,
 		add_inheap_successors(node, successors, successors_only);
 	}
 
-	if (is_treeheap_top(node)) {
+	if (is_treeheap_top(node) && !node.is_inheap_node) {
 		add_treeheap_successors(node, successors, successors_only);
 	}
 }
