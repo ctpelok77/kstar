@@ -107,6 +107,7 @@ struct Node {
 	int g = -1;
 	shared_ptr<StateActionPair> sap = nullptr;
 	StateID heap_state = StateID::no_state;
+	bool is_inheap_node = false;
 
 	Node() {
 		g = -1;
@@ -118,6 +119,7 @@ struct Node {
 		g = n.g;
 		sap = n.sap;
 		heap_state = n.heap_state;
+		is_inheap_node = n.is_inheap_node;
 	}
 
 	Node(int g, shared_ptr<StateActionPair> sap, StateID heap_state)

@@ -90,6 +90,9 @@ GlobalOperator::GlobalOperator(istream &in, bool axiom, int index, bool goal_op)
             in >> op_cost;
             cost = g_use_metric ? op_cost : 1;
             check_magic(in, "end_operator");
+			// prevent operator applications after the goal is reached 
+			GlobalCondition c(g_variable_domain.size() - 1, 0);
+			preconditions.push_back(c);
         }
         else {
             name = "goal_op";

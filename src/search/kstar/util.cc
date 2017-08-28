@@ -49,9 +49,11 @@ namespace kstar {
     }
 
     void notify_push(Node &node, StateRegistry *state_registry) {
+    	
         std::string node_name = get_node_name(node, state_registry);
         cout << "Pushing " << node_name << " " << node.sap->op->get_name()
              << " g= " << node.g << " to queue" << endl;
+    	//(void) node; (void) state_registry;
     }
 
     void notify_cross_edge(Node &node, StateRegistry *state_registry) {
@@ -73,6 +75,7 @@ namespace kstar {
     }
 
     void notify_expand(Node &p, StateRegistry *state_registry, int &num_node_expansions) {
+    	
         std::string node_name = get_node_name(p, state_registry);
 
         if (node_name != "R") {
@@ -86,4 +89,43 @@ namespace kstar {
         ++num_node_expansions;
     }
 
+	void save_and_close(std::string filename, Stream &stream, Stream &node_stream) {
+		stream << "}" << endl;	
+		std::ofstream file;
+		file.open(filename, std::ofstream::out);
+		file << stream.rdbuf();
+		file << node_stream.rdbuf();
+		file.close();	
+	}
+
+	void add_dot_node(std::string id, std::string label, Stream &stream) {
+		stream << id << "[peripheries=\"1\", shape=\"rectangle\", style=\"rounded, filled\"";  
+		stream << "fillcolor=\"yellow\", label=\" "<< label << "\" ]" << endl;
+	}
+
+	std::string get_sap_id(Sap &sap, GlobalState s) {
+		std::string from = sap->get_from_state().get_state_tuple();			
+		std::string to = sap->get_to_state().get_state_tuple();			
+		std::string state_tuple = s.get_state_tuple(); 
+		return from + to + state_tuple;
+	}
+	
+	
+	std::string get_sap_label(Sap &sap) {
+		std::string from = sap->get_from_state().get_state_tuple();			
+		std::string to = sap->get_to_state().get_state_tuple();			
+		return from +" "+ to;
+	}
+	
+	void begin_subgraph(std::string label, Stream &stream) {
+		stream << "subgraph " << "cluster_" << label  << " {" << endl;
+		stream << "label=" << "state" << label  << ";" <<  endl;
+		stream << "style=filled;" << endl;
+		stream << "color=grey;"  << endl;
+	}
+
+	void add_edge(std::string from_id, std::string to_id, 
+				  std::string label, Stream &stream) {
+			stream << from_id <<  " -> " << to_id << "[label=\"" << label << "\"]" << endl;
+	}	
 }

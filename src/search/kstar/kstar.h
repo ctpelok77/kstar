@@ -15,7 +15,10 @@ class KStar : public top_k_eager_search::TopKEagerSearch
 {
 protected:
 	int optimal_solution_cost;
+	bool simple_plans_only;
+	bool dump_plans;
 	int num_node_expansions;
+	bool djkstra_initialized;
 	std::priority_queue<Node> queue_djkstra;
     std::unordered_map<Node, Node> parent_node;
 	std::unordered_set<Edge> cross_edge;
@@ -35,6 +38,7 @@ protected:
 	void add_plan(Node& p);
 	bool enough_plans_found();
 	void set_optimal_plan_cost();
+	void dump_path_graph();
 	virtual ~KStar() = default;
 public:
 	KStar (const options::Options &opts);
