@@ -87,7 +87,7 @@ void KStar::search() {
 
 	if (dump_plans) 
 		output_plans();
-
+	dump_path_graph();
 	cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
 }
@@ -99,6 +99,7 @@ bool KStar::enough_nodes_expanded() {
 	StateID u = open_list->top();
 	Node n = queue_djkstra.top();
 	int d = n.g + pg_succ_generator->get_max_successor_delta(n, pg_root);
+	
 	if (optimal_solution_cost + d <= get_f_value(u))
 		return true;
 	return false;
@@ -127,6 +128,14 @@ void KStar::initialize_djkstra() {
 	GlobalState g = state_registry.lookup_state(goal_state);
     plan_reconstructor->set_goal_state(goal_state);
     init_tree_heap(g);
+	/*debug(1000, _ARGS);
+	g.dump_fdr();
+	for (auto e: tree_heap[g]) {
+		std::cout << e->op->get_name() << std::endl;			
+		std::cout << e->get_delta() << std::endl;
+	}
+	debug(1000, _ARGS);
+	*/
 	if (tree_heap[g].empty())
        return;
 	// Generate root of path graph
@@ -141,7 +150,7 @@ void KStar::initialize_djkstra() {
     Node successor;
     pg_succ_generator->get_successor_pg_root(pg_root, successor);
     queue_djkstra.push(successor);
-    notify_push(successor, &state_registry);
+    //notify_push(successor, &state_registry);
 	statistics.inc_total_djkstra_generations(); 
     djkstra_initialized = true;
 }
@@ -193,13 +202,45 @@ bool KStar::djkstra_search() {
 	return false;
 }
 
+void KStar::dump_path_graph() {
+	std::stringstream stream, node_stream;	
+	std::string filename = "path_graph.dot";
+	stream << "digraph {\n" << endl ;
+	PerStateInformation<SearchNodeInfo>& search_node_infos = 
+			search_space.search_node_infos;
+	for (PerStateInformation<SearchNodeInfo>::const_iterator it =\
+		 search_node_infos.begin(&state_registry); 
+		 it != search_node_infos.end(&state_registry); ++it) {	
+		StateID id = *it;	
+		GlobalState s = state_registry.lookup_state(id);
+		begin_subgraph(s.get_state_tuple(), stream);
+		for (size_t i = 0; i  < tree_heap[s].size(); ++i){
+			Sap sap = tree_heap[s][i];
+			std::string id = get_sap_id(sap, s);
+			std::string label = get_sap_label(sap);	
+			Node node(0, sap, s.get_id());
+			vector<Node> successors;
+			pg_succ_generator->get_successors(node, successors, true);
+			for (auto& succ : successors) {
+				GlobalState heap_state = 
+						state_registry.lookup_state(succ.heap_state);
+				std::string succ_id = get_sap_id(succ.sap, heap_state); 
+				add_edge(id, succ_id, std::to_string(succ.g), stream);
+			}	
+		}			
+		stream << "}" << endl ;
+	}
+	save_and_close(filename, stream, node_stream);
+}
+
 void add_simple_plans_only_option(OptionParser &parser) {
     parser.add_option<bool>("simple_plans_only", "", "false");
 }
 
- static SearchEngine *_parse(OptionParser &parser) {
+
+static SearchEngine *_parse(OptionParser &parser) {
 	 parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");
-	 parser.add_option<int>("plans", "Number of plans", "5000");
+	 parser.add_option<int>("plans", "Number of plans", "5");
 	 parser.add_option<bool>("dump_plans", "Print plans", "false");
 
 	 top_k_eager_search::add_pruning_option(parser);
@@ -209,7 +250,7 @@ void add_simple_plans_only_option(OptionParser &parser) {
 	 KStar *engine = nullptr;
 	 if (!parser.dry_run()) {
 		 int num_plans = opts.get<int>("plans");
-		 cout << "Running K* with K=" <<num_plans << endl;
+		 cout << "Running K* with K=" << num_plans << endl;
 		 auto temp = search_common::create_astar_open_list_factory_and_f_eval(opts);
 		 opts.set("open", temp.first);
 		 opts.set("f_eval", temp.second);
