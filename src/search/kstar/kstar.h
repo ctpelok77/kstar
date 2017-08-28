@@ -38,6 +38,7 @@ protected:
 	void add_plan(Node& p);
 	bool enough_plans_found();
 	void set_optimal_plan_cost();
+	void dump_path_graph();
 	virtual ~KStar() = default;
 public:
 	KStar (const options::Options &opts);

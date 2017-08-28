@@ -15,6 +15,7 @@
 #include "utils/logging.h"
 #include "utils/rng.h"
 #include "utils/system.h"
+#include "utils/util.h"
 #include "utils/timer.h"
 
 #include <cstdlib>
@@ -269,6 +270,7 @@ void read_everything(istream &in) {
     g_default_axiom_values = g_initial_state_data;
     read_goal(in);
     read_operators(in);
+
     change_goal();
     read_axioms(in);
 

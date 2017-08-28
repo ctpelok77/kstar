@@ -106,6 +106,8 @@ SearchStatus TopKEagerSearch::step() {
         return FIRST_PLAN_FOUND;
     }
 
+
+
     vector<const GlobalOperator *> applicable_ops;
     g_successor_generator->generate_applicable_ops(s, applicable_ops);
     /*
