@@ -85,8 +85,6 @@ extern utils::Log g_log;
 extern int g_symmetrical_states_generated;
 extern int g_symmetry_improved_evaluations;
 extern int g_improving_symmetrical_states;
-extern int g_optimal_cost;
-extern int g_num_optimal_plans;
 
 // Parts for dumping SAS+ task, used in forbidding plan reformulation
 extern std::vector<std::vector<FactPair>> g_invariant_groups;

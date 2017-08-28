@@ -14,7 +14,7 @@ int main(int argc, const char **argv) {
     utils::register_event_handlers();
 
 #ifndef NDEBUG
-    std::ifstream in("/home/dominik/implementations/new_kstar/examples/example2.sas");
+    std::ifstream in("/home/dominik/implementations/new_kstar/output.sas");
     std::cin.rdbuf(in.rdbuf());
 #endif
     if (argc < 2) {
@@ -47,7 +47,7 @@ int main(int argc, const char **argv) {
     search_timer.stop();
     utils::g_timer.stop();
 
-    //engine->save_plan_if_necessary();
+    engine->save_plan_if_necessary();
     engine->print_statistics();
     cout << "Search time: " << search_timer << endl;
     cout << "Total time: " << utils::g_timer << endl;
