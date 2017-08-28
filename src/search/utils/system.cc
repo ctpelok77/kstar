@@ -4,7 +4,7 @@ namespace utils {
 const char *get_exit_code_message_reentrant(ExitCode exitcode) {
     switch (exitcode) {
     case ExitCode::PLAN_FOUND:
-        return "Enough solutions found.";
+        return "Solution found.";
     case ExitCode::CRITICAL_ERROR:
         return "Unexplained error occurred.";
     case ExitCode::INPUT_ERROR:
@@ -14,7 +14,7 @@ const char *get_exit_code_message_reentrant(ExitCode exitcode) {
     case ExitCode::UNSOLVABLE:
         return "Task is provably unsolvable.";
     case ExitCode::UNSOLVED_INCOMPLETE:
-        return "Not enough solutions found.";
+        return "Search stopped without finding a solution.";
     case ExitCode::OUT_OF_MEMORY:
         return "Memory limit has been reached.";
     default:

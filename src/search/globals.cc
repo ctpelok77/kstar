@@ -1,6 +1,5 @@
 #include "globals.h"
 
-
 #include "axioms.h"
 #include "causal_graph.h"
 #include "global_operator.h"
@@ -15,7 +14,6 @@
 #include "utils/logging.h"
 #include "utils/rng.h"
 #include "utils/system.h"
-#include "utils/util.h"
 #include "utils/timer.h"
 
 #include <cstdlib>
@@ -26,9 +24,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <dirent.h>
-#include <sys/stat.h>
-
 
 using namespace std;
 using utils::ExitCode;
@@ -74,21 +69,20 @@ void save_plan(const vector<const GlobalOperator *> &plan,
     if (generates_multiple_plan_files || g_is_part_of_anytime_portfolio) {
         filename << "." << plan_number;
     } else {
-        assert(plan_number == 1);
+        //assert(plan_number == 1);
     }
-    std::string dir_name = "found_plans";
-    ofstream outfile(dir_name+"/"+filename.str());
+    ofstream outfile(filename.str());
     for (size_t i = 0; i < plan.size(); ++i) {
-        //cout << plan[i]->get_name() << " (" << plan[i]->get_cost() << ")" << endl;
-        //plan[i]->dump();
+        cout << plan[i]->get_name() << " (" << plan[i]->get_cost() << ")" << endl;
+        plan[i]->dump();
         outfile << "(" << plan[i]->get_name() << ")" << endl;
     }
     int plan_cost = calculate_plan_cost(plan);
     outfile << "; cost = " << plan_cost << " ("
             << (is_unit_cost() ? "unit cost" : "general cost") << ")" << endl;
     outfile.close();
-    //cout << "Plan length: " << plan.size() << " step(s)." << endl;
-    //cout << "Plan cost: " << plan_cost << endl;
+    cout << "Plan length: " << plan.size() << " step(s)." << endl;
+    cout << "Plan cost: " << plan_cost << endl;
     ++g_num_previously_generated_plans;
 }
 
@@ -270,7 +264,6 @@ void read_everything(istream &in) {
     g_default_axiom_values = g_initial_state_data;
     read_goal(in);
     read_operators(in);
-
     change_goal();
     read_axioms(in);
 
@@ -387,9 +380,6 @@ const shared_ptr<AbstractTask> g_root_task() {
 bool g_use_metric;
 int g_min_action_cost = numeric_limits<int>::max();
 int g_max_action_cost = 0;
-int g_optimal_cost = -1;
-int g_num_optimal_plans = 0;
-
 vector<string> g_variable_name;
 vector<int> g_variable_domain;
 vector<vector<string>> g_fact_names;

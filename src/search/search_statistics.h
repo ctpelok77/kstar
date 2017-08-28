@@ -30,11 +30,6 @@ class SearchStatistics {
     int last_jump_symmetry_improved_evaluations;
     int last_jump_improving_symmetrical_states;
 
-	int num_plans_found;	
-	int num_opt_plans;
-	int num_djkstra_runs;	
-	int total_djkstra_node_generations;
-
     void print_f_line() const;
 public:
     SearchStatistics();
@@ -48,11 +43,6 @@ public:
     void inc_generated_ops(int inc = 1) {generated_ops += inc; }
     void inc_evaluations(int inc = 1) {evaluations += inc; }
     void inc_dead_ends(int inc = 1) {dead_end_states += inc; }
-	void inc_plans_found(int inc = 1){num_plans_found += inc;};
-	void inc_opt_plans(int inc = 1){num_opt_plans += inc;};
-
-	void inc_djkstra_runs(int inc = 1){num_djkstra_runs += inc;};
-	void inc_total_djkstra_generations(int inc = 1){total_djkstra_node_generations += inc;};
 
     // Methods that access statistics.
     int get_expanded() const {return expanded_states; }
