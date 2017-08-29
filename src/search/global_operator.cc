@@ -105,6 +105,10 @@ GlobalOperator::GlobalOperator(istream &in, bool axiom, int index, bool goal_op)
             vector<GlobalCondition> empty_cond;
             GlobalEffect e(extra_var, 1, empty_cond);
             effects.push_back(e);
+			for (size_t var = 0; var < g_variable_domain.size() - 1; ++var) {
+				GlobalEffect e(var, 0, empty_cond);
+				effects.push_back(e);
+			}
         }
         g_min_action_cost = min(g_min_action_cost, cost);
         g_max_action_cost = max(g_max_action_cost, cost);

@@ -301,7 +301,10 @@ void read_everything(istream &in) {
     cout << "done! [t=" << utils::g_timer << "]" << endl;
 
     cout << "done initalizing global data [t=" << utils::g_timer << "]" << endl;
-	dump_goal();
+	debug(100, _ARGS);
+	dump_everything();
+	debug(100, _ARGS);
+
 }
 
 void dump_everything() {
@@ -318,8 +321,7 @@ void dump_everything() {
     initial_state.dump_pddl();
     cout << "Initial State (FDR):" << endl;
     initial_state.dump_fdr();
-    dump_goal();
-    /*
+	    /*
     for(int i = 0; i < g_variable_domain.size(); ++i)
       g_transition_graphs[i]->dump();
     */

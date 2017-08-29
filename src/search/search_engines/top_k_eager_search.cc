@@ -97,16 +97,20 @@ SearchStatus TopKEagerSearch::step() {
     pair<SearchNode, bool> n = fetch_next_node();
     SearchNode node = n.first;
     GlobalState s = node.get_state();
-    if (search_control.check_interrupt() || all_nodes_expanded)
+    if (search_control.check_interrupt() || all_nodes_expanded) {
+        if (test_goal(s)) {
+            goal_state = s.get_id();
+            first_plan_found = true;
+        }
+
         return INTERRUPTED;
+    }
 
     if (test_goal(s) && !first_plan_found) {
         goal_state = s.get_id();
         first_plan_found = true;
-        return FIRST_PLAN_FOUND;
+        //return FIRST_PLAN_FOUND;
     }
-
-
 
     vector<const GlobalOperator *> applicable_ops;
     g_successor_generator->generate_applicable_ops(s, applicable_ops);
@@ -339,6 +343,7 @@ void TopKEagerSearch::remove_tree_edge(GlobalState s)  {
 
         incomming_heap[s].erase(incomming_heap[s].begin() + tree_edge_pos);
     }
+    //cout << "In-heap " << s.get_state_tuple() << " size " <<  incomming_heap[s].size() <<endl;
 }
 
 

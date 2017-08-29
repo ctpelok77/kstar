@@ -32,7 +32,7 @@ void SuccessorGenerator::add_cross_edge(Node &node,
 	successors.push_back(succ_node);
 	if (!successors_only) {
 		set_parent(node, succ_node, true);
-		notify_cross_edge(succ_node, state_registry);
+		//notify_cross_edge(succ_node, state_registry);
 	}
 }
 
@@ -50,7 +50,7 @@ void SuccessorGenerator::add_inheap_successors(Node &node,
 
 			if (!successors_only) {
 				set_parent(node, succ_node, false);
-				notify_inheap_edge(succ_node, state_registry);
+				//notify_inheap_edge(succ_node, state_registry);
 				succ_node.is_inheap_node = true;
 			}
 
@@ -88,7 +88,7 @@ void SuccessorGenerator::add_treeheap_successors(Node &node,
 
 			if (!successors_only) {
 				set_parent(node, succ_node, false);
-				notify_tree_heap_edge(succ_node, state_registry);
+				//notify_tree_heap_edge(succ_node, state_registry);
 			}
 		}
 }
