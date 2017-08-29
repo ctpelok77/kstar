@@ -15,8 +15,8 @@ KStar::KStar(const options::Options &opts)
 	:TopKEagerSearch(opts),
 	 simple_plans_only(opts.get<bool>("simple_plans_only")),
 	 dump_plans(opts.get<bool>("dump_plans")),
-	 num_node_expansions(0), djkstra_initialized(false)
-{
+	 num_node_expansions(0), djkstra_initialized(false) {
+print_set_of_operators(g_operators, "all ops");
 	pg_succ_generator =
 			unique_ptr<SuccessorGenerator>(new SuccessorGenerator(
 															tree_heap,
@@ -88,8 +88,8 @@ void KStar::search() {
 	if (dump_plans) 
 		output_plans();
 
-	output_plans();
 	dump_path_graph();
+	dump_tree_edge();
 	cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
 }
@@ -137,14 +137,14 @@ void KStar::initialize_djkstra() {
                                            goal_state, nullptr,
                                            &state_registry, &search_space);
     pg_root = make_shared<Node>(0, sap, StateID::no_state);
-	notify_expand(*pg_root, &state_registry, num_node_expansions);
+	//notify_expand(*pg_root, &state_registry, num_node_expansions);
     plan_reconstructor->add_plan(*pg_root, top_k_plans, simple_plans_only);
 	statistics.inc_plans_found();
     set_optimal_plan_cost();
     Node successor;
     pg_succ_generator->get_successor_pg_root(pg_root, successor);
     queue_djkstra.push(successor);
-	notify_push(successor, &state_registry);
+	//notify_push(successor, &state_registry);
 	statistics.inc_total_djkstra_generations(); 
     djkstra_initialized = true;
 }
@@ -176,11 +176,7 @@ bool KStar::djkstra_search() {
  		if(!enough_nodes_expanded())
 			return false;
 
-		notify_expand(node, &state_registry, num_node_expansions);
-		if (node.is_inheap_node) {
-			debug(1000, _ARGS);		
-		}
-
+		//notify_expand(node, &state_registry, num_node_expansions);
 		plan_reconstructor->add_plan(node, top_k_plans, simple_plans_only);
 		statistics.inc_plans_found();
 		if (enough_plans_found())
@@ -194,7 +190,6 @@ bool KStar::djkstra_search() {
         for (auto succ : successors) {
 			queue_djkstra.push(succ);
 			statistics.inc_total_djkstra_generations();
-			notify_push(succ, &state_registry);
 		}
 	}
 	return false;
@@ -231,8 +226,86 @@ void KStar::dump_path_graph() {
 	save_and_close(filename, stream, node_stream);
 }
 
+void KStar::dump_dot() const {
+		std::stringstream stream, node_stream;
+		stream << "digraph {\n";
+		for (PerStateInformation<SearchNodeInfo>::const_iterator it =\
+         search_space.search_node_infos.begin(&state_registry);
+			 it != search_space.search_node_infos.end(&state_registry); ++it) {
+			StateID id = *it;
+			stream << id.hash() << " [ peripheries=\"1\", shape=\"rectangle\", ";
+			GlobalState s = state_registry.lookup_state(id);
+			const SearchNodeInfo &node_info = search_space.search_node_infos[s];
+
+			if (test_goal(s)) {
+				stream << "style=\"rounded, filled\", fillcolor=\"red\", ";
+			}
+			else {
+				stream << "style=\"rounded, filled\", fillcolor=\"yellow\", ";
+			}
+			stream << "label=\"#"<< id.hash() << "\\n" << "s="<< state_label(s) << "\\n";
+			stream << "\" ]\n";
+
+			for (Sap sap: incomming_heap[s]) {
+                node_stream << sap->get_from_state().get_id().hash() << "  ->  " << id.hash();
+				node_stream <<" [ label=\"" << g_operators[node_info.creating_operator].get_name();
+				node_stream << "/"<< g_operators[node_info.creating_operator].get_cost();
+                node_stream << "\"";
+				if (node_info.parent_state_id == sap->get_from_state().get_id()) {
+					node_stream << " style=\"dashed\" color=\"#A9A9A9 \"";
+				}
+				//node_stream << "\"";
+				node_stream << " ]\n";
+			}
+
+			/*if (node_info.creating_operator != -1 && node_info.parent_state_id != StateID::no_state) {
+				node_stream << node_info.parent_state_id.hash() << "  ->  " << id.hash();
+				node_stream <<" [ label=\"#" << g_operators[node_info.creating_operator].get_name();
+				node_stream << "/"<< g_operators[node_info.creating_operator].get_cost();
+				node_stream << "\"";
+				if (g_operators[node_info.creating_operator].get_name() == "achieve_goal") {
+					node_stream << " style=\"dashed\" color=\"#A9A9A9 \"";
+				}
+				node_stream << " ]\n";
+			}*/
+		}
+
+		node_stream << "}\n";
+
+		// Write state space to dot file
+		std::ofstream file;
+		file.open("full_state_space.dot", std::ofstream::out);
+		file << stream.rdbuf();
+		file << node_stream.rdbuf();
+		file.close();
+}
+void KStar::dump_tree_edge() {
+	std::stringstream stream;	
+	std::string filename = "tree_edges";
+	for (PerStateInformation<SearchNodeInfo>::const_iterator it =\
+		 search_space.search_node_infos.begin(&state_registry); 
+		 it != search_space.search_node_infos.end(&state_registry); ++it) {	
+		StateID id = *it;	
+		GlobalState s = state_registry.lookup_state(id);
+        const SearchNodeInfo &node_info = search_space.search_node_infos[s];
+		if (node_info.creating_operator != -1 
+			&& node_info.parent_state_id != StateID::no_state) {
+			stream << s.get_state_tuple();	
+			stream << ": ";
+			stream << g_operators[node_info.creating_operator].get_name(); 	
+		}
+		stream << ""<< endl;
+	}	
+	
+	std::ofstream file;
+	file.open(filename, std::ofstream::out);
+	file << stream.rdbuf();
+	file.close();
+}
+
+
 void add_simple_plans_only_option(OptionParser &parser) {
-    parser.add_option<bool>("simple_plans_only", "", "false");
+	parser.add_option<bool>("simple_plans_only", "", "false");
 }
 
 

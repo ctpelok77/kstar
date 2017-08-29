@@ -28,24 +28,22 @@ void PlanReconstructor::set_goal_state(StateID goal_state) {
 std::vector<Node> PlanReconstructor::djkstra_traceback(Node node)	{
 	vector<Node> path;
 	Node &current_sap = node;
-    cout << "djkstra traceback" << endl;
-	cout << "sigma = ";
 	for(;;) {
 		path.push_back(current_sap);
         if(!current_sap.sap->op) {
-			cout << "R";
+			//cout << "R";
 			break;
         }
-		cout << "("<< current_sap.sap->op->get_name() << ") " << flush;
+		//cout << "("<< current_sap.sap->op->get_name() << ") " << flush;
 		current_sap = parent_node.at(current_sap);
 	}
 	reverse(path.begin(), path.end());
-    cout << "" << endl;
+    //cout << "" << endl;
     return path;
 }
 
 vector<Node> PlanReconstructor::compute_sidetrack_seq(vector<Node>& path) {
-	cout << "seq = ";
+	//cout << "seq = ";
 	vector<Node> seq;
 	int last_index = path.size() - 1;
     Node last_element = path[last_index];
