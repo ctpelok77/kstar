@@ -25,7 +25,10 @@ TopKEagerSearch::TopKEagerSearch(const Options &opts)
       f_evaluator(opts.get<ScalarEvaluator *>("f_eval", nullptr)),
       preferred_operator_heuristics(opts.get_list<Heuristic *>("preferred")),
       pruning_method(opts.get<shared_ptr<PruningMethod>>("pruning")),
-	  interrupt_search(false), first_plan_found(false){
+	  interrupted(false),
+      most_expensive_successor(-1),
+      next_node_f(-1),
+      first_plan_found(false){
 }
 
 void TopKEagerSearch::initialize() {
@@ -97,21 +100,20 @@ SearchStatus TopKEagerSearch::step() {
     pair<SearchNode, bool> n = fetch_next_node();
     SearchNode node = n.first;
     GlobalState s = node.get_state();
-    if (search_control.check_interrupt() || all_nodes_expanded) {
+    if (interrupted || all_nodes_expanded) {
         if (test_goal(s)) {
             goal_state = s.get_id();
             first_plan_found = true;
         }
-
         return INTERRUPTED;
     }
+    update_next_node_f();
 
     if (test_goal(s) && !first_plan_found) {
         goal_state = s.get_id();
         first_plan_found = true;
-        //return FIRST_PLAN_FOUND;
+        return FIRST_PLAN_FOUND;
     }
-
     vector<const GlobalOperator *> applicable_ops;
     g_successor_generator->generate_applicable_ops(s, applicable_ops);
     /*
@@ -222,11 +224,18 @@ SearchStatus TopKEagerSearch::step() {
 
         }
     }
-    if (!open_list->empty()) {
-        StateID u = open_list->top();
-        search_control.f_u = get_f_value(u);
-    }
     return IN_PROGRESS;
+}
+
+void TopKEagerSearch::update_next_node_f() {
+    if(!open_list->empty()) {
+        StateID state_id = open_list->top();
+        next_node_f = get_f_value(state_id);
+    }
+}
+
+void TopKEagerSearch::interrupt() {
+    interrupted = true;
 }
 
 void TopKEagerSearch::add_incomming_edge(SearchNode node,
@@ -303,17 +312,6 @@ std::string TopKEagerSearch::get_node_name(StateActionPair &edge) {
 	return node_name;
 }
 
-void TopKEagerSearch::interrupt() {
-    SearchControl interrupt;
-    interrupt.interrupt_immediatly = true;
-    search_control = interrupt;
-}
-
-void TopKEagerSearch::resume(SearchControl& sc) {
-	status = IN_PROGRESS;
-    search_control = sc;
-}
-
 int TopKEagerSearch::get_f_value(StateID id) {
 	GlobalState s = state_registry.lookup_state(id);
 	int g = search_space.get_node(s).get_g();
@@ -385,7 +383,7 @@ pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
             continue;
 
         node.close();
-        sort_and_remove(s);
+        //sort_and_remove(s);
 
         assert(!node.is_dead_end());
         update_f_value_statistics(node);

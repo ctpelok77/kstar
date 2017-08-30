@@ -47,19 +47,19 @@ vector<Node> PlanReconstructor::compute_sidetrack_seq(vector<Node>& path) {
 	vector<Node> seq;
 	int last_index = path.size() - 1;
     Node last_element = path[last_index];
-	std::cout <<  path[last_index].sap->op->get_name() << std::endl;
+	//std::cout <<  path[last_index].sap->op->get_name() << std::endl;
     seq.push_back(last_element);
 
 	for (size_t i = last_index; i >= 2; --i) {
        Edge e(path[i-1], path[i]);
 
 		if(cross_edge.find(e) != cross_edge.end()) {
-			cout << path[i - 1].sap->op->get_name();
+			//cout << path[i - 1].sap->op->get_name();
 			seq.push_back(path[i - 1]);
 		}
 	}
     reverse(seq.begin(), seq.end());
-	cout << "" << endl;
+	//cout << "" << endl;
     return seq;
 }
 

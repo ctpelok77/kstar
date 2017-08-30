@@ -5,6 +5,7 @@
 #include "../option_parser.h"
 #include "../open_lists/open_list.h"
 #include "../state_action_pair.h"
+#include "../utils/util.h"
 
 #include <memory>
 #include <algorithm>
@@ -22,21 +23,6 @@ class Options;
 namespace top_k_eager_search {
 typedef shared_ptr<StateActionPair> Sap;
 
-struct SearchControl {
-	bool interrupt_immediatly = false;
-    int optimal_solution_cost = std::numeric_limits<int>::max();
-	int d = -1;
-	int f_u = -1;
-	bool check_interrupt() {
-		if (interrupt_immediatly || optimal_solution_cost + d <= f_u) {
-			return true;
-		}
-		return false;
-	}
-};
-
-
-
 class TopKEagerSearch : public SearchEngine {
     const bool reopen_closed_nodes;
 protected:
@@ -46,16 +32,22 @@ protected:
     std::vector<Heuristic *> heuristics;
     std::vector<Heuristic *> preferred_operator_heuristics;
     std::shared_ptr<PruningMethod> pruning_method;
-	bool interrupt_search;
-	bool first_plan_found;
+	bool interrupted;
 	long int num_saps;
 	StateID goal_state = StateID::no_state;
     bool all_nodes_expanded = false;
-    SearchControl search_control;
 	std::vector<Plan> top_k_plans;
    	PerStateInformation<vector<Sap>> incomming_heap;
 	PerStateInformation<vector<Sap>> tree_heap;
 
+	// g-value of the most expensive successor of the current
+	// top node of the djkstra queue
+	int most_expensive_successor;
+	// The f-value of the top node of the open list of A*
+	int next_node_f;
+    bool first_plan_found;
+
+	void update_next_node_f();
 	int get_f_value(StateID id);
     std::pair<SearchNode, bool> fetch_next_node();
     void start_f_value_statistics(EvaluationContext &eval_context);
@@ -67,7 +59,6 @@ protected:
 	void output_plans();
 	void print_plan(Plan plan, bool generates_multiple_plan_files);
 	void interrupt();
-	void resume(SearchControl &search_control);
 	void add_incomming_edge(SearchNode node, const GlobalOperator *op,
                              SearchNode succ_node);
 	void remove_tree_edge(GlobalState s);

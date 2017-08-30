@@ -38,6 +38,7 @@ protected:
 	void add_plan(Node& p);
 	bool enough_plans_found();
 	void set_optimal_plan_cost();
+	void update_most_expensive_succ();
 	void dump_tree_edge();
 	void dump_path_graph();
 	void dump_dot() const;

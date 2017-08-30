@@ -45,7 +45,7 @@ namespace kstar {
 
     void notify_generate(Node &p, StateRegistry *state_registry) {
         std::string node_name = get_node_name(p, state_registry);
-        std::cout << "Generating node " << node_name << " from queue" << std::endl;
+        std::cout << "Generating node " << node_name << " from queue with g=" << p.g << std::endl;
     }
 
     void notify_push(Node &node, StateRegistry *state_registry) {
