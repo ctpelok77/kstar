@@ -301,10 +301,6 @@ void read_everything(istream &in) {
     cout << "done! [t=" << utils::g_timer << "]" << endl;
 
     cout << "done initalizing global data [t=" << utils::g_timer << "]" << endl;
-	debug(100, _ARGS);
-	dump_everything();
-	debug(100, _ARGS);
-
 }
 
 void dump_everything() {

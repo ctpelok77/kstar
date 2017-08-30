@@ -16,7 +16,6 @@ KStar::KStar(const options::Options &opts)
 	 simple_plans_only(opts.get<bool>("simple_plans_only")),
 	 dump_plans(opts.get<bool>("dump_plans")),
 	 num_node_expansions(0), djkstra_initialized(false) {
-print_set_of_operators(g_operators, "all ops");
 	pg_succ_generator =
 			unique_ptr<SuccessorGenerator>(new SuccessorGenerator(
 															tree_heap,
@@ -70,7 +69,11 @@ void KStar::search() {
 					resume_astar();
 				}
 			}
-            else if (open_list->empty()) {
+			if (!open_list->empty() && queue_djkstra.empty()) {
+				resume_astar();
+			}
+
+            if (open_list->empty()) {
 				if (djkstra_search()) {
 					status = SOLVED;
 					solution_found = true;
@@ -88,8 +91,6 @@ void KStar::search() {
 	if (dump_plans) 
 		output_plans();
 
-	dump_path_graph();
-	dump_tree_edge();
 	cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
 }
@@ -97,26 +98,23 @@ void KStar::search() {
 bool KStar::enough_nodes_expanded() {
 	if (open_list->empty()) 
 		return true;	
-
-	StateID u = open_list->top();
-	Node n = queue_djkstra.top();
-	int d = n.g + pg_succ_generator->get_max_successor_delta(n, pg_root);
-	
-	if (optimal_solution_cost + d <= get_f_value(u))
+	int max_plan_cost =  optimal_solution_cost + most_expensive_successor;
+	if (max_plan_cost <= next_node_f)
 		return true;
 	return false;
 }
 
 void KStar::resume_astar() {
-	SearchControl sc;
-    StateID u = open_list->top();
-	Node n = queue_djkstra.top();
-	sc.interrupt_immediatly = false;
-	sc.f_u = get_f_value(u);
-    sc.d = n.g + pg_succ_generator->get_max_successor_delta(n, pg_root);
-	sc.optimal_solution_cost = optimal_solution_cost;
-	resume(sc);
 	cout << "Resuming A*" << endl;
+	interrupted = false;
+	update_most_expensive_succ();
+}
+
+void KStar::update_most_expensive_succ()	{
+    if(queue_djkstra.empty())
+		return;
+	Node n = queue_djkstra.top();
+    most_expensive_successor = n.g + pg_succ_generator->get_max_successor_delta(n, pg_root);
 }
 
 void KStar::set_optimal_plan_cost() {
@@ -178,6 +176,7 @@ bool KStar::djkstra_search() {
 
 		//notify_expand(node, &state_registry, num_node_expansions);
 		plan_reconstructor->add_plan(node, top_k_plans, simple_plans_only);
+		//notify_expand(node, &state_registry, num_node_expansions);
 		statistics.inc_plans_found();
 		if (enough_plans_found())
 			return true;
@@ -192,6 +191,10 @@ bool KStar::djkstra_search() {
 			statistics.inc_total_djkstra_generations();
 		}
 	}
+    //cout << "Resetting Djkstra queue" << endl;
+	//queue_djkstra = std::priority_queue<Node>();
+	//djkstra_initialized = false;
+
 	return false;
 }
 
@@ -248,8 +251,8 @@ void KStar::dump_dot() const {
 
 			for (Sap sap: incomming_heap[s]) {
                 node_stream << sap->get_from_state().get_id().hash() << "  ->  " << id.hash();
-				node_stream <<" [ label=\"" << g_operators[node_info.creating_operator].get_name();
-				node_stream << "/"<< g_operators[node_info.creating_operator].get_cost();
+				node_stream <<" [ label=\"" << sap->op->get_name();
+				node_stream << "/"<< sap->op->get_cost();
                 node_stream << "\"";
 				if (node_info.parent_state_id == sap->get_from_state().get_id()) {
 					node_stream << " style=\"dashed\" color=\"#A9A9A9 \"";
