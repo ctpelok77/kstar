@@ -1,0 +1,2 @@
+all:
+	python sanity_checker.py

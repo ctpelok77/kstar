@@ -176,7 +176,7 @@ bool KStar::djkstra_search() {
 
 		//notify_expand(node, &state_registry, num_node_expansions);
 		plan_reconstructor->add_plan(node, top_k_plans, simple_plans_only);
-		//notify_expand(node, &state_registry, num_node_expansions);
+		notify_expand(node, &state_registry, num_node_expansions);
 		statistics.inc_plans_found();
 		if (enough_plans_found())
 			return true;
@@ -191,9 +191,6 @@ bool KStar::djkstra_search() {
 			statistics.inc_total_djkstra_generations();
 		}
 	}
-    //cout << "Resetting Djkstra queue" << endl;
-	//queue_djkstra = std::priority_queue<Node>();
-	//djkstra_initialized = false;
 
 	return false;
 }
@@ -314,7 +311,7 @@ void add_simple_plans_only_option(OptionParser &parser) {
 
 static SearchEngine *_parse(OptionParser &parser) {
 	 parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");
-	 parser.add_option<int>("plans", "Number of plans", "20");
+	 parser.add_option<int>("plans", "Number of plans", "200");
 	 parser.add_option<bool>("dump_plans", "Print plans", "false");
 
 	 top_k_eager_search::add_pruning_option(parser);

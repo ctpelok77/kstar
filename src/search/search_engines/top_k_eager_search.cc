@@ -383,7 +383,7 @@ pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
             continue;
 
         node.close();
-        //sort_and_remove(s);
+        sort_and_remove(s);
 
         assert(!node.is_dead_end());
         update_f_value_statistics(node);
