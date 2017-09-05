@@ -57,6 +57,7 @@ extern const int PRE_FILE_VERSION;
 extern bool g_use_metric;
 extern int g_min_action_cost;
 extern int g_max_action_cost;
+extern int g_djkstra_nodes;
 
 // TODO: The following five belong into a new Variable class.
 extern std::vector<std::string> g_variable_name;

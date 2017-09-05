@@ -52,26 +52,25 @@ namespace kstar {
     	
         std::string node_name = get_node_name(node, state_registry);
         cout << "Pushing " << node_name << " " << node.sap->op->get_name()
-             << " g= " << node.g << " to queue" << endl;
-    	//(void) node; (void) state_registry;
+             << " g= " << node.g << " to queue "  << "with id=" << node.id << endl;
     }
 
     void notify_cross_edge(Node &node, StateRegistry *state_registry) {
         std::string node_name = get_node_name(node, state_registry);
         cout << "Pushing cross_edge" << node_name << " " << node.sap->op->get_name()
-             << " g= " << node.g << " to queue" << endl;
+             << " g= " << node.g << " to queue" << " with id=" << node.id << endl;
     }
 
     void notify_inheap_edge(Node &node, StateRegistry *state_registry) {
         std::string node_name = get_node_name(node, state_registry);
         cout << "Pushing inheap_edge" << node_name << " " << node.sap->op->get_name()
-             << " g= " << node.g << " to queue" << endl;
+             << " g= " << node.g << " to queue"  << " with id=" << node.id << endl<< endl;
     }
 
     void notify_tree_heap_edge(Node &node, StateRegistry *state_registry) {
         std::string node_name = get_node_name(node, state_registry);
         cout << "Pushing tree_heap edge" << node_name << " " << node.sap->op->get_name()
-             << " g= " << node.g << " to queue" << endl;
+             << " g= " << node.g << " to queue" << " with id=" << node.id << endl<< endl;
     }
 
     void notify_expand(Node &p, StateRegistry *state_registry, int &num_node_expansions) {
@@ -80,11 +79,14 @@ namespace kstar {
 
         if (node_name != "R") {
             std::string op = p.sap->op->get_name();
-            std::cout << num_node_expansions << ". " << "Expanding node " << node_name << " "
-                      << op << " g=" << p.g << " " << p.sap->op->get_name() << std::flush << std::endl;
+            std::cout << num_node_expansions + 1<< ". " << "Expanding node " << node_name << " "
+                      << op << " g=" << p.g << " " << p.sap->op->get_name()  << " id=" << p.id
+                      << std::flush << std::endl;
         } else {
-            std::cout << num_node_expansions << ". " << "Expanding node "
-                      << node_name << " g=" << p.g << std::flush << std::endl;
+            std::cout << num_node_expansions + 1 << ". " << "Expanding node "
+                      << node_name << " g=" << p.g
+                      << " id=" << p.id
+                      << std::flush << std::endl;
         }
         ++num_node_expansions;
     }

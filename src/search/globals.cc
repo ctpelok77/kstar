@@ -589,4 +589,5 @@ void dump_plan_forbid_reformulation_sas(const char* filename,
 }
 //*/
 vector<vector<FactPair>> g_invariant_groups;
+int g_djkstra_nodes = 0;
 

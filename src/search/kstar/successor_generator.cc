@@ -10,7 +10,8 @@ SuccessorGenerator::SuccessorGenerator(PerStateInformation<vector<Sap>> &tree_he
 					   				   std::unordered_map<Node, Node> &parent_sap,
 									   std::unordered_set<Edge> &cross_edge,
 									   StateRegistry* state_registry)
-:tree_heap(tree_heap), incomming_heap(incoming_heap),
+:tree_heap(tree_heap),
+ incomming_heap(incoming_heap),
  parent_node(parent_sap),
  cross_edge(cross_edge),
  state_registry(state_registry)
@@ -29,11 +30,14 @@ void SuccessorGenerator::add_cross_edge(Node &node,
 
 	int succ_g = node.g + get_cost_cross_edge(tree_heap[u].front());
     Node succ_node(succ_g, tree_heap[u].front(), u.get_id());
-	successors.push_back(succ_node);
 	if (!successors_only) {
+        succ_node.id = g_djkstra_nodes;
+		++g_djkstra_nodes;
 		set_parent(node, succ_node, true);
-		//notify_cross_edge(succ_node, state_registry);
+		notify_cross_edge(succ_node, state_registry);
 	}
+
+	successors.push_back(succ_node);
 }
 
 // Aljazzar and Leue: edge (u,v)
@@ -45,13 +49,14 @@ void SuccessorGenerator::add_inheap_successors(Node &node,
        	for (size_t i = 1; i < incomming_heap[s].size(); ++i) {
             Sap &sap = incomming_heap[s][i];
 			int succ_g = node.g + get_cost_heap_edge(node.sap, sap);
-
-            Node succ_node(succ_g, sap, s.get_id());
+            Node succ_node(succ_g, sap, node.heap_state);
 
 			if (!successors_only) {
-				set_parent(node, succ_node, false);
-				//notify_inheap_edge(succ_node, state_registry);
 				succ_node.is_inheap_node = true;
+				succ_node.id = g_djkstra_nodes;
+				notify_inheap_edge(succ_node, state_registry);
+				++g_djkstra_nodes;
+				set_parent(node, succ_node, false);
 			}
 
 			successors.push_back(succ_node);
@@ -84,12 +89,15 @@ void SuccessorGenerator::add_treeheap_successors(Node &node,
             Sap &sap = tree_heap[s][i];
 			int succ_g = node.g + get_cost_heap_edge(node.sap, sap);
             Node succ_node(succ_g, sap, s.get_id());
-			successors.push_back(succ_node);
 
 			if (!successors_only) {
+                succ_node.id = g_djkstra_nodes;
+                ++g_djkstra_nodes;
 				set_parent(node, succ_node, false);
-				//notify_tree_heap_edge(succ_node, state_registry);
+				notify_tree_heap_edge(succ_node, state_registry);
 			}
+
+			successors.push_back(succ_node);
 		}
 }
 
@@ -149,7 +157,9 @@ void SuccessorGenerator::get_successor_pg_root(shared_ptr<Node> pg_root,
 	successor = Node(succ_g, succ_sap, goal_id);
 	if (successor_only)
 		return;
+	successor.id = g_djkstra_nodes;
 
 	set_parent(*pg_root, successor ,true);
+	++g_djkstra_nodes;
 }
 }
