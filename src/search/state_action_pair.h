@@ -102,20 +102,24 @@ public:
 		return true;
 	}
 };
+struct Node;
 
 struct Node {
+	int id = -1;
 	int g = -1;
 	shared_ptr<StateActionPair> sap = nullptr;
 	StateID heap_state = StateID::no_state;
 	bool is_inheap_node = false;
 
 	Node() {
+		id = -1;
 		g = -1;
 		sap = nullptr;
 		heap_state = StateID::no_state;
 	}
 
 	Node (const Node &n) {
+		id = n.id;
 		g = n.g;
 		sap = n.sap;
 		heap_state = n.heap_state;
@@ -123,7 +127,7 @@ struct Node {
 	}
 
 	Node(int g, shared_ptr<StateActionPair> sap, StateID heap_state)
-	: g(g), sap(sap), heap_state(heap_state){
+	:id(-1), g(g), sap(sap), heap_state(heap_state){
 	};
 
 	size_t hash() const{
@@ -132,10 +136,13 @@ struct Node {
 		size_t seed = 0;
 		boost::hash_combine(seed, value_sap);
 		boost::hash_combine(seed, value_heap);
+        boost::hash_combine(seed, id);
 		return seed;
 	}
 
     bool operator==(const Node& other) const {
+		if (id != other.id)
+			return false;
 		if (g != other.g)
 			return false;
 		if ((!sap && other.sap) || (sap && !other.sap))

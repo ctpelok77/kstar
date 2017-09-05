@@ -27,7 +27,7 @@ void PlanReconstructor::set_goal_state(StateID goal_state) {
 
 std::vector<Node> PlanReconstructor::djkstra_traceback(Node node)	{
 	vector<Node> path;
-	Node &current_sap = node;
+	Node current_sap = node;
 	for(;;) {
 		path.push_back(current_sap);
         if(!current_sap.sap->op) {

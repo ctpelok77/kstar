@@ -15,7 +15,8 @@ KStar::KStar(const options::Options &opts)
 	:TopKEagerSearch(opts),
 	 simple_plans_only(opts.get<bool>("simple_plans_only")),
 	 dump_plans(opts.get<bool>("dump_plans")),
-	 num_node_expansions(0), djkstra_initialized(false) {
+	 num_node_expansions(0),
+	 djkstra_initialized(false){
 	pg_succ_generator =
 			unique_ptr<SuccessorGenerator>(new SuccessorGenerator(
 															tree_heap,
@@ -88,6 +89,7 @@ void KStar::search() {
 		}
 	}
 
+	dump_path_graph();
 	if (dump_plans) 
 		output_plans();
 
@@ -135,15 +137,16 @@ void KStar::initialize_djkstra() {
                                            goal_state, nullptr,
                                            &state_registry, &search_space);
     pg_root = make_shared<Node>(0, sap, StateID::no_state);
-	//notify_expand(*pg_root, &state_registry, num_node_expansions);
+	pg_root->id = g_djkstra_nodes;
+	++g_djkstra_nodes;
+	notify_expand(*pg_root, &state_registry, num_node_expansions);
     plan_reconstructor->add_plan(*pg_root, top_k_plans, simple_plans_only);
 	statistics.inc_plans_found();
     set_optimal_plan_cost();
     Node successor;
     pg_succ_generator->get_successor_pg_root(pg_root, successor);
     queue_djkstra.push(successor);
-	//notify_push(successor, &state_registry);
-	statistics.inc_total_djkstra_generations(); 
+	statistics.inc_total_djkstra_generations();
     djkstra_initialized = true;
 }
 
@@ -173,15 +176,15 @@ bool KStar::djkstra_search() {
 		Node node = queue_djkstra.top();
  		if(!enough_nodes_expanded())
 			return false;
+		queue_djkstra.pop();
 
-		//notify_expand(node, &state_registry, num_node_expansions);
-		plan_reconstructor->add_plan(node, top_k_plans, simple_plans_only);
 		notify_expand(node, &state_registry, num_node_expansions);
+        cout << "" << endl;
+		plan_reconstructor->add_plan(node, top_k_plans, simple_plans_only);
 		statistics.inc_plans_found();
 		if (enough_plans_found())
 			return true;
 
-		queue_djkstra.pop();
 		init_tree_heaps(node);
 		std::vector<Node> successors;
 		pg_succ_generator->get_successors(node, successors);
@@ -254,20 +257,8 @@ void KStar::dump_dot() const {
 				if (node_info.parent_state_id == sap->get_from_state().get_id()) {
 					node_stream << " style=\"dashed\" color=\"#A9A9A9 \"";
 				}
-				//node_stream << "\"";
 				node_stream << " ]\n";
 			}
-
-			/*if (node_info.creating_operator != -1 && node_info.parent_state_id != StateID::no_state) {
-				node_stream << node_info.parent_state_id.hash() << "  ->  " << id.hash();
-				node_stream <<" [ label=\"#" << g_operators[node_info.creating_operator].get_name();
-				node_stream << "/"<< g_operators[node_info.creating_operator].get_cost();
-				node_stream << "\"";
-				if (g_operators[node_info.creating_operator].get_name() == "achieve_goal") {
-					node_stream << " style=\"dashed\" color=\"#A9A9A9 \"";
-				}
-				node_stream << " ]\n";
-			}*/
 		}
 
 		node_stream << "}\n";
