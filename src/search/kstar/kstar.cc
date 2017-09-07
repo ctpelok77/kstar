@@ -139,7 +139,7 @@ void KStar::initialize_djkstra() {
     pg_root = make_shared<Node>(0, sap, StateID::no_state);
 	pg_root->id = g_djkstra_nodes;
 	++g_djkstra_nodes;
-	notify_expand(*pg_root, &state_registry, num_node_expansions);
+	//notify_expand(*pg_root, &state_registry, num_node_expansions);
     plan_reconstructor->add_plan(*pg_root, top_k_plans, simple_plans_only);
 	statistics.inc_plans_found();
     set_optimal_plan_cost();
@@ -167,10 +167,19 @@ void KStar::init_tree_heaps(Node node) {
 	init_tree_heap(from);
 }
 
+void KStar::throw_plans() {
+	djkstra_initialized = false;		
+	top_k_plans.clear();
+	num_node_expansions = 0;
+	statistics.reset_plans_found();
+	statistics.reset_opt_found();
+}
+
 // Djkstra search on path graph P(G) returns true if enough plans have been found
 bool KStar::djkstra_search() {
 	std::cout << "Switching to djkstra search on path graph" << std::endl;
 	statistics.inc_djkstra_runs();
+	print_value(queue_djkstra.empty(),"empty", _ARGS);
 	initialize_djkstra();
     while (!queue_djkstra.empty()) {
 		Node node = queue_djkstra.top();
@@ -194,7 +203,9 @@ bool KStar::djkstra_search() {
 			statistics.inc_total_djkstra_generations();
 		}
 	}
-
+	// When Djkstra does not find enough solutions throw everything 
+	// and start from scratch
+	throw_plans();
 	return false;
 }
 
@@ -302,7 +313,7 @@ void add_simple_plans_only_option(OptionParser &parser) {
 
 static SearchEngine *_parse(OptionParser &parser) {
 	 parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");
-	 parser.add_option<int>("plans", "Number of plans", "200");
+	 parser.add_option<int>("plans", "Number of plans", "1000");
 	 parser.add_option<bool>("dump_plans", "Print plans", "false");
 
 	 top_k_eager_search::add_pruning_option(parser);
