@@ -11,6 +11,7 @@ from . import aliases
 from . import arguments
 from . import cleanup
 from . import run_components
+from . import sanity_checker
 
 def remove_plan_folder():
     plan_dir = "found_plans" 
@@ -42,6 +43,10 @@ def main():
                 run_components.run_translate(args)
             elif component == "search":
                 exitcode = run_components.run_search(args)
+                # handle exitcode here 
+                success = sanity_checker.solution_sanity_check() 
+                if exitcode == 0 and not success:
+                    exitcode = -1
             elif component == "validate":
                 run_components.run_validate(args)
             else:
