@@ -140,7 +140,7 @@ ALIASES["seq-opt-bjolp"] = [
 ALIASES["seq-opt-lmcut"] = [
     "--search", "astar(lmcut())"]
 
-ALIASES["kstar"] = [
+ALIASES["kstar"] = [ 
     "--search", "kstar(blind())"]
 
 ALIASES["kstar-lmcut"] = [
