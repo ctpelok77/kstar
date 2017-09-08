@@ -35,7 +35,7 @@ protected:
     void init_tree_heaps(Node node);
 	vector<Sap> djkstra_traceback(Node& top_pair);
 	vector<Sap> compute_sidetrack_seq(Node& top_pair, vector<Sap>& path);
-	void throw_plans();
+	void throw_everything();
 	void add_plan(Node& p);
 	bool enough_plans_found();
 	void set_optimal_plan_cost();
