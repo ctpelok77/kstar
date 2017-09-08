@@ -167,12 +167,13 @@ void KStar::init_tree_heaps(Node node) {
 	init_tree_heap(from);
 }
 
-void KStar::throw_plans() {
+void KStar::throw_everything() {
 	djkstra_initialized = false;		
 	top_k_plans.clear();
 	num_node_expansions = 0;
 	statistics.reset_plans_found();
 	statistics.reset_opt_found();
+	queue_djkstra = std::priority_queue<Node>();
 }
 
 // Djkstra search on path graph P(G) returns true if enough plans have been found
@@ -205,7 +206,7 @@ bool KStar::djkstra_search() {
 	}
 	// When Djkstra does not find enough solutions throw everything 
 	// and start from scratch
-	throw_plans();
+	throw_everything();
 	return false;
 }
 
