@@ -34,7 +34,7 @@ void SuccessorGenerator::add_cross_edge(Node &node,
         succ_node.id = g_djkstra_nodes;
 		++g_djkstra_nodes;
 		set_parent(node, succ_node, true);
-		notify_cross_edge(succ_node, state_registry);
+		//notify_cross_edge(succ_node, state_registry);
 	}
 
 	successors.push_back(succ_node);
@@ -54,7 +54,7 @@ void SuccessorGenerator::add_inheap_successors(Node &node,
 			if (!successors_only) {
 				succ_node.is_inheap_node = true;
 				succ_node.id = g_djkstra_nodes;
-				notify_inheap_edge(succ_node, state_registry);
+				//notify_inheap_edge(succ_node, state_registry);
 				++g_djkstra_nodes;
 				set_parent(node, succ_node, false);
 			}
@@ -94,7 +94,7 @@ void SuccessorGenerator::add_treeheap_successors(Node &node,
                 succ_node.id = g_djkstra_nodes;
                 ++g_djkstra_nodes;
 				set_parent(node, succ_node, false);
-				notify_tree_heap_edge(succ_node, state_registry);
+				//notify_tree_heap_edge(succ_node, state_registry);
 			}
 
 			successors.push_back(succ_node);
