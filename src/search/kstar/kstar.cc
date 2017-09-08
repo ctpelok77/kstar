@@ -89,10 +89,10 @@ void KStar::search() {
 		}
 	}
 
-	dump_path_graph();
 	if (dump_plans) 
 		output_plans();
 
+	plan_reconstructor->save_plans(top_k_plans);
 	cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
 }
@@ -179,8 +179,9 @@ void KStar::throw_everything() {
 // Djkstra search on path graph P(G) returns true if enough plans have been found
 bool KStar::djkstra_search() {
 	std::cout << "Switching to djkstra search on path graph" << std::endl;
+	// When Djkstra restarts remove everything from its last iteration 
+	throw_everything();
 	statistics.inc_djkstra_runs();
-	print_value(queue_djkstra.empty(),"empty", _ARGS);
 	initialize_djkstra();
     while (!queue_djkstra.empty()) {
 		Node node = queue_djkstra.top();
@@ -204,9 +205,6 @@ bool KStar::djkstra_search() {
 			statistics.inc_total_djkstra_generations();
 		}
 	}
-	// When Djkstra does not find enough solutions throw everything 
-	// and start from scratch
-	throw_everything();
 	return false;
 }
 
