@@ -96,26 +96,36 @@ void TopKEagerSearch::print_statistics() const {
     pruning_method->print_statistics();
 }
 
+
 SearchStatus TopKEagerSearch::step() {
-    pair<SearchNode, bool> n = fetch_next_node();
+	if (!open_list->empty()) { 
+		StateID id = open_list->top();
+		GlobalState s = state_registry.lookup_state(id); 
+		if (interrupted) {
+			if (test_goal(s)) {
+				goal_state = s.get_id();
+				first_plan_found = true;
+			}
+			return INTERRUPTED;
+		}
+		update_next_node_f();
+
+		if (test_goal(s) && !first_plan_found) {
+			goal_state = s.get_id();
+			first_plan_found = true;
+			return FIRST_PLAN_FOUND;
+		}
+	}
+
+	if (all_nodes_expanded)
+		return INTERRUPTED;
+
+	pair<SearchNode, bool> n = fetch_next_node();
     SearchNode node = n.first;
     GlobalState s = node.get_state();
-    if (interrupted || all_nodes_expanded) {
-        if (test_goal(s)) {
-            goal_state = s.get_id();
-            first_plan_found = true;
-        }
-        return INTERRUPTED;
-    }
-    update_next_node_f();
-
-    if (test_goal(s) && !first_plan_found) {
-        goal_state = s.get_id();
-        first_plan_found = true;
-        return FIRST_PLAN_FOUND;
-    }
     vector<const GlobalOperator *> applicable_ops;
     g_successor_generator->generate_applicable_ops(s, applicable_ops);
+
     /*
       TODO: When preferred operators are in use, a preferred operator will be
       considered by the preferred operator queues even when it is pruned.
