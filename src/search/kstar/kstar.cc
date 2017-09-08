@@ -189,7 +189,7 @@ bool KStar::djkstra_search() {
 			return false;
 		queue_djkstra.pop();
 
-		notify_expand(node, &state_registry, num_node_expansions);
+		//notify_expand(node, &state_registry, num_node_expansions);
         cout << "" << endl;
 		plan_reconstructor->add_plan(node, top_k_plans, simple_plans_only);
 		statistics.inc_plans_found();
