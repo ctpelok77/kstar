@@ -143,7 +143,6 @@ void PlanReconstructor::add_plan(Node node,
 	Plan plan;
 	StateSequence state_seq;
     extract_plan(seq, plan, state_seq);
-	//print_set_of_operators(plan, "plan");
 	plan.shrink_to_fit();
 	plan.pop_back();
 
@@ -151,12 +150,16 @@ void PlanReconstructor::add_plan(Node node,
 		if (is_simple_plan(state_seq, state_registry)) {
 			inc_optimal_plans(plan);
 			top_k_plans.push_back(plan);
-			save_plan(plan, true);
 		}
 	}
 	else {
 		inc_optimal_plans(plan);
 		top_k_plans.push_back(plan);
+	}
+}
+
+void PlanReconstructor::save_plans(std::vector<Plan>& top_k_plans) {
+	for (auto& plan : top_k_plans) {
         save_plan(plan, true);
 	}
 }

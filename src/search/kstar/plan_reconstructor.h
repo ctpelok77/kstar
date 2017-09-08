@@ -24,5 +24,6 @@ public:
 	void inc_optimal_plans(Plan &plan);
 	void set_goal_state(StateID goal_state);
 	void add_plan(Node node, std::vector<Plan>& top_k_plans, bool simple_plans_only);
+	void save_plans(std::vector<Plan>& top_k_plans);
 };
 }
