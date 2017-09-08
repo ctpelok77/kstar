@@ -12,7 +12,7 @@ def solution_sanity_check():
     directory = "found_plans"
     print "Starting Top-k plan sanity checks..."
     #duplicates = exist_duplicates(directory)
-    #dsuccess = True
+    success = True
     #if not duplicates:
         #print "No duplicate plans."
     #else: 
