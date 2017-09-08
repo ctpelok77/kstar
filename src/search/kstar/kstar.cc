@@ -99,7 +99,7 @@ void KStar::search() {
 
 bool KStar::enough_nodes_expanded() {
 	if (open_list->empty()) 
-		return true;	
+		return true;
 	int max_plan_cost =  optimal_solution_cost + most_expensive_successor;
 	if (max_plan_cost <= next_node_f)
 		return true;
@@ -280,6 +280,7 @@ void KStar::dump_dot() const {
 		file << node_stream.rdbuf();
 		file.close();
 }
+
 void KStar::dump_tree_edge() {
 	std::stringstream stream;	
 	std::string filename = "tree_edges";
