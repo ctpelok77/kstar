@@ -11,12 +11,12 @@ import sys
 def solution_sanity_check():
     directory = "found_plans"
     print "Starting Top-k plan sanity checks..."
-    duplicates = exist_duplicates(directory)
+    # duplicates = exist_duplicates(directory)
     success = True
-    if not duplicates:
-        print "No duplicate plans."
-    else: 
-        success = False 
+    # if not duplicates:
+    #   print "No duplicate plans."
+    # else: 
+    #     success = False 
 
     ascending = in_ascending_order(directory)
     if ascending:
