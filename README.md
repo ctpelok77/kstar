@@ -1,24 +1,15 @@
-Fast Downward is a domain-independent planning system.
+K* is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+K* is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with 
+this program. If not, see http://www.gnu.org/licenses/.
 
-For documentation and contact information see http://www.fast-downward.org/.
 
-The following directories are not part of Fast Downward as covered by this
-license:
+### License ###
+* For the K* algorithms is under GPL 3. 
+* Copyright (C) 2017 IBM Watson Research, USA
 
-* ./src/search/ext
+* The framework is based on the [Fast Downward](http://www.fast-downward.org/), adapted to handle multiple effects. For the unchanged parts the licence of Fast Downward applies.
 
-For the rest, the following license applies:
+* The symmetries framework is based on the framework for the classical planning by Carmel Domshlak, Michael Katz, and Alexander Shleyfman.
 
-```
-Fast Downward is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation, either version 3 of the License, or (at your option) any later
-version.
 
-Fast Downward is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with
-this program. If not, see <http://www.gnu.org/licenses/>.
-```
