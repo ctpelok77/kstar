@@ -4,8 +4,7 @@ You should have received a copy of the GNU General Public License along with
 this program. If not, see http://www.gnu.org/licenses/.
 
 ### License ###
-* The K* integration is under GPL 3. 
-* Copyright (C) 2017 IBM Watson Research, USA
+* The K* integration is under GPL 3. Copyright (C) 2017 IBM Watson Research, USA
 
 * The framework is based on the [Fast Downward](http://www.fast-downward.org/), adapted to handle multiple effects. For the unchanged parts the licence of Fast Downward applies.
 
