@@ -6,8 +6,8 @@ this program. If not, see http://www.gnu.org/licenses/.
 ### License ###
 * The K* integration is under GPLv3. Copyright (C) 2017 IBM Research, USA
 
-* The framework is based on the [Fast Downward](http://www.fast-downward.org/), adapted to handle multiple effects. For the unchanged parts the licence of Fast Downward applies.
 
 * The symmetries framework is based on the framework for the classical planning by Carmel Domshlak, Michael Katz, and Alexander Shleyfman.
 
+* The framework is based on the [Fast Downward](http://www.fast-downward.org/). For the unchanged parts the licence of Fast Downward applies.
 
