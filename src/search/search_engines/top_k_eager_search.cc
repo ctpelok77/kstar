@@ -105,6 +105,7 @@ SearchStatus TopKEagerSearch::step() {
 			if (test_goal(s)) {
 				goal_state = s.get_id();
 				first_plan_found = true;
+                sort_and_remove(s);
 			}
 			return INTERRUPTED;
 		}
@@ -113,6 +114,7 @@ SearchStatus TopKEagerSearch::step() {
 		if (test_goal(s) && !first_plan_found) {
 			goal_state = s.get_id();
 			first_plan_found = true;
+            sort_and_remove(s);
 			return FIRST_PLAN_FOUND;
 		}
 	}
@@ -348,7 +350,6 @@ void TopKEagerSearch::remove_tree_edge(GlobalState s)  {
 
     if (tree_edge_pos != -1) {
        //cout << "Removing " << get_node_name(*incomming_heap[s][tree_edge_pos]) << " from incomming_heap[" << s.get_state_tuple() << "]" << flush << endl;
-
         incomming_heap[s].erase(incomming_heap[s].begin() + tree_edge_pos);
     }
     //cout << "In-heap " << s.get_state_tuple() << " size " <<  incomming_heap[s].size() <<endl;
@@ -358,6 +359,7 @@ void TopKEagerSearch::remove_tree_edge(GlobalState s)  {
 // Sort the incomming heap edges according to their delta
 // value and remove the tree edge
 void TopKEagerSearch::sort_and_remove(GlobalState s) {
+    //cout << "Tree edge removal " << s.get_state_tuple() << endl;
     std::stable_sort(incomming_heap[s].begin(), incomming_heap[s].end(), Cmp<Sap>());
     remove_tree_edge(s);
 }

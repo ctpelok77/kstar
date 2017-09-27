@@ -27,5 +27,7 @@ namespace kstar {
 	void begin_subgraph(std::string label, Stream &stream);
 	void add_edge(std::string from_id, std::string to_id, 
 				  std::string label, Stream &stream);
+	void print_node_sequence(std::vector<Node> &sequence, std::string name);
+	void print_operator_sequence(Plan plan, std::string name);
 }
 #endif
