@@ -111,7 +111,7 @@ void KStar::resume_astar() {
 	update_most_expensive_succ();
 }
 
-void KStar::update_most_expensive_succ()	{
+void KStar::update_most_expensive_succ() {
     if(queue_djkstra.empty())
 		return;
 	Node n = queue_djkstra.top();
