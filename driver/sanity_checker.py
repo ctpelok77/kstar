@@ -7,6 +7,10 @@ import hashlib
 import os
 import re
 import sys
+import shutil
+
+def remove_plan_files():
+	shutil.rmtree("found_plans",ignore_errors=False, onerror=None) 
 
 def solution_sanity_check():
     directory = "found_plans"
@@ -24,7 +28,7 @@ def solution_sanity_check():
         print "Plans are in ascending order."
     else:
 		print "Plans are not in ascending order."
-        success = True
+		success = True
     
     return success  
 
