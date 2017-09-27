@@ -16,12 +16,14 @@ def solution_sanity_check():
     if not duplicates:
 		print "No duplicate plans."
     else: 
+		print "Duplicate plans found."
 		success = False 
 
     ascending = in_ascending_order(directory)
     if ascending:
         print "Plans are in ascending order."
     else:
+		print "Plans are not in ascending order."
         success = True
     
     return success  
