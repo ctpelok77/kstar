@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import shutil
+import collections
 
 def remove_plan_files():
 	shutil.rmtree("found_plans",ignore_errors=False, onerror=None) 
@@ -29,7 +30,8 @@ def solution_sanity_check():
     else:
 		print "Plans are not in ascending order."
 		success = True
-    
+
+    plan_frequencies("found_plans") 
     return success  
 
 def exist_duplicates(directory):
@@ -65,6 +67,21 @@ def in_ascending_order(directory):
             print "[ERR] " + filename+str(i) +" has less cost than "+ filename+str(i-1)   
             ascending = False
     return ascending 
+
+def plan_frequencies(directory):
+    ascending = True
+    num_plans = len(fnmatch.filter(os.listdir(directory), 'sas_plan.*'))
+    plan_cost = -1
+    plan_costs = [-1]*(num_plans)
+    for i in range(0, num_plans):
+        planfile = directory + '/sas_plan.'+str(i+1)
+        plan_cost = search_for_pattern(planfile)
+        plan_costs[i] = plan_cost
+    counter=collections.Counter(plan_costs)
+    
+    print "(plan-cost, plan_frequencies pair)"
+    for key, value in counter.items(): 
+		print (key,value)
 
 def search_for_pattern(filename):
     pattern = ""
