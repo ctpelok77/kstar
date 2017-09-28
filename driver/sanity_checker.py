@@ -79,7 +79,7 @@ def plan_frequencies(directory):
         plan_costs[i] = plan_cost
     counter=collections.Counter(plan_costs)
     
-    print "(plan-cost, plan_frequencies pair)"
+    print "(plan-cost, plan_frequencies)"
     for key, value in counter.items(): 
 		print (key,value)
 
