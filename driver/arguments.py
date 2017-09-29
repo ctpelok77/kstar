@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import os
 import os.path
 
 from . import aliases
@@ -350,7 +351,11 @@ def parse_args():
         if args.debug:
             args.build = "debug32"
         else:
-            args.build = "release32"
+			if "DOWNWARD_BUILD" in os.environ:
+				build = str(os.environ['DOWNWARD_BUILD'])
+				args.build = build 
+			else:
+				args.build = "release32" 
 
     _split_planner_args(parser, args)
 

@@ -141,7 +141,7 @@ ALIASES["seq-opt-lmcut"] = [
     "--search", "astar(lmcut())"]
 
 ALIASES["kstar"] = [ 
-    "--search", "kstar(blind())"]
+    "--search", "kstar(blind(),plans=10)"]
 
 ALIASES["kstar-lmcut"] = [
     "--search", "kstar(lmcut())"]
