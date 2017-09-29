@@ -79,9 +79,13 @@ def plan_frequencies(directory):
         plan_costs[i] = plan_cost
     counter=collections.Counter(plan_costs)
     
-    print "(plan-cost, plan_frequencies)"
+    f = open('plan_frequencies','w')
+    print "(plan-cost, frequency)"
     for key, value in counter.items(): 
 		print (key,value)
+		line = str(key) + " "+ str(value) + "\n"
+		f.write(line)
+
 
 def search_for_pattern(filename):
     pattern = ""
