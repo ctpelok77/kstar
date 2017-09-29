@@ -80,7 +80,6 @@ void TopKEagerSearch::initialize() {
     }
 
     print_initial_h_values(eval_context);
-
     pruning_method->initialize(g_root_task());
 }
 
@@ -359,7 +358,7 @@ void TopKEagerSearch::remove_tree_edge(GlobalState s)  {
 // Sort the incomming heap edges according to their delta
 // value and remove the tree edge
 void TopKEagerSearch::sort_and_remove(GlobalState s) {
-    //cout << "Tree edge removal " << s.get_state_tuple() << endl;
+    cout << "Tree edge removal " << s.get_state_tuple() << endl;
     std::stable_sort(incomming_heap[s].begin(), incomming_heap[s].end(), Cmp<Sap>());
     remove_tree_edge(s);
 }
