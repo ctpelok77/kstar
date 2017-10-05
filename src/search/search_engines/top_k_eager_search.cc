@@ -138,11 +138,6 @@ SearchStatus TopKEagerSearch::step() {
     ordered_set::OrderedSet<const GlobalOperator *> preferred_operators =
             collect_preferred_operators(eval_context, preferred_operator_heuristics);
 
-    if (s.get_state_tuple() == "100000000000010001000010000400")
-    {
-        debug(200, _ARGS);
-    }
-
     for (const GlobalOperator *op : applicable_ops) {
         if ((node.get_real_g() + op->get_cost()) >= bound) {
             continue;
@@ -266,13 +261,14 @@ void TopKEagerSearch::add_incomming_edge(SearchNode node,
                                                 &search_space);
 	    GlobalState succ_state = succ_node.get_state();
 
-		if (succ_state.get_state_tuple() == "100000000000000001110010000600") {
+		/*if (succ_state.get_state_tuple() == "100000000000000001110010000600") {
 			debug(9999, _ARGS);
             cout << "g" << node.get_g() << endl;
 			cout << "Pushed " << get_node_name(*sap) << " to incomming_heap[" << succ_state.get_state_tuple() << "]"<< flush << endl;
             counter++;
 			debug(9999, _ARGS);
 		}
+		*/
         
         incomming_heap[succ_state].push_back(sap);
         std::stable_sort(incomming_heap[succ_state].begin(), incomming_heap[succ_state].end(),Cmp<Sap>());
@@ -317,8 +313,8 @@ void TopKEagerSearch::init_tree_heap(GlobalState& state) {
             tree_heap[state].push_back(p);
         }
         std::stable_sort(tree_heap[state].begin(), tree_heap[state].end(), Cmp<Sap>());
-        cout << "Initializing " << "H_T[" << state.get_state_tuple() << "]"
-             << tree_heap[state].size() << flush << endl;
+        //cout << "Initializing " << "H_T[" << state.get_state_tuple() << "]"
+         //    << tree_heap[state].size() << flush << endl;
     }
 
 
@@ -362,7 +358,7 @@ void TopKEagerSearch::remove_tree_edge(GlobalState s)  {
     }
 
     if (tree_edge_pos != -1) {
-       cout << "Removing " << get_node_name(*incomming_heap[s][tree_edge_pos]) << " from incomming_heap[" << s.get_state_tuple() << "]" << flush << endl;
+       //cout << "Removing " << get_node_name(*incomming_heap[s][tree_edge_pos]) << " from incomming_heap[" << s.get_state_tuple() << "]" << flush << endl;
         incomming_heap[s].erase(incomming_heap[s].begin() + tree_edge_pos);
     }
     //cout << "In-heap " << s.get_state_tuple() << " size " <<  incomming_heap[s].size() <<endl;
@@ -372,16 +368,17 @@ void TopKEagerSearch::remove_tree_edge(GlobalState s)  {
 // Sort the incomming heap edges according to their delta
 // value and remove the tree edge
 void TopKEagerSearch::sort_and_remove(GlobalState s) {
-    cout << "Tree edge removal " << s.get_state_tuple() << endl;
+    //cout << "Tree edge removal " << s.get_state_tuple() << endl;
     std::stable_sort(incomming_heap[s].begin(), incomming_heap[s].end(), Cmp<Sap>());
     remove_tree_edge(s);
 
-	if (s.get_state_tuple() == "100000000000000001110010000600") {
+	/*if (s.get_state_tuple() == "100000000000000001110010000600") {
 		for (auto &sap:incomming_heap[s]) {
 			cout << "from "<< sap->get_from_state().get_state_tuple() << endl; 	
 			cout << "to"<< sap->get_to_state().get_state_tuple() << endl; 	
 		}
 	}
+*/
 }
 
 pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
