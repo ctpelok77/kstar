@@ -36,6 +36,7 @@ protected:
 	long int num_saps;
 	StateID goal_state = StateID::no_state;
     bool all_nodes_expanded = false;
+	int counter = 0;
 	std::vector<Plan> top_k_plans;
    	PerStateInformation<vector<Sap>> incomming_heap;
 	PerStateInformation<vector<Sap>> tree_heap;
