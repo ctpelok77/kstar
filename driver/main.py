@@ -48,7 +48,8 @@ def main():
 				if exitcode == 0 and not success:
 					exitcode = -1
             elif component == "validate":
-                run_components.run_validate(args)
+                pass
+                #run_components.run_validate(args)
             else:
                 assert False
         except subprocess.CalledProcessError as err:
