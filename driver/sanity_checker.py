@@ -82,7 +82,9 @@ def plan_frequencies(directory):
     
     f = open('plan_frequencies','w')
     print "(plan-cost, frequency)"
-    for key, value in counter.items(): 
+    items = counter.items()
+    items.sort(reverse=True)
+    for key, value in items: 
 		print (key,value)
 		line = str(key) + " "+ str(value) + "\n"
 		f.write(line)
