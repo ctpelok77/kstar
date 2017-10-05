@@ -39,7 +39,7 @@ std::vector<Node> PlanReconstructor::djkstra_traceback(Node node)	{
 	}
 	reverse(path.begin(), path.end());
     //cout << "" << endl;
-    print_node_sequence(path, "djkstra_traceback");
+    //print_node_sequence(path, "djkstra_traceback");
     return path;
 }
 
@@ -61,7 +61,7 @@ vector<Node> PlanReconstructor::compute_sidetrack_seq(vector<Node>& path) {
 	}
     reverse(seq.begin(), seq.end());
 	//cout << "" << endl;
-	print_node_sequence(seq, "seq");
+	//print_node_sequence(seq, "seq");
     return seq;
 
 }
@@ -86,10 +86,10 @@ void PlanReconstructor::extract_plan(vector<Node>& seq,
 		if(seq_index <= seq_size - 1 && seq[seq_index].sap->to == current_state.get_id()) {
 			// prepend edge from seq
 			plan.push_back(seq[seq_index].sap->op);
-			std::cout << "prepend seq " << seq[seq_index].sap->op->get_name();
+			/*std::cout << "prepend seq " << seq[seq_index].sap->op->get_name();
 			std::cout << " to " << seq[seq_index].sap->get_to_state().get_state_tuple();
 			std::cout << " from " << seq[seq_index].sap->get_from_state().get_state_tuple();
-			std::cout << ""<< endl;
+			std::cout << ""<< endl;*/
 			current_state = state_registry->lookup_state(seq[seq_index].sap->from);
 			++seq_index;
 		}
@@ -97,16 +97,16 @@ void PlanReconstructor::extract_plan(vector<Node>& seq,
 			// prepend tree edge
 			const GlobalOperator *op = &g_operators[info.creating_operator];
             plan.push_back(op);
-			std::cout << "prepend tree " << op->get_name();
+			/*std::cout << "prepend tree " << op->get_name();
 			std::cout << " to " << current_state.get_state_tuple();
 			std::cout << " from " << state_registry->lookup_state(info.parent_state_id).get_state_tuple();
-			std::cout << ""<< endl;
+			std::cout << ""<< endl;*/
             current_state = state_registry->lookup_state(info.parent_state_id);
 		}
 		state_seq.push_back(current_state.get_id());
 	}
 	reverse(plan.begin(), plan.end());
-	print_operator_sequence(plan, "plan");
+	//print_operator_sequence(plan, "plan");
 }
 
 bool PlanReconstructor::is_simple_plan(StateSequence seq, StateRegistry* state_registry) {

@@ -11,7 +11,8 @@ import shutil
 import collections
 
 def remove_plan_files():
-	shutil.rmtree("found_plans",ignore_errors=False, onerror=None) 
+	pass
+	#shutil.rmtree("found_plans",ignore_errors=False, onerror=None) 
 
 def solution_sanity_check():
     directory = "found_plans"
