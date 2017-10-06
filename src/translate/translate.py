@@ -375,13 +375,15 @@ def translate_strips_axiom(axiom, dictionary, ranges, mutex_dict, mutex_ranges):
 
 def translate_strips_operators(actions, strips_to_sas, ranges, mutex_dict,
                                mutex_ranges, implied_facts):
-    result = []
+    result = set()	
     for action in actions:
         sas_ops = translate_strips_operator(action, strips_to_sas, ranges,
                                             mutex_dict, mutex_ranges,
                                             implied_facts)
-        result.extend(sas_ops)
-    return result
+        for sas_op in sas_ops:
+            result.add(sas_op)	
+	
+    return list(result)
 
 
 def translate_strips_axioms(axioms, strips_to_sas, ranges, mutex_dict,
