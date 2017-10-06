@@ -259,6 +259,16 @@ class SASOperator:
         self.pre_post = self._canonical_pre_post(pre_post)
         self.cost = cost
 
+    def __hash__(self):
+        return hash((self.name,str(self.prevail), str(self.pre_post), self.cost))
+
+    def __eq__(self, other):
+        return (self.name, self.prevail, self.pre_post, self.cost) \
+				== (other.name, other.prevail, other.pre_post, other.cost)
+
+    def __ne__(self, other):
+        return not(self == other)
+
     def _canonical_pre_post(self, pre_post):
         # Return a sorted and uniquified version of pre_post. We would
         # like to just use sorted(set(pre_post)), but this fails because
