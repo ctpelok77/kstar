@@ -126,6 +126,7 @@ SearchStatus TopKEagerSearch::step() {
     GlobalState s = node.get_state();
     vector<const GlobalOperator *> applicable_ops;
     g_successor_generator->generate_applicable_ops(s, applicable_ops);
+	//cout << "Expand " << s.get_state_tuple() << endl;
 
     /*
       TODO: When preferred operators are in use, a preferred operator will be
@@ -255,14 +256,30 @@ void TopKEagerSearch::add_incomming_edge(SearchNode node,
                                          SearchNode succ_node) {
         if (node.get_state_id() == succ_node.get_state_id())
             return;
-
+		
         auto sap = make_shared<StateActionPair>(node.get_state_id(),
                                                 succ_node.get_state_id(),
                                                 op, &state_registry,
                                                 &search_space);
 	    GlobalState succ_state = succ_node.get_state();
+		 
+		bool duplicate =  
+			std::find_if(incomming_heap[succ_state].begin(), 
+					     incomming_heap[succ_state].end(), 
+						 [=](const shared_ptr<StateActionPair>& other) {return *other == *sap;})
+			!= incomming_heap[succ_state].end(); 
+
+		if (duplicate)
+			return; 
+
         incomming_heap[succ_state].push_back(sap);
         std::stable_sort(incomming_heap[succ_state].begin(), incomming_heap[succ_state].end(),Cmp<Sap>());
+        
+		/*cout  << "Adding edge ";
+        cout << " from "<< sap->get_from_state().get_state_tuple();
+        cout << " to "<< sap->get_to_state().get_state_tuple();
+        cout << " " << sap->op->get_name() << endl;	
+		*/
         ++num_saps;
 }
 
@@ -363,7 +380,31 @@ void TopKEagerSearch::remove_tree_edge(GlobalState s)  {
 void TopKEagerSearch::sort_and_remove(GlobalState s) {
     //cout << "Tree edge removal " << s.get_state_tuple() << endl;
     std::stable_sort(incomming_heap[s].begin(), incomming_heap[s].end(), Cmp<Sap>());
+    /*if (s.get_state_tuple() == "11131111111111111111111000010111111111110")  {
+       debug(99,_ARGS);
+        for (auto &sap:incomming_heap[s]) {
+			cout << "from "<< sap->get_from_state().get_state_tuple() << endl;
+			cout << "to"<< sap->get_to_state().get_state_tuple() << endl;
+            cout << sap->op->get_name() << endl;
+            cout << "" << endl;
+		}
+       debug(99,_ARGS);
+    }
+	*/
+
     remove_tree_edge(s);
+
+	/*if (s.get_state_tuple() == "11131111111111111111111000010111111111110") {
+        debug(100, _ARGS);
+		for (auto &sap:incomming_heap[s]) {
+			cout << "from "<< sap->get_from_state().get_state_tuple() << endl;
+			cout << "to"<< sap->get_to_state().get_state_tuple() << endl;
+            cout << sap->op->get_name() << endl;
+            cout << "" << endl;
+		}
+        debug(100, _ARGS);
+	}	
+	*/
 }
 
 pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {

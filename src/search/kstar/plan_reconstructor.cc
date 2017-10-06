@@ -87,7 +87,7 @@ void PlanReconstructor::extract_plan(vector<Node>& seq,
 			std::cout << " to " << seq[seq_index].sap->get_to_state().get_state_tuple();
 			std::cout << " from " << seq[seq_index].sap->get_from_state().get_state_tuple();
 			std::cout << ""<< endl;
-			 */
+			*/
 			current_state = state_registry->lookup_state(seq[seq_index].sap->from);
 			++seq_index;
 		}
@@ -99,7 +99,8 @@ void PlanReconstructor::extract_plan(vector<Node>& seq,
 			std::cout << " to " << current_state.get_state_tuple();
 			std::cout << " from " << state_registry->lookup_state(info.parent_state_id).get_state_tuple();
 			std::cout << ""<< endl;
-            */
+			*/
+            
             current_state = state_registry->lookup_state(info.parent_state_id);
 		}
 		state_seq.push_back(current_state.get_id());
