@@ -34,6 +34,7 @@ class SearchStatistics {
 	int num_opt_plans;
 	int num_djkstra_runs;	
 	int total_djkstra_node_generations;
+	int simulated_plans;
 
     void print_f_line() const;
 public:

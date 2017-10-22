@@ -123,7 +123,8 @@ void SearchNode::dump() const {
 
 SearchSpace::SearchSpace(StateRegistry &state_registry, OperatorCost cost_type)
     : state_registry(state_registry),
-      cost_type(cost_type) {
+      cost_type(cost_type),
+	  plan_simulation_index(1) {
 }
 
 SearchNode SearchSpace::get_node(const GlobalState &state) {
@@ -319,4 +320,60 @@ void SearchSpace::dump_dot() const {
 void SearchSpace::print_statistics() const {
     cout << "Number of registered states: "
          << state_registry.size() << endl;
+}
+
+// This method can be used to see whether a path in the search space 
+// is actually applicable (1), is within the cost bound (2) achieves the
+// claimed utility and is within the claimed costs (3) 
+void SearchSpace::simulate_path(
+	vector<const GlobalOperator *> &path,  
+    vector<StateID> &sequence,
+    int claimed_cost) {
+	
+	if (path.empty()) 
+		return;
+	std::cout << "Simulate sas_plan." << plan_simulation_index << flush <<  std::endl;	
+    GlobalState s = state_registry.lookup_state(sequence.front());
+    int cost = 0;
+    for (size_t i =  0; i < path.size(); ++i) {
+        const GlobalOperator* op = path[i]; 
+        GlobalState s = state_registry.lookup_state(sequence[i]);
+        check_transition(s.get_id(), op);
+        cost += op->get_cost(); 
+    }
+    GlobalState second_last = state_registry.lookup_state(sequence.back()); 
+    GlobalState last_state = state_registry.get_successor_state(second_last, *path.back());
+    
+	check_cost(claimed_cost, cost);
+    std::cout << "Path simulation successful." << flush << std::endl;
+	++plan_simulation_index;
+}
+
+
+void SearchSpace::raise_simulation_error(std::string cause) {
+    std::cerr << "Error while plan simulation!" << endl;
+    std::cerr << "Reason: "<< cause << endl;
+    utils::exit_with(utils::ExitCode::CRITICAL_ERROR);
+}
+
+void SearchSpace::check_transition(StateID current, 
+                                   const GlobalOperator* op)
+{
+    GlobalState current_state = state_registry.lookup_state(current);
+    GlobalState succ_state = state_registry.get_successor_state(current_state, *op);   
+    std::string cause;
+    if (!op->is_applicable(current_state)) {
+        cause = "Inapplicable operator:" + op->get_name() +" in state " \
+                +"#" + std::to_string(current.hash()); 
+        raise_simulation_error(cause);
+    }
+}
+
+void SearchSpace::check_cost(int claimed_cost, int actual_cost)  {
+    std::string cause;
+    if (claimed_cost != actual_cost) {
+        cause = "Claimed and actual costs mismatch. Claimed: "+ to_string(claimed_cost) \
+              + " Actual: "+ to_string(actual_cost);
+        raise_simulation_error(cause);
+    }
 }
