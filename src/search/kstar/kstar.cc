@@ -92,6 +92,7 @@ void KStar::search() {
 		output_plans();
 
 	plan_reconstructor->save_plans(top_k_plans);
+    dump_dot();
 	cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
 }
@@ -258,7 +259,7 @@ void KStar::dump_dot() const {
 			stream << "\" ]\n";
 
 			for (Sap sap: incomming_heap[s]) {
-                node_stream << sap->get_from_state().get_id().hash() << "  ->  " << id.hash();
+                node_stream << id.hash() << "  ->  " << sap->get_from_state().get_id().hash();
 				node_stream <<" [ label=\"" << sap->op->get_name();
 				node_stream << "/"<< sap->op->get_cost();
                 node_stream << "\"";
