@@ -63,7 +63,7 @@ vector<Node> PlanReconstructor::compute_sidetrack_seq(vector<Node>& path) {
 
 }
 
-void PlanReconstructor::extract_plan(vector<Node>& seq,
+void PlanReconstructor::extract_plan(vector<Node> &seq,
 									Plan &plan,
                                     StateSequence &state_seq) {
 
@@ -106,8 +106,7 @@ void PlanReconstructor::extract_plan(vector<Node>& seq,
 		state_seq.push_back(current_state.get_id());
 	}
 	reverse(plan.begin(), plan.end());
-	//print_operator_sequence(plan, "plan");
-	//std::cout << "" << std::endl;
+    reverse(state_seq.begin(), state_seq.end());
 }
 
 bool PlanReconstructor::is_simple_plan(StateSequence seq, StateRegistry* state_registry) {
@@ -165,6 +164,9 @@ void PlanReconstructor::add_plan(Node node,
 		inc_optimal_plans(plan);
 		top_k_plans.push_back(plan);
 	}
+
+	int plan_cost = calculate_plan_cost(plan);
+	search_space->simulate_path(plan, state_seq, plan_cost);
 }
 
 void PlanReconstructor::save_plans(std::vector<Plan>& top_k_plans) {
