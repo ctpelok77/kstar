@@ -92,7 +92,6 @@ void KStar::search() {
 		output_plans();
 
 	plan_reconstructor->save_plans(top_k_plans);
-    dump_dot();
 	cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
 }
