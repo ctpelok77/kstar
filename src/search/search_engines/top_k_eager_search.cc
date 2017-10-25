@@ -149,7 +149,7 @@ SearchStatus TopKEagerSearch::step() {
         bool is_preferred = preferred_operators.contains(op);
         SearchNode succ_node = search_space.get_node(succ_state);
         add_incomming_edge(node, op, succ_node);
-
+        //cout << "Generate " << s.get_state_tuple() <<" op=" << op->get_name() << endl;
 
         // Previously encountered dead end. Don't re-evaluate.
         if (succ_node.is_dead_end()) {
@@ -275,11 +275,10 @@ void TopKEagerSearch::add_incomming_edge(SearchNode node,
         incomming_heap[succ_state].push_back(sap);
         std::stable_sort(incomming_heap[succ_state].begin(), incomming_heap[succ_state].end(),Cmp<Sap>());
         
-		/*cout  << "Adding edge ";
-        cout << " from "<< sap->get_from_state().get_state_tuple();
-        cout << " to "<< sap->get_to_state().get_state_tuple();
-        cout << " " << sap->op->get_name() << endl;	
-		*/
+		//cout  << "Adding edge ";
+        //cout << " from "<< sap->get_from_state().get_state_tuple();
+        //cout << " to "<< sap->get_to_state().get_state_tuple();
+        //cout << " " << sap->op->get_name() << endl;
         ++num_saps;
 }
 
