@@ -16,23 +16,23 @@ def remove_plan_files():
 
 def solution_sanity_check():
     directory = "found_plans"
-    print "Starting Top-k plan sanity checks..."
-    duplicates = exist_duplicates(directory)
+#    print "Starting Top-k plan sanity checks..."
+#    duplicates = exist_duplicates(directory)
     success = True
-    if not duplicates:
-		print "No duplicate plans."
-    else: 
-		print "Duplicate plans found."
-		success = False 
+    #if not duplicates:
+	#	print "No duplicate plans."
+    #else: 
+	#	print "Duplicate plans found."
+	#	success = False 
+#
+#    ascending = in_ascending_order(directory)
+#    if ascending:
+#        print "Plans are in ascending order."
+#    else:
+#		print "Plans are not in ascending order."
+#		success = True
 
-    ascending = in_ascending_order(directory)
-    if ascending:
-        print "Plans are in ascending order."
-    else:
-		print "Plans are not in ascending order."
-		success = True
-
-    plan_frequencies("found_plans") 
+#    plan_frequencies("found_plans") 
     return success  
 
 def exist_duplicates(directory):
