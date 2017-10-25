@@ -98,8 +98,10 @@ void KStar::search() {
 }
 
 bool KStar::enough_nodes_expanded() {
+
 	if (open_list->empty()) 
 		return true;
+	update_most_expensive_succ();
 	int max_plan_cost =  optimal_solution_cost + most_expensive_successor;
 	if (max_plan_cost <= next_node_f)
 		return true;
@@ -109,7 +111,6 @@ bool KStar::enough_nodes_expanded() {
 void KStar::resume_astar() {
 	cout << "Resuming A*" << endl;
 	interrupted = false;
-	update_most_expensive_succ();
 }
 
 void KStar::update_most_expensive_succ() {
