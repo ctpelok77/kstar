@@ -164,8 +164,8 @@ void PlanReconstructor::add_plan(Node node,
 		top_k_plans.push_back(plan);
 	}
 
-	int plan_cost = calculate_plan_cost(plan);
-	search_space->simulate_path(plan, state_seq, plan_cost);
+	//int plan_cost = calculate_plan_cost(plan);
+	//search_space->simulate_path(plan, state_seq, plan_cost);
 }
 
 void PlanReconstructor::save_plans(std::vector<Plan>& top_k_plans) {
