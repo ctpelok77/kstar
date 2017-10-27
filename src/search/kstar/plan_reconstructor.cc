@@ -100,7 +100,6 @@ void PlanReconstructor::extract_plan(vector<Node> &seq,
 			std::cout << " from " << state_registry->lookup_state(info.parent_state_id).get_state_tuple();
 			std::cout << ""<< endl;
 			*/
-
             current_state = state_registry->lookup_state(info.parent_state_id);
 		}
 		state_seq.push_back(current_state.get_id());

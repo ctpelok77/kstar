@@ -92,7 +92,8 @@ public:
 			return false;
 		if (to != other.to)
 			return false;
-
+		if (op->get_index() != other.op->get_index())
+			return false;
 		return true;
 	};
 

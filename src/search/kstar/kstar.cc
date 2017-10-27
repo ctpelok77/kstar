@@ -97,8 +97,7 @@ void KStar::search() {
 }
 
 bool KStar::enough_nodes_expanded() {
-
-	if (open_list->empty()) 
+	if (open_list->empty())
 		return true;
 	update_most_expensive_succ();
 	int max_plan_cost =  optimal_solution_cost + most_expensive_successor;
