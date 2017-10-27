@@ -254,8 +254,8 @@ void TopKEagerSearch::interrupt() {
 void TopKEagerSearch::add_incomming_edge(SearchNode node,
                                          const GlobalOperator *op,
                                          SearchNode succ_node) {
-        if (node.get_state_id() == succ_node.get_state_id())
-            return;
+        //if (node.get_state_id() == succ_node.get_state_id())
+         //   return;
 		
         auto sap = make_shared<StateActionPair>(node.get_state_id(),
                                                 succ_node.get_state_id(),
@@ -275,10 +275,12 @@ void TopKEagerSearch::add_incomming_edge(SearchNode node,
         incomming_heap[succ_state].push_back(sap);
         std::stable_sort(incomming_heap[succ_state].begin(), incomming_heap[succ_state].end(),Cmp<Sap>());
         
-		//cout  << "Adding edge ";
-        //cout << " from "<< sap->get_from_state().get_state_tuple();
-        //cout << " to "<< sap->get_to_state().get_state_tuple();
-        //cout << " " << sap->op->get_name() << endl;
+		/*cout  << "Adding edge ";
+        cout << " from "<< sap->get_from_state().get_state_tuple();
+        cout << " to "<< sap->get_to_state().get_state_tuple();
+        cout << " " << sap->op->get_name() << endl;
+        //cout << "delta " << sap->get_delta() << endl;
+		*/
         ++num_saps;
 }
 

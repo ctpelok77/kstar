@@ -27,9 +27,9 @@ void SuccessorGenerator::add_cross_edge(Node &node,
 	GlobalState u = state_registry->lookup_state(node.sap->from);
    	if (tree_heap[u].empty())
 		return;
-
 	int succ_g = node.g + get_cost_cross_edge(tree_heap[u].front());
     Node succ_node(succ_g, tree_heap[u].front(), u.get_id());
+	//notify_cross_edge(succ_node, state_registry);
 	if (!successors_only) {
         succ_node.id = g_djkstra_nodes;
 		++g_djkstra_nodes;
@@ -50,7 +50,7 @@ void SuccessorGenerator::add_inheap_successors(Node &node,
             Sap &sap = incomming_heap[s][i];
 			int succ_g = node.g + get_cost_heap_edge(node.sap, sap);
             Node succ_node(succ_g, sap, node.heap_state);
-
+			//notify_inheap_edge(succ_node, state_registry);
 			if (!successors_only) {
 				succ_node.is_inheap_node = true;
 				succ_node.id = g_djkstra_nodes;
@@ -89,7 +89,7 @@ void SuccessorGenerator::add_treeheap_successors(Node &node,
             Sap &sap = tree_heap[s][i];
 			int succ_g = node.g + get_cost_heap_edge(node.sap, sap);
             Node succ_node(succ_g, sap, s.get_id());
-
+			//notify_tree_heap_edge(succ_node, state_registry);
 			if (!successors_only) {
                 succ_node.id = g_djkstra_nodes;
                 ++g_djkstra_nodes;
