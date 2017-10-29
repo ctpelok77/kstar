@@ -1,0 +1,21 @@
+Create dictionary iterative_approach...
+Create dictionary K*...
+Checking plan frequencies...
+[ERR] Iterative Approach Problem?
+iterative_approach/runs-00301-00400/00356/found_plans/done/sas_plan.193
+kstar/runs-00401-00500/00426/found_plans/sas_plan.193
+sas_plan.193 Iterative Approach plan costs:4 K* plan costs: 3
+ged-opt14-strips/d-2-1.pddl
+
+[ERR] Iterative Approach Problem?
+iterative_approach/runs-00301-00400/00352/found_plans/done/sas_plan.193
+kstar/runs-00401-00500/00422/found_plans/sas_plan.193
+sas_plan.193 Iterative Approach plan costs:4 K* plan costs: 3
+ged-opt14-strips/d-1-2.pddl
+
+[ERR] Iterative Approach Problem?
+iterative_approach/runs-00301-00400/00354/found_plans/done/sas_plan.193
+kstar/runs-00401-00500/00424/found_plans/sas_plan.193
+sas_plan.193 Iterative Approach plan costs:4 K* plan costs: 3
+ged-opt14-strips/d-1-4.pddl
+
