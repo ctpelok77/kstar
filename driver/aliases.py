@@ -144,7 +144,11 @@ ALIASES["kstar"] = [
     "--search", "kstar(blind(),plans=1000)"]
 
 ALIASES["kstar-lmcut"] = [
-    "--search", "kstar(lmcut())"]
+    "--search", "kstar(lmcut(),plans=1000)"]
+
+ALIASES["kstar-lmcut-por"] = [
+    "--search", "kstar(lmcut(),pruning=stubborn_sets_simple(),plans=1000)"]
+
 
 ALIASES["kstar-ipdb"] = [
     "--search", "kstar(ipdb())"]

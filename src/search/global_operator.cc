@@ -102,6 +102,9 @@ GlobalOperator::GlobalOperator(istream &in, bool axiom, int index, bool goal_op)
                preconditions.push_back(c);
             }
             int extra_var =  g_variable_domain.size() -1;
+            GlobalCondition c(extra_var, 0);
+            preconditions.push_back(c);
+
             vector<GlobalCondition> empty_cond;
             GlobalEffect e(extra_var, 1, empty_cond);
             effects.push_back(e);
