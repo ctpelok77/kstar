@@ -3,7 +3,9 @@
 
 #include <dirent.h>
 #include <sys/stat.h>
-
+#include <fstream>
+#include <iostream>
+#include <sstream>
 
 namespace kstar {
 
@@ -168,9 +170,62 @@ void PlanReconstructor::add_plan(Node node,
 	//search_space->simulate_path(plan, state_seq, plan_cost);
 }
 
-void PlanReconstructor::save_plans(std::vector<Plan>& top_k_plans) {
+void PlanReconstructor::save_plans(std::vector<Plan>& top_k_plans, bool dump_plans) {
 	for (auto& plan : top_k_plans) {
-        save_plan(plan, true);
+		if (dump_plans)
+			dump_dot_plan(plan);
+		save_plan(plan, true);
 	}
 }
+
+void PlanReconstructor::dump_dot_plan(const Plan& plan) {
+	stringstream node_stream, edge_stream;
+	node_stream << "digraph {\n";
+	GlobalState current = state_registry->get_initial_state();
+	node_stream << current.get_id().hash() << " [ peripheries=\"1\", shape=\"rectangle\", ";
+	if (test_goal_original(current)) {
+		node_stream << "style=\"rounded, filled\", fillcolor=\"red\", ";
+	} else {
+		node_stream << "style=\"rounded, filled\", fillcolor=\"yellow\", ";
+	}
+	node_stream << "label=\"#"<< current.get_id().hash() << "\\n" << "s="<< state_label(current) << "\\n";
+	node_stream << "\" ]\n";
+
+	for (size_t i = 0; i < plan.size(); ++i) {
+		const GlobalOperator* op = plan[i];
+		GlobalState next = state_registry->get_successor_state(current, *op);
+
+		node_stream << next.get_id().hash() << " [ peripheries=\"1\", shape=\"rectangle\", ";
+		if (test_goal_original(next)) {
+			node_stream << "style=\"rounded, filled\", fillcolor=\"red\", ";
+		} else {
+			node_stream << "style=\"rounded, filled\", fillcolor=\"yellow\", ";
+		}
+		node_stream << "label=\"#"<< next.get_id().hash() << "\\n" << "s="<< state_label(next) << "\\n";
+		node_stream << "\" ]\n";
+
+		edge_stream << current.get_id().hash() << "  ->  " << next.get_id().hash();
+		edge_stream <<" [ label=\"" << op->get_name();
+		edge_stream << "/"<< op->get_cost();
+		edge_stream << "\"";
+		edge_stream << " ]\n";
+		current = next;
+
+	}
+	edge_stream << "}\n";
+
+	ostringstream filename;
+	filename << g_plan_filename;
+	int plan_number = g_num_previously_generated_plans + 1;
+
+	filename << "." << plan_number << ".dot";
+
+	// Write state space to dot file
+	ofstream file(filename.str());
+
+	file << node_stream.rdbuf();
+	file << edge_stream.rdbuf();
+	file.close();
+}
+
 }

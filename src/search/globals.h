@@ -29,6 +29,7 @@ class RandomNumberGenerator;
 }
 
 bool test_goal(const GlobalState &state);
+bool test_goal_original(const GlobalState &state);
 /*
   Set generates_multiple_plan_files to true if the planner can find more than
   one plan and should number the plans as FILENAME.1, ..., FILENAME.n.
