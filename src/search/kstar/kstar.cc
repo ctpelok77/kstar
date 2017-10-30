@@ -91,7 +91,7 @@ void KStar::search() {
 	if (dump_plans) 
 		output_plans();
 
-	plan_reconstructor->save_plans(top_k_plans);
+	plan_reconstructor->save_plans(top_k_plans, dump_plans);
 	cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
 }

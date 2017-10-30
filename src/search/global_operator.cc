@@ -106,10 +106,10 @@ GlobalOperator::GlobalOperator(istream &in, bool axiom, int index, bool goal_op)
             preconditions.push_back(c);
 
             vector<GlobalCondition> empty_cond;
-            GlobalEffect e(extra_var, 1, empty_cond);
-            effects.push_back(e);
-			for (size_t var = 0; var < g_variable_domain.size() - 1; ++var) {
-				GlobalEffect e(var, 0, empty_cond);
+//            GlobalEffect e(extra_var, 1, empty_cond);
+//            effects.push_back(e);
+			for (size_t var = 0; var < g_variable_domain.size(); ++var) {
+				GlobalEffect e(var, 1, empty_cond);
 				effects.push_back(e);
 			}
         }
