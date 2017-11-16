@@ -621,13 +621,20 @@ static SearchEngine *_parse_greedy(OptionParser &parser) {
 void TopKEagerSearch::output_plans() {
 	for (size_t i = 0; i < top_k_plans.size(); ++i) {
 		print_in_red("Begin Plan "+ std::to_string(i));
-		print_plan(top_k_plans[i], false);									
+		for (size_t j = 0; j < top_k_plans[i].size(); ++j) {
+	    		top_k_plans[i][j]->dump();
+		}
+		int plan_cost = calculate_plan_cost(top_k_plans[i]);
+		cout << "Plan length: " << top_k_plans[i].size() << " step(s)." << endl;
+		cout << "Plan cost: " << plan_cost << endl;
+
+//		print_plan(top_k_plans[i], false);
 		print_in_red("End Plan "+ std::to_string(i));
 	}	
 }
 
 void TopKEagerSearch::print_plan(Plan plan, bool generates_multiple_plan_files) {
-		
+
 	ostringstream filename;
     filename << g_plan_filename;
     int plan_number = g_num_previously_generated_plans + 1;
