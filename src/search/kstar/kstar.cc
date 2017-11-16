@@ -182,6 +182,8 @@ bool KStar::djkstra_search() {
 	throw_everything();
 	statistics.inc_djkstra_runs();
 	initialize_djkstra();
+	int succ_gens = 0;
+	int exps = 0;
     while (!queue_djkstra.empty()) {
 		Node node = queue_djkstra.top();
  		if(!enough_nodes_expanded())
@@ -193,14 +195,17 @@ bool KStar::djkstra_search() {
 		statistics.inc_plans_found();
 		if (enough_plans_found())
 			return true;
-
+		exps++;
 		init_tree_heaps(node);
 		std::vector<Node> successors;
 		pg_succ_generator->get_successors(node, successors);
-
+		succ_gens += successors.size();
         for (auto succ : successors) {
 			queue_djkstra.push(succ);
 			statistics.inc_total_djkstra_generations();
+		}
+		if (succ_gens % 1000 == 0) {
+			std::cout << "Djkstra ["<< exps << " expanded, "<< succ_gens << " generated]" << std::endl;
 		}
 	}
 	return false;
