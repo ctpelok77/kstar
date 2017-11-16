@@ -53,6 +53,11 @@ bool test_goal(const GlobalState &state) {
     return true;
 }
 
+bool test_goal_original(const GlobalState &state) {
+	const GlobalOperator& goal_op = g_operators[g_operators.size()-1];
+	return goal_op.is_applicable(state);
+}
+
 int calculate_plan_cost(const vector<const GlobalOperator *> &plan) {
     // TODO: Refactor: this is only used by save_plan (see below)
     //       and the SearchEngine classes and hence should maybe
