@@ -6,8 +6,9 @@ Fast Downward planning system.
 ```
 ./fast-downward.py <domain_file> <problem_file> --search "kstar(heuristic,k)"
 ```
-* _heurisitic_:  Any heuristic provided by Fast Downward    
-(see http://www.fast-downward.org/Doc/Heuristic). Disclaimer:
+* _heurisitic_:  any heuristic provided by Fast Downward    
+(see http://www.fast-downward.org/Doc/Heuristic). 
+Disclaimer: Optimality of K*\ is only guaranteed with a consistent heuristic
 * _k_: the number of plans
 
 ### Citation ###
