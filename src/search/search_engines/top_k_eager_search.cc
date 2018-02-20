@@ -19,7 +19,6 @@ namespace top_k_eager_search {
 TopKEagerSearch::TopKEagerSearch(const Options &opts)
     : SearchEngine(opts),
       reopen_closed_nodes(opts.get<bool>("reopen_closed")),
-      number_of_plans(opts.get<int>("K")),
       open_list(opts.get<shared_ptr<OpenListFactory>>("open")->
                 create_state_open_list()),
       f_evaluator(opts.get<ScalarEvaluator *>("f_eval", nullptr)),
