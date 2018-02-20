@@ -13,10 +13,6 @@ using utils::ExitCode;
 int main(int argc, const char **argv) {
     utils::register_event_handlers();
 
-#ifndef NDEBUG
-    std::ifstream in("/home/dominik/implementations/kstar-fd/output.sas");
-    std::cin.rdbuf(in.rdbuf());
-#endif
     if (argc < 2) {
         cout << OptionParser::usage(argv[0]) << endl;
         utils::exit_with(ExitCode::INPUT_ERROR);
