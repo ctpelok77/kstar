@@ -315,7 +315,7 @@ void add_simple_plans_only_option(OptionParser &parser) {
 
 static SearchEngine *_parse(OptionParser &parser) {
 	 parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");
-	 parser.add_option<int>("plans", "Number of plans", "1000");
+	 parser.add_option<int>("k", "Number of plans", "1000");
 	 parser.add_option<bool>("dump_plans", "Print plans", "false");
 
 	 top_k_eager_search::add_pruning_option(parser);
