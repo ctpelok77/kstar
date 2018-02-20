@@ -11,7 +11,7 @@ Disclaimer:
 * _k_: the number of plans
 
 ### Citation ###
-If you use our planner in a publication please cite the following paper:
+If you use our planner in a publication please cite the following paper:\\
 
 Michael Katz, Shirin Sohrabi, Octavian Udrea and Dominik Winterer
 _A Novel Iterative Approach to Top-k Planning_
