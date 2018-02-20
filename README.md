@@ -14,5 +14,5 @@ Fast Downward planning system.
 
 ### Citation ###
 Michael Katz, Shirin Sohrabi, Octavian Udrea and Dominik Winterer  
-**A Novel Iterative Approach to Top-k Planning** [(bib)](/LICENSE)  
+**A Novel Iterative Approach to Top-k Planning** [(bib)](/top_k.bib)  
 *To appear*
