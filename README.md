@@ -4,5 +4,10 @@ Fast Downward planning system.
 ### Usage ###
 
 ```
-./fast-downward.py <domain_file> <problem_file>
+./fast-downward.py <domain_file> <problem_file> --search "kstar(heuristic,k)"
 ```
+* heurisitc: 
+* k: the number of plans
+
+### Citation ###
+If you use 
