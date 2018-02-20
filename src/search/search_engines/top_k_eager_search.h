@@ -64,7 +64,6 @@ protected:
                              SearchNode succ_node);
 	void remove_tree_edge(GlobalState s);
     void sort_and_remove(GlobalState  s);
-    // TODO: move to util
 	std::string get_node_label(StateActionPair &edge);
 	std::string get_node_name(StateActionPair &edge);
 
