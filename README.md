@@ -14,5 +14,5 @@ Disclaimer:
 If you use our planner in a publication please cite the following paper:
 
 Michael Katz, Shirin Sohrabi, Octavian Udrea and Dominik Winterer
-A Novel Iterative Approach to Top-k Planning
+_A Novel Iterative Approach to Top-k Planning_
 To appear
