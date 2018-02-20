@@ -3,6 +3,6 @@ Fast Downward planning system.
 
 ### Usage ###
 
-<code> 
+```
 ./fast-downward.py <domain_file> <problem_file>
-</code>
+```
