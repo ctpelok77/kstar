@@ -138,7 +138,6 @@ void KStar::initialize_djkstra() {
     pg_root = make_shared<Node>(0, sap, StateID::no_state);
 	pg_root->id = g_djkstra_nodes;
 	++g_djkstra_nodes;
-	//notify_expand(*pg_root, &state_registry, num_node_expansions);
     plan_reconstructor->add_plan(*pg_root, top_k_plans, simple_plans_only);
 	statistics.inc_plans_found();
     set_optimal_plan_cost();

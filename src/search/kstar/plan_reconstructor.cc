@@ -38,29 +38,23 @@ std::vector<Node> PlanReconstructor::djkstra_traceback(Node node)	{
 		current_sap = parent_node.at(current_sap);
 	}
 	reverse(path.begin(), path.end());
-    //print_node_sequence(path, "djkstra_traceback");
     return path;
 }
 
 vector<Node> PlanReconstructor::compute_sidetrack_seq(vector<Node>& path) {
-	//cout << "seq = ";
 	vector<Node> seq;
 	int last_index = path.size() - 1;
     Node last_element = path[last_index];
-	//std::cout <<  path[last_index].sap->op->get_name() << std::endl;
     seq.push_back(last_element);
 
 	for (size_t i = last_index; i >= 2; --i) {
        Edge e(path[i-1], path[i]);
 
 		if(cross_edge.find(e) != cross_edge.end()) {
-			//cout << path[i - 1].sap->op->get_name();
 			seq.push_back(path[i - 1]);
 		}
 	}
     reverse(seq.begin(), seq.end());
-	//cout << "" << endl;
-	//print_node_sequence(seq, "seq");
     return seq;
 
 }
@@ -85,11 +79,6 @@ void PlanReconstructor::extract_plan(vector<Node> &seq,
 		if(seq_index <= seq_size - 1 && seq[seq_index].sap->to == current_state.get_id()) {
 			// prepend edge from seq
 			plan.push_back(seq[seq_index].sap->op);
-			/*std::cout << "prepend seq " << seq[seq_index].sap->op->get_name();
-			std::cout << " to " << seq[seq_index].sap->get_to_state().get_state_tuple();
-			std::cout << " from " << seq[seq_index].sap->get_from_state().get_state_tuple();
-			std::cout << ""<< endl;
-			*/
 			current_state = state_registry->lookup_state(seq[seq_index].sap->from);
 			++seq_index;
 		}
@@ -97,11 +86,6 @@ void PlanReconstructor::extract_plan(vector<Node> &seq,
 			// prepend tree edge
 			const GlobalOperator *op = &g_operators[info.creating_operator];
             plan.push_back(op);
-			/*std::cout << "prepend tree " << op->get_name();
-			std::cout << " to " << current_state.get_state_tuple();
-			std::cout << " from " << state_registry->lookup_state(info.parent_state_id).get_state_tuple();
-			std::cout << ""<< endl;
-			*/
             current_state = state_registry->lookup_state(info.parent_state_id);
 		}
 		state_seq.push_back(current_state.get_id());
@@ -165,9 +149,6 @@ void PlanReconstructor::add_plan(Node node,
 		inc_optimal_plans(plan);
 		top_k_plans.push_back(plan);
 	}
-
-	//int plan_cost = calculate_plan_cost(plan);
-	//search_space->simulate_path(plan, state_seq, plan_cost);
 }
 
 void PlanReconstructor::save_plans(std::vector<Plan>& top_k_plans, bool dump_plans) {
