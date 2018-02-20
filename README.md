@@ -6,8 +6,13 @@ Fast Downward planning system.
 ```
 ./fast-downward.py <domain_file> <problem_file> --search "kstar(heuristic,k)"
 ```
-* heurisitc: 
-* k: the number of plans
+* _heurisitic_:  Any heuristic provided by Fast Downward (see http://www.fast-downward.org/Doc/Heuristic).
+Disclaimer:
+* _k_: the number of plans
 
 ### Citation ###
-If you use 
+If you use our planner in a publication please cite the following paper:
+
+Michael Katz, Shirin Sohrabi, Octavian Udrea and Dominik Winterer
+A Novel Iterative Approach to Top-k Planning
+To appear
