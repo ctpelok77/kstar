@@ -19,12 +19,13 @@ namespace top_k_eager_search {
 TopKEagerSearch::TopKEagerSearch(const Options &opts)
     : SearchEngine(opts),
       reopen_closed_nodes(opts.get<bool>("reopen_closed")),
+      number_of_plans(opts.get<int>("k")),
       open_list(opts.get<shared_ptr<OpenListFactory>>("open")->
                 create_state_open_list()),
       f_evaluator(opts.get<ScalarEvaluator *>("f_eval", nullptr)),
       preferred_operator_heuristics(opts.get_list<Heuristic *>("preferred")),
       pruning_method(opts.get<shared_ptr<PruningMethod>>("pruning")),
-	  interrupted(false),
+      interrupted(false),
       most_expensive_successor(-1),
       next_node_f(-1),
       first_plan_found(false){
@@ -96,30 +97,30 @@ void TopKEagerSearch::print_statistics() const {
 
 
 SearchStatus TopKEagerSearch::step() {
-	if (!open_list->empty()) { 
-		StateID id = open_list->top();
-		GlobalState s = state_registry.lookup_state(id); 
-		if (interrupted) {
-			if (test_goal(s)) {
-				goal_state = s.get_id();
-				first_plan_found = true;
+    if (!open_list->empty()) {
+        StateID id = open_list->top();
+        GlobalState s = state_registry.lookup_state(id);
+        if (interrupted) {
+            if (test_goal(s)) {
+                goal_state = s.get_id();
+                first_plan_found = true;
                 sort_and_remove(s);
-			}
-			return INTERRUPTED;
-		}
-		update_next_node_f();
+            }
+            return INTERRUPTED;
+        }
+        update_next_node_f();
 
-		if (test_goal(s) && !first_plan_found) {
-			goal_state = s.get_id();
-			first_plan_found = true;
+        if (test_goal(s) && !first_plan_found) {
+            goal_state = s.get_id();
+            first_plan_found = true;
             sort_and_remove(s);
-			return FIRST_PLAN_FOUND;
-		}
-	}
+            return FIRST_PLAN_FOUND;
+        }
+    }
 
-	pair<SearchNode, bool> n = fetch_next_node();
+    pair<SearchNode, bool> n = fetch_next_node();
     if (all_nodes_expanded)
-		return INTERRUPTED;
+        return INTERRUPTED;
 
     SearchNode node = n.first;
     GlobalState s = node.get_state();
@@ -251,68 +252,67 @@ void TopKEagerSearch::interrupt() {
 void TopKEagerSearch::add_incomming_edge(SearchNode node,
                                          const GlobalOperator *op,
                                          SearchNode succ_node) {
-        auto sap = make_shared<StateActionPair>(node.get_state_id(),
-                                                succ_node.get_state_id(),
-                                                op, &state_registry,
-                                                &search_space);
-	    GlobalState succ_state = succ_node.get_state();
-		 
-		bool duplicate =  
-			std::find_if(incomming_heap[succ_state].begin(), 
-					     incomming_heap[succ_state].end(), 
-						 [=](const shared_ptr<StateActionPair>& other) {return *other == *sap;})
-			!= incomming_heap[succ_state].end(); 
+    auto sap = make_shared<StateActionPair>(node.get_state_id(),
+            succ_node.get_state_id(),
+            op, &state_registry,
+            &search_space);
+    GlobalState succ_state = succ_node.get_state();
 
-		if (duplicate)
-			return; 
+    bool duplicate =
+            std::find_if(incomming_heap[succ_state].begin(),
+                    incomming_heap[succ_state].end(),
+                    [=](const shared_ptr<StateActionPair>& other) {return *other == *sap;})
+            != incomming_heap[succ_state].end();
 
-        incomming_heap[succ_state].push_back(sap);
-        std::stable_sort(incomming_heap[succ_state].begin(), incomming_heap[succ_state].end(),Cmp<Sap>());
-        ++num_saps;
+    if (duplicate)
+        return;
+
+    incomming_heap[succ_state].push_back(sap);
+    std::stable_sort(incomming_heap[succ_state].begin(), incomming_heap[succ_state].end(),Cmp<Sap>());
+    //++num_saps;
 }
 
 // Recursively trace the search path to state and add all top elements
 // of incomming heaps
 void TopKEagerSearch::init_tree_heap(GlobalState& state) {
-	    StateID parent_id = search_space.search_node_infos[state].parent_state_id;
-		tree_heap[state].clear();
-        if (parent_id != StateID::no_state) {
-            GlobalState parent_state = state_registry.lookup_state(parent_id);
-            init_tree_heap(parent_state);
-            tree_heap[state].insert(tree_heap[state].end(),
-                                    tree_heap[parent_state].begin(),
-                                    tree_heap[parent_state].end());
-        }
-        // Copy root_in[state] to tree_heap[heap]
-        if (!incomming_heap[state].empty()) {
-            Sap &p = incomming_heap[state].front();
-            tree_heap[state].push_back(p);
-        }
-        std::stable_sort(tree_heap[state].begin(), tree_heap[state].end(), Cmp<Sap>());
+    StateID parent_id = search_space.search_node_infos[state].parent_state_id;
+    tree_heap[state].clear();
+    if (parent_id != StateID::no_state) {
+        GlobalState parent_state = state_registry.lookup_state(parent_id);
+        init_tree_heap(parent_state);
+        tree_heap[state].insert(tree_heap[state].end(),
+                tree_heap[parent_state].begin(),
+                tree_heap[parent_state].end());
     }
-
+    // Copy root_in[state] to tree_heap[heap]
+    if (!incomming_heap[state].empty()) {
+        Sap &p = incomming_heap[state].front();
+        tree_heap[state].push_back(p);
+    }
+    std::stable_sort(tree_heap[state].begin(), tree_heap[state].end(), Cmp<Sap>());
+}
 
 std::string TopKEagerSearch::get_node_label(StateActionPair &edge) {
     int from = state_registry.lookup_state(edge.from)[0];
-	int to = state_registry.lookup_state(edge.to)[0];
-	std::string node_name = std::to_string(from) + std::to_string(to)
-							+ " delta: " + std::to_string(edge.get_delta());
-	return node_name;
+    int to = state_registry.lookup_state(edge.to)[0];
+    std::string node_name = std::to_string(from) + std::to_string(to)
+                            + " delta: " + std::to_string(edge.get_delta());
+    return node_name;
 }
 
 std::string TopKEagerSearch::get_node_name(StateActionPair &edge) {
-	string from = state_registry.lookup_state(edge.from).get_state_tuple();
-	string to = state_registry.lookup_state(edge.to).get_state_tuple();
-	std::string node_name = "(" + from +","+ to + ") " + edge.op->get_name();
-	return node_name;
+    string from = state_registry.lookup_state(edge.from).get_state_tuple();
+    string to = state_registry.lookup_state(edge.to).get_state_tuple();
+    std::string node_name = "(" + from +","+ to + ") " + edge.op->get_name();
+    return node_name;
 }
 
 int TopKEagerSearch::get_f_value(StateID id) {
-	GlobalState s = state_registry.lookup_state(id);
-	int g = search_space.get_node(s).get_g();
-	EvaluationContext eval_context(s, g, false, &statistics);
-	int f = eval_context.get_heuristic_value(f_evaluator);
-	return f;
+    GlobalState s = state_registry.lookup_state(id);
+    int g = search_space.get_node(s).get_g();
+    EvaluationContext eval_context(s, g, false, &statistics);
+    int f = eval_context.get_heuristic_value(f_evaluator);
+    return f;
 }
 
 // removing the tree edge
@@ -329,7 +329,7 @@ void TopKEagerSearch::remove_tree_edge(GlobalState s)  {
         if(sap->op->get_index() == creating_op_index
            && parent_state_id == sap->from) {
             tree_edge_pos = i;
-           break;
+            break;
         }
     }
 
@@ -557,21 +557,21 @@ static SearchEngine *_parse_greedy(OptionParser &parser) {
     return engine;
 }
 void TopKEagerSearch::output_plans() {
-	for (size_t i = 0; i < top_k_plans.size(); ++i) {
-		print_in_red("Begin Plan "+ std::to_string(i));
-		for (size_t j = 0; j < top_k_plans[i].size(); ++j) {
-	    		top_k_plans[i][j]->dump();
-		}
-		int plan_cost = calculate_plan_cost(top_k_plans[i]);
-		cout << "Plan length: " << top_k_plans[i].size() << " step(s)." << endl;
-		cout << "Plan cost: " << plan_cost << endl;
-		print_in_red("End Plan "+ std::to_string(i));
-	}	
+    for (size_t i = 0; i < top_k_plans.size(); ++i) {
+        print_in_red("Begin Plan "+ std::to_string(i));
+        for (size_t j = 0; j < top_k_plans[i].size(); ++j) {
+                top_k_plans[i][j]->dump();
+        }
+        int plan_cost = calculate_plan_cost(top_k_plans[i]);
+        cout << "Plan length: " << top_k_plans[i].size() << " step(s)." << endl;
+        cout << "Plan cost: " << plan_cost << endl;
+        print_in_red("End Plan "+ std::to_string(i));
+    }
 }
 
 void TopKEagerSearch::print_plan(Plan plan, bool generates_multiple_plan_files) {
 
-	ostringstream filename;
+    ostringstream filename;
     filename << g_plan_filename;
     int plan_number = g_num_previously_generated_plans + 1;
     if (generates_multiple_plan_files || g_is_part_of_anytime_portfolio) {
@@ -583,7 +583,7 @@ void TopKEagerSearch::print_plan(Plan plan, bool generates_multiple_plan_files) 
     ofstream outfile(filename.str());
     for (size_t i = 0; i < plan.size(); ++i) {
         outfile << "(" << plan[i]->get_name() << ")" << endl;
-		plan[i]->dump(); 
+        plan[i]->dump();
     }
     int plan_cost = calculate_plan_cost(plan);
     outfile << "; cost = " << plan_cost << " ("
