@@ -304,6 +304,11 @@ void read_everything(istream &in) {
     TaskProxy task_proxy(*g_root_task());
     g_successor_generator = new SuccessorGenerator(task_proxy);
     cout << "done! [t=" << utils::g_timer << "]" << endl;
+	 
+	std::filebuf fb;
+	fb.open ("debug_out.sas",std::ios::out);
+	std::ostream os(&fb);
+	g_root_task()->dump_to_SAS(os);
 
     cout << "done initalizing global data [t=" << utils::g_timer << "]" << endl;
 }
