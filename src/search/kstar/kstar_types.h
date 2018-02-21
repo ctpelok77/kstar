@@ -13,3 +13,5 @@ namespace kstar {
     typedef std::vector<StateID> StateSequence;
     typedef std::stringstream Stream;
 }
+
+#endif
