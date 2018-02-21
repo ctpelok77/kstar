@@ -162,7 +162,7 @@ struct Node {
             return true;
         if (other.g > g)
 			return false;
-		// Tie Breaking if they have equal  g_values
+		// Tie Breaking if they have equal g_values
 		size_t hash = this->hash();
 		size_t other_hash = other.hash();
 		if (other_hash  < hash)
