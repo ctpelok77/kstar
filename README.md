@@ -19,4 +19,4 @@ Michael Katz, Shirin Sohrabi, Octavian Udrea and Dominik Winterer
 *To appear*
 
 ### Contact ###
-For questions and comments please get in touch with [Dominik Winterer](dominik_winterer@gmx.de)  
+For questions and comments please get in touch with Dominik Winterer.
