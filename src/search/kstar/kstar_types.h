@@ -1,12 +1,15 @@
+#ifndef KSTAR_KSTAR_TYPES_H
+#define KSTAR_KSTAR_TYPES_H
+
 #include <memory>
 #include "../state_action_pair.h"
 
 using namespace std;
 
 namespace kstar {
-	typedef shared_ptr<StateActionPair> Sap;
-	typedef std::pair<Node, Node> Edge;
-	typedef std::vector<const GlobalOperator*> Plan;
-	typedef std::vector<StateID> StateSequence;
-	typedef std::stringstream Stream;
+    typedef shared_ptr<StateActionPair> Sap;
+    typedef std::pair<Node, Node> Edge;
+    typedef std::vector<const GlobalOperator*> Plan;
+    typedef std::vector<StateID> StateSequence;
+    typedef std::stringstream Stream;
 }

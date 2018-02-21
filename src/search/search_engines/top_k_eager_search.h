@@ -26,29 +26,30 @@ typedef shared_ptr<StateActionPair> Sap;
 class TopKEagerSearch : public SearchEngine {
     const bool reopen_closed_nodes;
 protected:
+    const int number_of_plans;
     std::unique_ptr<StateOpenList> open_list;
     ScalarEvaluator *f_evaluator;
     std::vector<Heuristic *> heuristics;
     std::vector<Heuristic *> preferred_operator_heuristics;
     std::shared_ptr<PruningMethod> pruning_method;
-	bool interrupted;
-	long int num_saps;
-	StateID goal_state = StateID::no_state;
+    bool interrupted;
+    //long int num_saps;
+    StateID goal_state = StateID::no_state;
     bool all_nodes_expanded = false;
-	int counter = 0;
-	std::vector<Plan> top_k_plans;
-   	PerStateInformation<vector<Sap>> incomming_heap;
-	PerStateInformation<vector<Sap>> tree_heap;
+    int counter = 0;
+    std::vector<Plan> top_k_plans;
+       PerStateInformation<vector<Sap>> incomming_heap;
+    PerStateInformation<vector<Sap>> tree_heap;
 
-	// g-value of the most expensive successor of the current
-	// top node of the djkstra queue
-	int most_expensive_successor;
-	// The f-value of the top node of the open list of A*
-	int next_node_f;
+    // g-value of the most expensive successor of the current
+    // top node of the djkstra queue
+    int most_expensive_successor;
+    // The f-value of the top node of the open list of A*
+    int next_node_f;
     bool first_plan_found;
 
-	void update_next_node_f();
-	int get_f_value(StateID id);
+    void update_next_node_f();
+    int get_f_value(StateID id);
     std::pair<SearchNode, bool> fetch_next_node();
     void start_f_value_statistics(EvaluationContext &eval_context);
     void update_f_value_statistics(const SearchNode &node);
@@ -56,21 +57,21 @@ protected:
     void print_checkpoint_line(int g) const;
     virtual void initialize() override;
     virtual SearchStatus step() override;
-	void output_plans();
-	void print_plan(Plan plan, bool generates_multiple_plan_files);
-	void interrupt();
-	void add_incomming_edge(SearchNode node, const GlobalOperator *op,
+    void output_plans();
+    void print_plan(Plan plan, bool generates_multiple_plan_files);
+    void interrupt();
+    void add_incomming_edge(SearchNode node, const GlobalOperator *op,
                              SearchNode succ_node);
-	void remove_tree_edge(GlobalState s);
+    void remove_tree_edge(GlobalState s);
     void sort_and_remove(GlobalState  s);
-	std::string get_node_label(StateActionPair &edge);
-	std::string get_node_name(StateActionPair &edge);
+    std::string get_node_label(StateActionPair &edge);
+    std::string get_node_name(StateActionPair &edge);
 
 public:
     explicit TopKEagerSearch(const options::Options &opts);
     virtual ~TopKEagerSearch() = default;
     virtual void print_statistics() const override;
-	void init_tree_heap(GlobalState& state);
+    void init_tree_heap(GlobalState& state);
 };
 
 void add_top_k_option(OptionParser &parser);
