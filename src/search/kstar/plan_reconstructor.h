@@ -31,3 +31,5 @@ public:
     void dump_dot_plan(const Plan& plan);
 };
 }
+
+#endif
