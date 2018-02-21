@@ -1,5 +1,5 @@
 Welcome to the page of K\* planner -- a state of the art Top-k planner integrating
-the K\* algorithm.
+the K\* algorithm into Fast Downward.
 
 ### Usage ###
 
