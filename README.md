@@ -1,5 +1,5 @@
-Welcome to the page of K\* -- a state of the art Top-k planner based on the 
-Fast Downward planning system.
+Welcome to the page of K\* planner -- a state of the art Top-k planner integrating
+the K\* algorithm.
 
 ### Usage ###
 
