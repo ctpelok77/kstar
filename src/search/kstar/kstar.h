@@ -25,7 +25,7 @@ protected:
     std::unique_ptr<PlanReconstructor> plan_reconstructor;
     std::shared_ptr<SuccessorGenerator> pg_succ_generator;
     // root of the path graph
-       shared_ptr<Node> pg_root;
+    shared_ptr<Node> pg_root;
 
     void initialize_djkstra();
     // djkstra search return true if k solutions have been found and false otherwise

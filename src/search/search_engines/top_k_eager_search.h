@@ -33,7 +33,6 @@ protected:
     std::vector<Heuristic *> preferred_operator_heuristics;
     std::shared_ptr<PruningMethod> pruning_method;
     bool interrupted;
-    //long int num_saps;
     StateID goal_state = StateID::no_state;
     bool all_nodes_expanded = false;
     int counter = 0;
