@@ -106,21 +106,6 @@ bool PlanReconstructor::is_simple_plan(StateSequence seq, StateRegistry* state_r
     return true;
 }
 
-void PlanReconstructor::inc_optimal_plans(Plan &plan) {
-    int cost = calculate_plan_cost(plan);
-
-    if (g_num_optimal_plans == 0) {
-        g_optimal_cost = cost;
-		++g_num_optimal_plans;
-        return;
-    }
-
-    if (cost == g_optimal_cost) {
-        ++g_num_optimal_plans;
-    }
-
-}
-
 void PlanReconstructor::add_plan(Node node,
                                  std::vector<Plan>& top_k_plans,
                                  bool simple_plans_only) {
@@ -137,14 +122,7 @@ void PlanReconstructor::add_plan(Node node,
     plan.shrink_to_fit();
     plan.pop_back();
 
-    if (simple_plans_only) {
-        if (is_simple_plan(state_seq, state_registry)) {
-            inc_optimal_plans(plan);
-            top_k_plans.push_back(plan);
-        }
-    }
-    else {
-        inc_optimal_plans(plan);
+    if (!simple_plans_only || is_simple_plan(state_seq, state_registry)) {
         top_k_plans.push_back(plan);
     }
 }

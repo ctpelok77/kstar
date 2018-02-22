@@ -11,8 +11,8 @@
 
 namespace kstar {
 
-class KStar : public top_k_eager_search::TopKEagerSearch
-{
+class KStar : public top_k_eager_search::TopKEagerSearch {
+    void inc_optimal_plans_count(Plan &plan);
 protected:
     int optimal_solution_cost;
     bool simple_plans_only;
