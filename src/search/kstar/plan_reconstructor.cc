@@ -110,7 +110,6 @@ void PlanReconstructor::inc_optimal_plans(Plan &plan) {
     int cost = calculate_plan_cost(plan);
 
     if (g_num_optimal_plans == 0) {
-        ++g_num_optimal_plans;
         g_optimal_cost = cost;
         return;
     }
