@@ -8,8 +8,6 @@
 
 #include "algorithms/int_packer.h"
 #include "algorithms/segmented_vector.h"
-#include "structural_symmetries/group.h"
-
 #include "utils/hash.h"
 
 #include <set>
@@ -100,7 +98,6 @@
     to store for each state and each landmark whether it was reached in this state.
 */
 
-class Permutation;
 class PerStateInformationBase;
 
 class StateRegistry {
@@ -160,31 +157,18 @@ class StateRegistry {
     const int num_variables;
 
     segmented_vector::SegmentedArrayVector<PackedStateBin> state_data_pool;
-    // Used for DKS
-    segmented_vector::SegmentedArrayVector<PackedStateBin> canonical_state_data_pool;
     StateIDSet registered_states;
-    // Used for DKS
-    StateIDSet canonical_registered_states;
-    // Used for DKS
-    std::shared_ptr<Group> group;
 
     GlobalState *cached_initial_state;
     mutable std::set<PerStateInformationBase *> subscribers;
 
     StateID insert_id_or_pop_state();
-    // Used for DKS
-    StateID insert_id_or_pop_state_dks();
     int get_bins_per_state() const;
 public:
     StateRegistry(
         const AbstractTask &task, const int_packer::IntPacker &state_packer,
         AxiomEvaluator &axiom_evaluator, const std::vector<int> &initial_state_data);
     ~StateRegistry();
-
-    // Used for DKS
-    void set_group(const std::shared_ptr<Group> &group_) {
-        group = group_;
-    }
 
     /* TODO: Ideally, this should return a TaskProxy. (See comment above the
              declaration of task.) */
@@ -220,33 +204,9 @@ public:
     GlobalState get_successor_state(const GlobalState &predecessor, const GlobalOperator &op);
 
     /*
-      Registers and returns the state corresponding to the given state data.
-      This is an expensive operation as it includes duplicate checking.
-      Used for OSS.
-    */
-    GlobalState register_state_buffer(const int *state);
-
-    /*
-      Registers and returns the state corresponding to the given state.
-      This is an expensive operation as it includes duplicate checking.
-    */
-    GlobalState copy_and_register_state(const GlobalState &state);
-
-    /*
-      Creates the permutation of the given state (which can be registered
-      somewhere else). Registers and returns the permuted state if this was not
-      done before. This is an expensive operation as it includes duplicate
-      checking.
-      Used for state tracing (OSS and DKS) and computing symmetric states (SL).
-    */
-    GlobalState permute_state(const GlobalState &state, const Permutation &permutation);
-
-    /*
       Returns the number of states registered so far.
     */
     size_t size() const {
-        if (group && group->has_symmetries() && group->get_search_symmetries() == SearchSymmetries::DKS)
-            return canonical_registered_states.size();
         return registered_states.size();
     }
 
