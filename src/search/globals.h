@@ -84,8 +84,6 @@ extern bool g_is_part_of_anytime_portfolio;
 extern const std::shared_ptr<AbstractTask> g_root_task();
 
 extern utils::Log g_log;
-extern int g_optimal_cost;
-extern int g_num_optimal_plans;
 
 // Parts for dumping SAS+ task, used in forbidding plan reformulation
 extern std::vector<std::vector<FactPair>> g_invariant_groups;

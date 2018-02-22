@@ -43,7 +43,7 @@ void KStar::search() {
             status = TIMEOUT;
             break;
         }
-        // First solution found. Add R to path graph, perfom djkstra
+        // First solution found. Add R to path graph, perform Dijkstra
         if (status == FIRST_PLAN_FOUND) {
             if (djkstra_search()) {
                 status = SOLVED;
@@ -53,10 +53,10 @@ void KStar::search() {
         }
 
         // Check whether A* has expanded enough nodes and if yes
-        // start a djkstra search on P(G)
+        // start a Dijkstra search on P(G)
         if (status == INTERRUPTED) {
             if (!open_list->empty() && !queue_djkstra.empty()) {
-                // if enough nodes expanded do djkstra search
+                // if enough nodes expanded do Dijkstra search
                 if (enough_nodes_expanded()) {
                     if (djkstra_search()) {
                         status = SOLVED;
@@ -140,8 +140,9 @@ void KStar::initialize_djkstra() {
     pg_root->id = g_djkstra_nodes;
     ++g_djkstra_nodes;
     plan_reconstructor->add_plan(*pg_root, top_k_plans, simple_plans_only);
-    statistics.inc_plans_found();
     set_optimal_plan_cost();
+    inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
+    statistics.inc_plans_found();
     Node successor;
     pg_succ_generator->get_successor_pg_root(pg_root, successor);
     queue_djkstra.push(successor);
@@ -192,6 +193,7 @@ bool KStar::djkstra_search() {
 
         //notify_expand(node, &state_registry, num_node_expansions);
         plan_reconstructor->add_plan(node, top_k_plans, simple_plans_only);
+        inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
         statistics.inc_plans_found();
         if (enough_plans_found())
             return true;
@@ -209,6 +211,13 @@ bool KStar::djkstra_search() {
         }
     }
     return false;
+}
+
+void KStar::inc_optimal_plans_count(Plan &plan) {
+    int cost = calculate_plan_cost(plan);
+    if (cost == optimal_solution_cost) {
+        statistics.inc_opt_plans();
+    }
 }
 
 void KStar::dump_path_graph() {
