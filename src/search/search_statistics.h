@@ -26,9 +26,6 @@ class SearchStatistics {
     int lastjump_reopened_states; // occurred (jump == f-value of the first node in the queue increases)
     int lastjump_evaluated_states;
     int lastjump_generated_states;
-    int last_jump_symmetrical_states_generated;
-    int last_jump_symmetry_improved_evaluations;
-    int last_jump_improving_symmetrical_states;
 
 	int num_plans_found;	
 	int num_opt_plans;

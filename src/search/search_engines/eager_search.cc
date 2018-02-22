@@ -14,8 +14,6 @@
 
 #include "../open_lists/open_list_factory.h"
 
-#include "../structural_symmetries/group.h"
-
 #include <cassert>
 #include <cstdlib>
 #include <memory>
@@ -32,30 +30,7 @@ EagerSearch::EagerSearch(const Options &opts)
                 create_state_open_list()),
       f_evaluator(opts.get<ScalarEvaluator *>("f_eval", nullptr)),
       preferred_operator_heuristics(opts.get_list<Heuristic *>("preferred")),
-      pruning_method(opts.get<shared_ptr<PruningMethod>>("pruning")),
-	  dump_forbid_plan_reformulation(opts.get<bool>("dump_forbid_plan_reformulation")) {
-    if (opts.contains("symmetries")) {
-        group = opts.get<shared_ptr<Group>>("symmetries");
-        if (group && !group->is_initialized()) {
-            cout << "Initializing symmetries (eager search)" << endl;
-            group->compute_symmetries();
-        }
-
-        if (use_dks()) {
-            cout << "Setting group in registry for DKS search" << endl;
-            state_registry.set_group(group);
-        }
-    } else {
-        group = nullptr;
-    }
-}
-
-bool EagerSearch::use_oss() const {
-    return group && group->has_symmetries() && group->get_search_symmetries() == SearchSymmetries::OSS;
-}
-
-bool EagerSearch::use_dks() const {
-    return group && group->has_symmetries() && group->get_search_symmetries() == SearchSymmetries::DKS;
+      pruning_method(opts.get<shared_ptr<PruningMethod>>("pruning")) {
 }
 
 void EagerSearch::initialize() {
@@ -85,16 +60,7 @@ void EagerSearch::initialize() {
     heuristics.assign(hset.begin(), hset.end());
     assert(!heuristics.empty());
 
-    if (use_oss() || use_dks()) {
-        assert(heuristics.size() == 1);
-    }
-    // Changed to copy the state to be able to reassign it.
-    GlobalState initial_state = state_registry.get_initial_state();
-    if (use_oss()) {
-        int *canonical_state = group->get_canonical_representative(initial_state);
-        initial_state = state_registry.register_state_buffer(canonical_state);
-        delete canonical_state;
-    }
+    const GlobalState &initial_state = state_registry.get_initial_state();
     for (Heuristic *heuristic : heuristics) {
         heuristic->notify_initial_state(initial_state);
     }
@@ -142,13 +108,8 @@ SearchStatus EagerSearch::step() {
     SearchNode node = n.first;
 
     GlobalState s = node.get_state();
-    if (check_goal_and_set_plan(s, group)) {
-    	if (dump_forbid_plan_reformulation)
-    		dump_plan_forbid_reformulation_sas("reformulated_output.sas", get_plan());
-        	//dump_reformulated_sas("reformulated_output.sas");
-
-        return FIRST_PLAN_FOUND;
-    }
+    if (check_goal_and_set_plan(s))
+        return SOLVED;
 
     vector<const GlobalOperator *> applicable_ops;
     g_successor_generator->generate_applicable_ops(s, applicable_ops);
@@ -167,23 +128,8 @@ SearchStatus EagerSearch::step() {
     for (const GlobalOperator *op : applicable_ops) {
         if ((node.get_real_g() + op->get_cost()) >= bound)
             continue;
-        /*
-          NOTE: In orbit search tmp_registry has to survive as long as
-                succ_state is used. This could be forever, but for heuristics
-                that do not store per state information it is ok to keep it
-                only for this operator application. In regular search it is not
-                actually needed, but I don't see a way around having it there,
-                too.
-        */
-        StateRegistry tmp_registry(*g_root_task(), *g_state_packer,
-                                   *g_axiom_evaluator, g_initial_state_data);
-        StateRegistry *successor_registry = use_oss() ? &tmp_registry : &state_registry;
-        GlobalState succ_state = successor_registry->get_successor_state(s, *op);
-        if (use_oss()) {
-            int *canonical_state = group->get_canonical_representative(succ_state);
-            succ_state = state_registry.register_state_buffer(canonical_state);
-            delete canonical_state;
-        }
+
+        GlobalState succ_state = state_registry.get_successor_state(s, *op);
         statistics.inc_generated();
         bool is_preferred = preferred_operators.contains(op);
 
@@ -213,12 +159,6 @@ SearchStatus EagerSearch::step() {
             // TODO: Make this less fragile.
             int succ_g = node.get_g() + get_adjusted_cost(*op);
 
-            /*
-              NOTE: previous versions used the non-canocialized successor state
-              here, but this lead to problems because the EvaluationContext was
-              initialized with one state and the insertion was performed with
-              another state.
-             */
             EvaluationContext eval_context(
                 succ_state, succ_g, is_preferred, &statistics);
             statistics.inc_evaluated_states();
@@ -375,106 +315,6 @@ void EagerSearch::update_f_value_statistics(const SearchNode &node) {
     }
 }
 
-/*
-void EagerSearch::dump_reformulated_sas(const char* filename) const {
-	int v_ind = g_variable_domain.size();
-	ofstream os(filename);
-	dump_version(os);
-	dump_metric(os);
-
-	// The variables are the original ones + n+2 binary variables for a plan of length n
-	os << g_variable_domain.size() + get_plan().size() + 2 << endl;
-	for(size_t i = 0; i < g_variable_domain.size(); ++i) {
-		dump_variable(os, g_variable_name[i], g_variable_domain[i], g_fact_names[i]);
-	}
-	vector<string> vals;
-	vals.push_back("false");
-	vals.push_back("true");
-	dump_variable(os, "possible", 2, vals);
-	for(size_t i = 0; i <= get_plan().size(); ++i) {
-		string name = "following" + static_cast<ostringstream*>( &(ostringstream() << i) )->str();
-		dump_variable(os, name, 2, vals);
-	}
-	dump_mutexes(os);
-
-	os << "begin_state" << endl;
-	for(size_t i = 0; i < g_initial_state_data.size(); ++i)
-		os << g_initial_state_data[i] << endl;
-	os << 1 << endl;
-	os << 1 << endl;
-	for(size_t i = 0; i < get_plan().size(); ++i)
-		os << 0 << endl;
-	os << "end_state" << endl;
-
-	os << "begin_goal" << endl;
-	os << g_goal.size() + 1 << endl;
-	for(size_t i = 0; i < g_goal.size(); ++i)
-		os << g_goal[i].first << " " << g_goal[i].second << endl;
-	os << v_ind << " " << 0 << endl;
-	os << "end_goal" << endl;
-
-	vector<bool> on_plan;
-	int ops_on_plan = 0;
-	on_plan.assign(g_operators.size(), false);
-	for (const GlobalOperator* op : get_plan()) {
-		int op_no = get_op_index_hacked(op);
-		if (!on_plan[op_no]) {
-			ops_on_plan++;
-			on_plan[op_no] = true;
-		}
-	}
-
-	// The operators are the original ones not on the plan + 3 operators for each on the plan
-	os << g_operators.size()  - ops_on_plan + (3 * get_plan().size()) << endl;
-	// The order of the operators might affect computation...
-	// First dumping the original ones, that are not on the plan
-	vector<GlobalCondition> empty_pre;
-	vector<GlobalEffect> empty_eff;
-
-	for(size_t op_no = 0; op_no < g_operators.size(); ++op_no) {
-		if (on_plan[op_no])
-			continue;
-
-		vector<GlobalEffect> eff;
-		eff.push_back(GlobalEffect(v_ind, 0, empty_pre, false));
-		g_operators[op_no].dump_SAS(os, empty_pre, eff);
-	}
-	for(size_t op_no = 0; op_no < get_plan().size(); ++op_no) {
-		const GlobalOperator* op = get_plan()[op_no];
-
-		//Dumping operators on the plan
-		vector<GlobalCondition> pre1, pre2, pre3;
-		vector<GlobalEffect> eff2,eff3;
-
-		pre1.push_back(GlobalCondition(v_ind, 0, false));
-		op->dump_SAS(os, pre1, empty_eff);
-
-		int following_var_from_ind = v_ind + 1 + op_no;
-		pre2.push_back(GlobalCondition(v_ind, 1, false));
-		pre2.push_back(GlobalCondition(following_var_from_ind, 0, false));
-		eff2.push_back(GlobalEffect(v_ind, 0, empty_pre, false));
-		op->dump_SAS(os, pre2, eff2);
-
-		pre3.push_back(GlobalCondition(v_ind, 1, false));
-		pre3.push_back(GlobalCondition(following_var_from_ind, 1, false));
-		eff3.push_back(GlobalEffect(following_var_from_ind, 0, empty_pre, false));
-		eff3.push_back(GlobalEffect(following_var_from_ind+1, 1, empty_pre, false));
-		op->dump_SAS(os, pre3, eff3);
-	}
-	os << g_axioms.size() << endl;
-	for(size_t op_no = 0; op_no < g_axioms.size(); ++op_no) {
-		g_axioms[op_no].dump_SAS(os, empty_pre, empty_eff);
-	}
-}
-*/
-void add_forbid_plan_reformulation_option(OptionParser &parser) {
-    parser.add_option<bool>("dump_forbid_plan_reformulation",
-        "Dumping task reformulation that forbids the found plan",
-        "false");
-}
-
-
-
 /* TODO: merge this into SearchEngine::add_options_to_parser when all search
          engines support pruning. */
 void add_pruning_option(OptionParser &parser) {
@@ -502,7 +342,6 @@ static SearchEngine *_parse(OptionParser &parser) {
         "use preferred operators of these heuristics", "[]");
 
     add_pruning_option(parser);
-    add_forbid_plan_reformulation_option(parser);
     SearchEngine::add_options_to_parser(parser);
     Options opts = parser.parse();
 
@@ -540,26 +379,11 @@ static SearchEngine *_parse_astar(OptionParser &parser) {
                             "use multi-path dependence (LM-A*)", "false");
 
     add_pruning_option(parser);
-    add_forbid_plan_reformulation_option(parser);
     SearchEngine::add_options_to_parser(parser);
-    parser.add_option<shared_ptr<Group>>(
-        "symmetries",
-        "symmetries object to compute structural symmetries for pruning",
-        OptionParser::NONE);
-
     Options opts = parser.parse();
 
     EagerSearch *engine = nullptr;
     if (!parser.dry_run()) {
-        if (opts.contains("symmetries")) {
-            shared_ptr<Group> group = opts.get<shared_ptr<Group>>("symmetries");
-            if (group->get_search_symmetries() == SearchSymmetries::NONE) {
-                cerr << "Symmetries option passed to eager search, but no "
-                     << "search symmetries should be used." << endl;
-                utils::exit_with(utils::ExitCode::INPUT_ERROR);
-            }
-        }
-
         auto temp = search_common::create_astar_open_list_factory_and_f_eval(opts);
         opts.set("open", temp.first);
         opts.set("f_eval", temp.second);
@@ -621,7 +445,6 @@ static SearchEngine *_parse_greedy(OptionParser &parser) {
         "boost value for preferred operator open lists", "0");
 
     add_pruning_option(parser);
-    add_forbid_plan_reformulation_option(parser);
     SearchEngine::add_options_to_parser(parser);
 
     Options opts = parser.parse();

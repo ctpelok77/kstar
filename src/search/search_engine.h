@@ -10,7 +10,6 @@
 
 #include <vector>
 
-class Group;
 class Heuristic;
 
 namespace options {
@@ -29,7 +28,7 @@ class SearchEngine {
 public:
     typedef std::vector<const GlobalOperator *> Plan;
 protected:
-	SearchStatus status;
+    SearchStatus status;
     bool solution_found;
     Plan plan;
     StateRegistry state_registry;
@@ -44,8 +43,7 @@ protected:
     virtual SearchStatus step() = 0;
 
     void set_plan(const Plan &plan);
-    bool check_goal_and_set_plan(const GlobalState &state,
-                                 const std::shared_ptr<Group> &group = nullptr);
+    bool check_goal_and_set_plan(const GlobalState &state);
     int get_adjusted_cost(const GlobalOperator &op) const;
 public:
     SearchEngine(const options::Options &opts);

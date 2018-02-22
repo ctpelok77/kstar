@@ -28,9 +28,6 @@ SearchStatistics::SearchStatistics() {
     lastjump_reopened_states = 0;
     lastjump_evaluated_states = 0;
     lastjump_generated_states = 0;
-    last_jump_symmetrical_states_generated = 0;
-    last_jump_symmetry_improved_evaluations = 0;
-    last_jump_improving_symmetrical_states = 0;
 
     lastjump_f_value = -1;
 }
@@ -43,9 +40,6 @@ void SearchStatistics::report_f_value_progress(int f) {
         lastjump_reopened_states = reopened_states;
         lastjump_evaluated_states = evaluated_states;
         lastjump_generated_states = generated_states;
-        last_jump_symmetrical_states_generated = g_symmetrical_states_generated;
-        last_jump_symmetry_improved_evaluations = g_symmetry_improved_evaluations;
-        last_jump_improving_symmetrical_states = g_improving_symmetrical_states;
     }
 }
 
@@ -73,9 +67,6 @@ void SearchStatistics::print_detailed_statistics() const {
     cout << "Evaluations: " << evaluations << endl;
     cout << "Generated " << generated_states << " state(s)." << endl;
     cout << "Dead ends: " << dead_end_states << " state(s)." << endl;
-    cout << "Symmetrical states generated: " << g_symmetrical_states_generated << endl;
-    cout << "Symmetry-improved evaluations: " << g_symmetry_improved_evaluations << endl;
-    cout << "Improving symmetrical states: " << g_improving_symmetrical_states << endl;
 
     if (lastjump_f_value >= 0) {
         cout << "Expanded until last jump: "
@@ -86,12 +77,6 @@ void SearchStatistics::print_detailed_statistics() const {
              << lastjump_evaluated_states << " state(s)." << endl;
         cout << "Generated until last jump: "
              << lastjump_generated_states << " state(s)." << endl;
-        cout << "Symmetrical states generated until last jump: "
-             << last_jump_symmetrical_states_generated << " state(s)." << endl;
-        cout << "Symmetry-improved evaluations until last jump: "
-             << last_jump_symmetry_improved_evaluations << endl;
-        cout << "Improving symmetrical states until last jump: "
-             << last_jump_improving_symmetrical_states << endl;
     }
 
 	cout << "Number of plans found: "<< num_plans_found << std::endl;

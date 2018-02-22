@@ -1,17 +1,14 @@
 #include "globals.h"
 
-
 #include "axioms.h"
 #include "causal_graph.h"
 #include "global_operator.h"
 #include "global_state.h"
 #include "heuristic.h"
 #include "successor_generator.h"
-#include "globals.h"
 
 #include "algorithms/int_packer.h"
 #include "tasks/root_task.h"
-#include "tasks/plan_forbid_reformulated_task.h"
 #include "utils/logging.h"
 #include "utils/rng.h"
 #include "utils/system.h"
@@ -85,7 +82,6 @@ void save_plan(const vector<const GlobalOperator *> &plan,
     ofstream outfile(dir_name+"/"+filename.str());
     for (size_t i = 0; i < plan.size(); ++i) {
         //cout << plan[i]->get_name() << " (" << plan[i]->get_cost() << ")" << endl;
-        //plan[i]->dump();
         outfile << "(" << plan[i]->get_name() << ")" << endl;
     }
     int plan_cost = calculate_plan_cost(plan);
@@ -273,6 +269,7 @@ void read_everything(istream &in) {
     g_initial_state_data[g_variable_domain.size() - 1] = 0;
     check_magic(in, "end_state");
     g_default_axiom_values = g_initial_state_data;
+
     read_goal(in);
     read_operators(in);
 
@@ -304,12 +301,12 @@ void read_everything(istream &in) {
     TaskProxy task_proxy(*g_root_task());
     g_successor_generator = new SuccessorGenerator(task_proxy);
     cout << "done! [t=" << utils::g_timer << "]" << endl;
-	 
+    /*
 	std::filebuf fb;
 	fb.open ("debug_out.sas",std::ios::out);
 	std::ostream os(&fb);
 	g_root_task()->dump_to_SAS(os);
-
+    */
     cout << "done initalizing global data [t=" << utils::g_timer << "]" << endl;
 }
 
@@ -418,10 +415,6 @@ bool g_is_part_of_anytime_portfolio = false;
 
 utils::Log g_log;
 
-int g_symmetrical_states_generated;
-int g_symmetry_improved_evaluations;
-int g_improving_symmetrical_states;
-
 // Parts for dumping SAS+ task, used in forbidding plan reformulation
 void dump_version(std::ostream& os) {
 	os << "begin_version" << endl;
@@ -470,134 +463,6 @@ void dump_pre_post_SAS(std::ostream& os, int pre, GlobalEffect eff) {
     os << eff.var << " " << pre << " " << eff.val << std::endl;
 }
 
-void dump_plan_forbid_reformulation_sas(const char* filename,
-							const std::vector<const GlobalOperator *>& plan) {
-	ofstream os(filename);
-	vector<int> forbid_plan;
-	for(size_t i = 0; i < plan.size(); ++i) {
-		forbid_plan.push_back(get_op_index_hacked(plan[i]));
-	}
-	// Dominik: commenting this out because otherwise I get a linker error
-	/*shared_ptr<AbstractTask> reformulated_task = make_shared<extra_tasks::PlanForbidReformulatedTask>(g_root_task(), move(forbid_plan));
-	reformulated_task->dump_to_SAS(os);*/
-}
-//*/
-/*
-void dump_plan_forbid_reformulation_sas(const char* filename,
-							const std::vector<const GlobalOperator *>& plan) {
-	int v_ind = g_variable_domain.size();
-	ofstream os(filename);
-	dump_version(os);
-	dump_metric(os);
-
-	// The variables are the original ones + n+2 binary variables for a plan of length n
-	os << g_variable_domain.size() + plan.size() + 2 << endl;
-	for(size_t i = 0; i < g_variable_domain.size(); ++i) {
-		dump_variable(os, g_variable_name[i], -1, g_variable_domain[i], g_fact_names[i]);
-	}
-	vector<string> vals;
-	vals.push_back("false");
-	vals.push_back("true");
-	dump_variable(os, "possible", -1, 2, vals);
-	for(size_t i = 0; i <= plan.size(); ++i) {
-		string name = "following" + static_cast<ostringstream*>( &(ostringstream() << i) )->str();
-		dump_variable(os, name, -1, 2, vals);
-	}
-	dump_mutexes(os);
-
-	os << "begin_state" << endl;
-	for(size_t i = 0; i < g_initial_state_data.size(); ++i)
-		os << g_initial_state_data[i] << endl;
-	os << 1 << endl;
-	os << 1 << endl;
-	for(size_t i = 0; i < plan.size(); ++i)
-		os << 0 << endl;
-	os << "end_state" << endl;
-
-	os << "begin_goal" << endl;
-	os << g_goal.size() + 1 << endl;
-	for(size_t i = 0; i < g_goal.size(); ++i)
-		os << g_goal[i].first << " " << g_goal[i].second << endl;
-	os << v_ind << " " << 0 << endl;
-	os << "end_goal" << endl;
-
-	vector<bool> on_plan;
-	int num_operators_on_plan = 0;
-	vector<int> plan_operators_without_repetition;
-	on_plan.assign(g_operators.size(), false);
-	for (const GlobalOperator* op : plan) {
-		int op_no = get_op_index_hacked(op);
-		if (!on_plan[op_no]) {
-			num_operators_on_plan++;
-			on_plan[op_no] = true;
-			plan_operators_without_repetition.push_back(op_no);
-		}
-	}
-	// Storing plan indexes per plan operator
-	std::vector<std::vector<int>> plan_operators_indexes_by_parent_operator;
-	plan_operators_indexes_by_parent_operator.assign(g_operators.size(), vector<int>());
-	for (size_t i = 0; i < plan.size(); ++i) {
-		int op_no = get_op_index_hacked(plan[i]);
-		plan_operators_indexes_by_parent_operator[op_no].push_back(i);
-	}
-
-	// The operators are the original ones not on the plan + twice the plan operators without repetitions and once plan operators with repetitions
-	os << g_operators.size()  + num_operators_on_plan + plan.size() << endl;
-	// The order of the operators might affect computation...
-	// First dumping the original ones, that are not on the plan
-	vector<GlobalCondition> empty_pre;
-	vector<GlobalEffect> empty_eff;
-
-	for(size_t op_no = 0; op_no < g_operators.size(); ++op_no) {
-		if (on_plan[op_no]) {
-			//Dumping operators on the plan
-			vector<GlobalCondition> pre1;
-			pre1.push_back(GlobalCondition(v_ind, 0, false));
-			g_operators[op_no].dump_SAS(os, pre1, empty_eff);
-			continue;
-		}
-
-		vector<GlobalEffect> eff;
-		eff.push_back(GlobalEffect(v_ind, 0, empty_pre, false));
-		g_operators[op_no].dump_SAS(os, empty_pre, eff);
-	}
-	for(int op_no : plan_operators_without_repetition) {
-		//Dumping operators on the plan
-		vector<GlobalCondition> pre2;
-		vector<GlobalEffect> eff2;
-
-		pre2.push_back(GlobalCondition(v_ind, 1, false));
-
-		for (int op_ind : plan_operators_indexes_by_parent_operator[op_no]) {
-			int following_var_from_ind = v_ind + 1 + op_ind;
-			pre2.push_back(GlobalCondition(following_var_from_ind, 0, false));
-		}
-		eff2.push_back(GlobalEffect(v_ind, 0, empty_pre, false));
-		g_operators[op_no].dump_SAS(os, pre2, eff2);
-	}
-
-	for(size_t op_no = 0; op_no < plan.size(); ++op_no) {
-		const GlobalOperator* op = plan[op_no];
-
-		//Dumping operators on the plan
-		vector<GlobalCondition> pre3;
-		vector<GlobalEffect> eff3;
-
-		int following_var_from_ind = v_ind + 1 + op_no;
-
-		pre3.push_back(GlobalCondition(v_ind, 1, false));
-		pre3.push_back(GlobalCondition(following_var_from_ind, 1, false));
-		eff3.push_back(GlobalEffect(following_var_from_ind, 0, empty_pre, false));
-		eff3.push_back(GlobalEffect(following_var_from_ind+1, 1, empty_pre, false));
-		op->dump_SAS(os, pre3, eff3);
-	}
-
-	os << g_axioms.size() << endl;
-	for(size_t op_no = 0; op_no < g_axioms.size(); ++op_no) {
-		g_axioms[op_no].dump_SAS(os, empty_pre, empty_eff);
-	}
-}
-//*/
 vector<vector<FactPair>> g_invariant_groups;
 int g_djkstra_nodes = 0;
 

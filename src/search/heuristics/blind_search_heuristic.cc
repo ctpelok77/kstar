@@ -23,24 +23,6 @@ BlindSearchHeuristic::~BlindSearchHeuristic() {
 
 int BlindSearchHeuristic::compute_heuristic(const GlobalState &global_state) {
     State state = convert_global_state(global_state);
-
-	/*std::cout << "HARDCODE BLIND" << std::endl;
-	if (global_state[0] == 0) 
-		return 6;
-	if (global_state[0] == 1) 
-		return 6;
-	if (global_state[0] == 2) 
-		return 2;
-	if (global_state[0] == 3) 
-		return 7;
-	if (global_state[0] == 4) 
-		return 1;
-	if (global_state[0] == 5) 
-		return 3;
-	if (global_state[0] == 6)
-		return 0;
-	 */
-
     if (is_goal_state(task_proxy, state))
         return 0;
     else

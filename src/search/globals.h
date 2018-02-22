@@ -84,9 +84,6 @@ extern bool g_is_part_of_anytime_portfolio;
 extern const std::shared_ptr<AbstractTask> g_root_task();
 
 extern utils::Log g_log;
-extern int g_symmetrical_states_generated;
-extern int g_symmetry_improved_evaluations;
-extern int g_improving_symmetrical_states;
 extern int g_optimal_cost;
 extern int g_num_optimal_plans;
 
