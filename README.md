@@ -4,7 +4,7 @@ the K\* algorithm into Fast Downward.
 ### Usage ###
 
 ```
-./fast-downward.py <domain_file> <problem_file> --search "kstar(heuristic,k)"
+./fast-downward.py <domain_file> <problem_file> --search "kstar(heuristic(transform=original_goals()),k)"
 ```
 * _heurisitic_:  any heuristic provided by Fast Downward  
 (http://www.fast-downward.org/Doc/Heuristic).   
