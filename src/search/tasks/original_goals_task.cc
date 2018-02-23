@@ -6,7 +6,13 @@
 #include "../plugin.h"
 
 using namespace std;
-
+/*
+ * Assumptions:
+ * 1. The goal achieving extra action is the last one
+ * 2. The extra variable is the last one
+ * 3. The extra precondition on the extra variable is the last one
+ *
+ */
 namespace extra_tasks {
 OriginalGoalsTask::OriginalGoalsTask() : DelegatingTask(g_root_task()) {
     // Copying from parent
