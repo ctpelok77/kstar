@@ -582,6 +582,7 @@ fast_downward_plugin(
 		kstar/plan_reconstructor
 		kstar/successor_generator
 		kstar/util
+		tasks/original_goals_task		
     DEPENDS NULL_PRUNING_METHOD ORDERED_SET SEARCH_COMMON TOP_K_EAGER_SEARCH
 )
 
