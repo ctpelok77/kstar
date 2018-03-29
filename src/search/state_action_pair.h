@@ -1,13 +1,14 @@
 #ifndef STATE_ACTION_PAIR
 #define STATE_ACTION_PAIR 
 
-#include <boost/functional/hash.hpp>
+//#include <boost/functional/hash.hpp>
 
 #include "state_id.h"
 #include "state_registry.h"
 #include "search_space.h"
 #include "global_operator.h"
 #include "utils/util.h"
+#include "utils/hash.h"
 
 class StateActionPair {
 public:
@@ -72,8 +73,8 @@ public:
 		size_t value_from = from.hash();
 		size_t value_to = to.hash();
 		size_t seed = 0;
-		boost::hash_combine(seed, value_from);
-		boost::hash_combine(seed, value_to);
+		utils::hash_combine(seed, value_from);
+		utils::hash_combine(seed, value_to);
 		return seed;
 	}
 
@@ -135,9 +136,9 @@ struct Node {
 		size_t value_sap = sap->hash();
 		size_t value_heap =  this->heap_state.hash();
 		size_t seed = 0;
-		boost::hash_combine(seed, value_sap);
-		boost::hash_combine(seed, value_heap);
-        boost::hash_combine(seed, id);
+		utils::hash_combine(seed, value_sap);
+		utils::hash_combine(seed, value_heap);
+		utils::hash_combine(seed, id);
 		return seed;
 	}
 
