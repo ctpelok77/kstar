@@ -351,11 +351,7 @@ def parse_args():
         if args.debug:
             args.build = "debug32"
         else:
-			if "DOWNWARD_BUILD" in os.environ:
-				build = str(os.environ['DOWNWARD_BUILD'])
-				args.build = build 
-			else:
-				args.build = "release32" 
+			args.build = "release32" 
 
     _split_planner_args(parser, args)
 
