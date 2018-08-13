@@ -14,9 +14,8 @@ the K\* algorithm into Fast Downward.
 
 ### Citation ###
 Michael Katz, Shirin Sohrabi, Octavian Udrea and Dominik Winterer  
-**A Novel Iterative Approach to Top-k Planning** [(bib)](/top_k.bib)  
+**A Novel Iterative Approach to Top-k Planning** [[pdf]](https://www.aaai.org/ocs/index.php/ICAPS/ICAPS18/paper/view/17749/16971) [[bib]](/top_k.bib)  
 *In ICAPS 2018*  
-*To appear*
 
 ### Contact ###
 For questions and comments please get in touch with Dominik Winterer.
