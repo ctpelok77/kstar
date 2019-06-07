@@ -12,6 +12,14 @@ class PlanReconstructor {
     StateRegistry* state_registry;
     SearchSpace* search_space;
 
+    std::string fact_to_pddl(std::string fact) const;
+    std::string restructure_fact(std::string fact) const;
+    void dump_state_with_actions(const StateID& state, const OperatorSet& actions, std::ostream& os);
+    void dump_action_json(const GlobalOperator *op, std::ostream& os);
+    void dump_state_json(const StateID& state, std::ostream& os);
+    void action_name_parsing(std::string op_name, std::vector<std::string>& parsed);
+    void preprocess_and_dump_json(std::vector<Plan>& top_k_plans, std::vector<StateSequence>& top_k_plans_states);
+
 public:
     PlanReconstructor(std::unordered_map<Node, Node>& parent_sap,
                        std::unordered_set<Edge>& cross_edge,
@@ -25,9 +33,10 @@ public:
     void extract_plan(vector<Node>& seq, Plan &plan, StateSequence &state_seq);
     bool is_simple_plan(StateSequence seq, StateRegistry* state_registry);
     void set_goal_state(StateID goal_state);
-    void add_plan(Node node, std::vector<Plan>& top_k_plans, bool simple_plans_only);
-    void save_plans(std::vector<Plan>& top_k_plans, bool dump_plans);
+    void add_plan(Node node, std::vector<Plan>& top_k_plans, std::vector<StateSequence>& top_k_plans_states, bool simple_plans_only);
+    void save_plans(std::vector<Plan>& top_k_plans, std::vector<StateSequence>& top_k_plans_states, bool dump_plans);
     void dump_dot_plan(const Plan& plan);
+
 };
 }
 

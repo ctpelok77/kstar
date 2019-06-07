@@ -7,6 +7,7 @@
 #include "../utils/countdown_timer.h"
 #include "util.h"
 
+
 using namespace top_k_eager_search;
 
 namespace kstar{
@@ -90,7 +91,7 @@ void KStar::search() {
     if (dump_plans)
         output_plans();
 
-    plan_reconstructor->save_plans(top_k_plans, dump_plans);
+    plan_reconstructor->save_plans(top_k_plans, top_k_plans_states, dump_plans);
     cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
 }
@@ -139,7 +140,7 @@ void KStar::initialize_djkstra() {
     pg_root = make_shared<Node>(0, sap, StateID::no_state);
     pg_root->id = g_djkstra_nodes;
     ++g_djkstra_nodes;
-    plan_reconstructor->add_plan(*pg_root, top_k_plans, simple_plans_only);
+    plan_reconstructor->add_plan(*pg_root, top_k_plans, top_k_plans_states, simple_plans_only);
     set_optimal_plan_cost();
     inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
     statistics.inc_plans_found();
@@ -192,7 +193,7 @@ bool KStar::djkstra_search() {
         queue_djkstra.pop();
 
         //notify_expand(node, &state_registry, num_node_expansions);
-        plan_reconstructor->add_plan(node, top_k_plans, simple_plans_only);
+        plan_reconstructor->add_plan(node, top_k_plans, top_k_plans_states, simple_plans_only);
         inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
         statistics.inc_plans_found();
         if (enough_plans_found())

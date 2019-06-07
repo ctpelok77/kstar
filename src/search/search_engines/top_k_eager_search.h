@@ -7,6 +7,8 @@
 #include "../state_action_pair.h"
 #include "../utils/util.h"
 
+#include "../kstar/kstar_types.h"
+
 #include <memory>
 #include <algorithm>
 #include <vector>
@@ -37,7 +39,8 @@ protected:
     bool all_nodes_expanded = false;
     int counter = 0;
     std::vector<Plan> top_k_plans;
-       PerStateInformation<vector<Sap>> incomming_heap;
+    std::vector<kstar::StateSequence> top_k_plans_states;
+    PerStateInformation<vector<Sap>> incomming_heap;
     PerStateInformation<vector<Sap>> tree_heap;
 
     // g-value of the most expensive successor of the current
