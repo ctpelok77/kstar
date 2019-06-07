@@ -18,7 +18,6 @@ class PlanReconstructor {
     void dump_action_json(const GlobalOperator *op, std::ostream& os);
     void dump_state_json(const StateID& state, std::ostream& os);
     void action_name_parsing(std::string op_name, std::vector<std::string>& parsed);
-    void preprocess_and_dump_json(std::vector<Plan>& top_k_plans, std::vector<StateSequence>& top_k_plans_states);
 
 public:
     PlanReconstructor(std::unordered_map<Node, Node>& parent_sap,
@@ -34,8 +33,9 @@ public:
     bool is_simple_plan(StateSequence seq, StateRegistry* state_registry);
     void set_goal_state(StateID goal_state);
     void add_plan(Node node, std::vector<Plan>& top_k_plans, std::vector<StateSequence>& top_k_plans_states, bool simple_plans_only);
-    void save_plans(std::vector<Plan>& top_k_plans, std::vector<StateSequence>& top_k_plans_states, bool dump_plans);
+    void save_plans(std::vector<Plan>& top_k_plans, bool dump_plans);
     void dump_dot_plan(const Plan& plan);
+    void preprocess_and_dump_json(std::vector<Plan>& top_k_plans, std::vector<StateSequence>& top_k_plans_states, std::string file_name);
 
 };
 }

@@ -133,17 +133,16 @@ void PlanReconstructor::add_plan(Node node,
     }
 }
 
-void PlanReconstructor::save_plans(std::vector<Plan>& top_k_plans, std::vector<StateSequence>& top_k_plans_states, bool dump_plans) {
+void PlanReconstructor::save_plans(std::vector<Plan>& top_k_plans, bool dump_plans) {
     for (auto& plan : top_k_plans) {
         if (dump_plans)
             dump_dot_plan(plan);
         
         save_plan(plan, true);
     }
-    preprocess_and_dump_json(top_k_plans, top_k_plans_states);
 }
 
-void PlanReconstructor::preprocess_and_dump_json(std::vector<Plan>& top_k_plans, std::vector<StateSequence>& top_k_plans_states) {
+void PlanReconstructor::preprocess_and_dump_json(std::vector<Plan>& top_k_plans, std::vector<StateSequence>& top_k_plans_states, std::string file_name) {
     if (top_k_plans_states.size() == 0)
         return;
     std::unordered_map<StateID, OperatorSet> ops_by_state; 
@@ -155,7 +154,7 @@ void PlanReconstructor::preprocess_and_dump_json(std::vector<Plan>& top_k_plans,
         }
     }
     StateID init = top_k_plans_states[0][0];
-    ofstream os("state_actions.json");
+    ofstream os(file_name);
     os << "{ ";
     os << "\"fd_initial\" : ";
     dump_state_json(init, os);
