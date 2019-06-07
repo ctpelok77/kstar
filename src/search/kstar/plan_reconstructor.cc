@@ -6,6 +6,8 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include "../successor_generator.h"
+#include "../globals.h"
 
 namespace kstar {
 
@@ -108,6 +110,7 @@ bool PlanReconstructor::is_simple_plan(StateSequence seq, StateRegistry* state_r
 
 void PlanReconstructor::add_plan(Node node,
                                  std::vector<Plan>& top_k_plans,
+                                 std::vector<StateSequence>& top_k_plans_states,
                                  bool simple_plans_only) {
     vector<Node> path = djkstra_traceback(node);
     vector<Node> seq;
@@ -124,16 +127,54 @@ void PlanReconstructor::add_plan(Node node,
 
     if (!simple_plans_only || is_simple_plan(state_seq, state_registry)) {
         top_k_plans.push_back(plan);
+        state_seq.pop_back();
+        state_seq.shrink_to_fit();
+        top_k_plans_states.push_back(state_seq);
     }
 }
 
-void PlanReconstructor::save_plans(std::vector<Plan>& top_k_plans, bool dump_plans) {
+void PlanReconstructor::save_plans(std::vector<Plan>& top_k_plans, std::vector<StateSequence>& top_k_plans_states, bool dump_plans) {
     for (auto& plan : top_k_plans) {
         if (dump_plans)
             dump_dot_plan(plan);
+        
         save_plan(plan, true);
     }
+    preprocess_and_dump_json(top_k_plans, top_k_plans_states);
 }
+
+void PlanReconstructor::preprocess_and_dump_json(std::vector<Plan>& top_k_plans, std::vector<StateSequence>& top_k_plans_states) {
+    if (top_k_plans_states.size() == 0)
+        return;
+    std::unordered_map<StateID, OperatorSet> ops_by_state; 
+    for (size_t i = 0; i< top_k_plans.size(); ++i) {
+        const Plan& plan = top_k_plans[i];
+        const StateSequence& states = top_k_plans_states[i];
+        for (size_t j = 0; j< plan.size(); ++j) {
+            ops_by_state[states[j]].insert(plan[j]);
+        }
+    }
+    StateID init = top_k_plans_states[0][0];
+    ofstream os("state_actions.json");
+    os << "{ ";
+    os << "\"fd_initial\" : ";
+    dump_state_json(init, os);
+    os << "," << endl;
+    os << "\"data\" : [" << endl;
+    bool first = true;
+    for (auto elem : ops_by_state) {
+        if (!first) {
+            os << "," << endl;
+        }
+        first = false;
+        dump_state_with_actions(elem.first, elem.second, os);
+    }
+    os << "]";
+    os << "}" << endl;
+
+}
+
+
 
 void PlanReconstructor::dump_dot_plan(const Plan& plan) {
     stringstream node_stream, edge_stream;
@@ -184,5 +225,133 @@ void PlanReconstructor::dump_dot_plan(const Plan& plan) {
     file << edge_stream.rdbuf();
     file.close();
 }
+
+void PlanReconstructor::dump_state_with_actions(const StateID& stateID, const OperatorSet& actions, std::ostream& os) {
+
+    os << "{ ";
+    os << "\"state\" : ";
+    dump_state_json(stateID, os);
+    os << ", ";
+    os << "\"actions_from_plans\" : " ;
+    os << "[";
+    bool first = true;
+    for (auto op : actions) {
+        if (!first) {
+            os << "," << endl;
+        }
+        first = false;
+        dump_action_json(op, os);
+
+    }
+    os << "]";
+    os << ",";
+
+    GlobalState current_state = state_registry->lookup_state(stateID);
+    vector<const GlobalOperator *> applicable_ops;
+    g_successor_generator->generate_applicable_ops(current_state, applicable_ops);
+
+    vector<const GlobalOperator *> other_applicable_ops;
+    for (auto op : applicable_ops) {
+        if (actions.find(op) != actions.end())
+            other_applicable_ops.push_back(op);
+    }
+
+    os << "\"other_applicable_actions\" : " ;
+    os << "[";
+    first = true;
+    for (auto op : other_applicable_ops) {
+        if (!first) {
+            os << "," << endl;
+        }
+        first = false;
+        dump_action_json(op, os);
+    }
+    os << "]";
+    os << "}";
+}
+
+void PlanReconstructor::action_name_parsing(std::string op_name, std::vector<std::string>& parsed) {
+    std::string s = op_name.substr(1, op_name.length() - 2); // without the first and last
+    size_t pos = 0;
+    while ((pos = s.find(" ")) != std::string::npos) {
+        parsed.push_back(s.substr(0, pos));
+        s.erase(0, pos + 1);
+    }
+    parsed.push_back(s);
+}
+
+
+void PlanReconstructor::dump_action_json(const GlobalOperator *op, std::ostream& os) {
+/*
+{"params": ["ca", "d2", "c", "n1", "c0", "n0"], "name": "sendtohome"}
+*/
+    std::vector<std::string> parsed;
+    action_name_parsing(op->get_name(), parsed);
+
+    os << "{ \"name\" : " << "\"" << parsed[0] << "\"" ;
+    os << ", ";
+    os << "\"params\" : [";
+    bool first = true;
+    for (size_t i = 1; i< parsed.size(); ++i) {
+        if (!first) {
+            os << ", ";
+        }
+        first = false;
+        os << "\"" << parsed[i] << "\"";
+    }
+    os << "]}";
+}
+
+std::string PlanReconstructor::fact_to_pddl(std::string fact) const {
+    /*  "Atom bottomcol(ha)" -> "(bottomcol ha)""
+        "NegatedAtom clear(da)" -> "(not (clear da))"
+    */
+    // Check if starts with "Atom"
+    if (fact.substr(0,4) == "Atom") {
+        return restructure_fact(fact.substr(5, fact.length()-5));
+    }   
+    if (fact.substr(0,11) == "NegatedAtom") {
+        return "(not " + restructure_fact(fact.substr(12, fact.length()-12)) + ")";
+    }   
+    cerr << "SHOULD NOT HAPPEN!!! Got fact not starting with Atom or NegatedAtom: " << fact << endl;
+    return fact;
+}
+
+std::string PlanReconstructor::restructure_fact(std::string fact) const {
+    /*  "bottomcol(ha)" -> "(bottomcol ha)""
+        "at(da db)" -> "(at da db)"
+    */
+    size_t pos = fact.find("(");
+    std::string name = fact.substr(0, pos);
+    return "(" + name + " " + fact.substr(pos+1, fact.length() - pos - 1);
+}
+
+
+void PlanReconstructor::dump_state_json(const StateID& state, std::ostream& os) {
+/*
+["(value c0 n0)", "(value ca n1)", "(value c2 n2)", "(value c3 n3)", "(value c4 n4)"]
+*/
+    GlobalState current_state = state_registry->lookup_state(state);
+    State s(state_registry->get_task(), current_state.get_values());
+    std::vector<std::string> state_parsed;
+
+    for (FactProxy fact : s) {
+        string fact_name = fact.get_name();
+        if (fact_name != "<none of those>" && fact_name != "false" && fact_name != "true")
+            state_parsed.push_back(fact_to_pddl(fact_name));
+    }
+
+    os << "[";
+    bool first = true;
+    for (size_t i = 0; i< state_parsed.size(); ++i) {
+        if (!first) {
+            os << ", ";
+        }
+        first = false;
+        os << "\"" << state_parsed[i] << "\"";
+    }
+    os << "]";
+}
+
 
 }

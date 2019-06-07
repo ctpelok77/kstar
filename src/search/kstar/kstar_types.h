@@ -3,6 +3,7 @@
 
 #include <memory>
 #include "../state_action_pair.h"
+#include "unordered_set"
 
 using namespace std;
 
@@ -12,6 +13,7 @@ namespace kstar {
     typedef std::vector<const GlobalOperator*> Plan;
     typedef std::vector<StateID> StateSequence;
     typedef std::stringstream Stream;
+    typedef std::unordered_set<const GlobalOperator*> OperatorSet;
 }
 
 #endif
