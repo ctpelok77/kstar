@@ -16,8 +16,13 @@ KStar::KStar(const options::Options &opts) : TopKEagerSearch(opts),
         optimal_solution_cost(-1),
         simple_plans_only(opts.get<bool>("simple_plans_only")),
         dump_plans(opts.get<bool>("dump_plans")),
+        dump_json(opts.contains("json_file_to_dump")),
+        json_filename(""),
         num_node_expansions(0),
         djkstra_initialized(false) {
+    if (dump_json) {
+        json_filename = opts.get<string>("json_file_to_dump");
+    }
     pg_succ_generator =
             unique_ptr<SuccessorGenerator>(new SuccessorGenerator(
                                                             tree_heap,
@@ -91,7 +96,11 @@ void KStar::search() {
     if (dump_plans)
         output_plans();
 
-    plan_reconstructor->save_plans(top_k_plans, top_k_plans_states, dump_plans);
+    plan_reconstructor->save_plans(top_k_plans, dump_plans);
+
+    if (dump_json)
+        plan_reconstructor->preprocess_and_dump_json(top_k_plans, top_k_plans_states, json_filename);
+
     cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
 }
@@ -328,7 +337,9 @@ static SearchEngine *_parse(OptionParser &parser) {
     parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");
     parser.add_option<int>("k", "Number of plans", "1000");
     parser.add_option<bool>("dump_plans", "Print plans", "false");
-
+    parser.add_option<string>("json_file_to_dump",
+        "A path to the json file to use for dumping",
+        OptionParser::NONE);
     top_k_eager_search::add_pruning_option(parser);
     add_simple_plans_only_option(parser);
     SearchEngine::add_options_to_parser(parser);
