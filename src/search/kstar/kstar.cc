@@ -180,6 +180,7 @@ void KStar::init_tree_heaps(Node node) {
 void KStar::throw_everything() {
     djkstra_initialized = false;
     top_k_plans.clear();
+    top_k_plans_states.clear();
     num_node_expansions = 0;
     statistics.reset_plans_found();
     statistics.reset_opt_found();
