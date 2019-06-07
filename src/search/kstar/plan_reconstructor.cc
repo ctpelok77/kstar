@@ -66,7 +66,7 @@ void PlanReconstructor::extract_plan(vector<Node> &seq,
     GlobalState current_state = state_registry->lookup_state(goal_state);
     state_seq.push_back(current_state.get_id());
     int seq_index = 0;
-       int seq_size = seq.size();
+    int seq_size = seq.size();
     for(;;) {
         const SearchNodeInfo &info = search_space->search_node_infos[current_state];
         // Initial state reached and all edges of seq consumed
@@ -89,6 +89,22 @@ void PlanReconstructor::extract_plan(vector<Node> &seq,
             current_state = state_registry->lookup_state(info.parent_state_id);
         }
         state_seq.push_back(current_state.get_id());
+        // Check that the last op on plan leads from the last state in state_seq to the one before it
+        StateID parentID = state_seq[state_seq.size()-1]; 
+        StateID childID = state_seq[state_seq.size()-2]; 
+        const GlobalOperator* curr_op = plan[plan.size() - 1];
+        GlobalState parent = state_registry->lookup_state(parentID);
+        GlobalState next = state_registry->get_successor_state(parent, *curr_op);
+        if (next.get_id() != childID) {
+            cout << "----------------------" << endl;
+            cout << "State in sequence" << endl;
+            GlobalState child = state_registry->lookup_state(childID);
+            child.dump_fdr();
+            cout << "Real successor" << endl;
+            next.dump_fdr();
+            cout << "----------------------" << endl;
+        }
+
     }
     reverse(plan.begin(), plan.end());
     reverse(state_seq.begin(), state_seq.end());
@@ -127,8 +143,8 @@ void PlanReconstructor::add_plan(Node node,
 
     if (!simple_plans_only || is_simple_plan(state_seq, state_registry)) {
         top_k_plans.push_back(plan);
-        state_seq.pop_back();
         state_seq.shrink_to_fit();
+        state_seq.pop_back();
         top_k_plans_states.push_back(state_seq);
     }
 }
@@ -149,6 +165,20 @@ void PlanReconstructor::preprocess_and_dump_json(std::vector<Plan>& top_k_plans,
     for (size_t i = 0; i< top_k_plans.size(); ++i) {
         const Plan& plan = top_k_plans[i];
         const StateSequence& states = top_k_plans_states[i];
+        if (plan.size() + 1 != states.size()) {
+            cout << "PROBLEM, the action sequence and state sequence sizes do not match! " << plan.size() << ", " << states.size() << endl;
+            cout << "----------------------" << endl;
+            for (size_t j = 0; j< states.size(); ++j) {
+                GlobalState current_state = state_registry->lookup_state(states[j]);
+                current_state.dump_fdr();
+                cout << endl;
+                if (j < plan.size()) {
+                    plan[j]->dump();
+                }
+                cout << "----------------------" << endl;
+            }
+
+        }
         for (size_t j = 0; j< plan.size(); ++j) {
             ops_by_state[states[j]].insert(plan[j]);
         }
@@ -170,7 +200,6 @@ void PlanReconstructor::preprocess_and_dump_json(std::vector<Plan>& top_k_plans,
     }
     os << "]";
     os << "}" << endl;
-
 }
 
 
@@ -336,8 +365,9 @@ void PlanReconstructor::dump_state_json(const StateID& state, std::ostream& os) 
 
     for (FactProxy fact : s) {
         string fact_name = fact.get_name();
-        if (fact_name != "<none of those>" && fact_name != "false" && fact_name != "true")
+        if (fact_name != "<none of those>" && fact_name != "false" && fact_name != "true") {
             state_parsed.push_back(fact_to_pddl(fact_name));
+        }
     }
 
     os << "[";
