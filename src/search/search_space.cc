@@ -147,6 +147,50 @@ void SearchSpace::trace_path(const GlobalState &goal_state,
     reverse(path.begin(), path.end());
 }
 
+void SearchSpace::dump_state(std::ostream& os, const GlobalState& state) const {
+    int num_vars = state_registry.get_num_variables();
+    vector<string> names;
+    for (int var=0; var < num_vars; ++var) {
+        string fact_name = state_registry.get_task().get_fact_name(FactPair(var, state[var]));        
+        if (fact_name == "__special_value_false__" || fact_name == "__special_value_true__")
+            continue;
+        if (fact_name == "<none of those>")
+            continue;
+        if (fact_name.compare(0, 11, "NegatedAtom") == 0)
+            continue;
+
+        names.push_back(fact_name);
+    }
+
+    os << "[" << endl;
+    size_t i = 0;
+    for (; i < names.size() - 1; ++i) {
+        os << "\"" << names[i] << "\"," << endl;
+    }
+    os << "\"" << names[i] << "\"" << endl;
+    os << "]" << endl;
+}
+
+void SearchSpace::trace_from_plan(const std::vector<const GlobalOperator *> &plan, std::vector<StateID> &plan_trace) const {
+    assert(plan_trace.size() == 0);
+    GlobalState current_state = state_registry.get_initial_state();
+    for (size_t i=0; i < plan.size(); ++i) {
+        const GlobalOperator *op = plan[i];
+        current_state = state_registry.get_successor_state(current_state, *op);
+        plan_trace.push_back(current_state.get_id());
+    }
+}
+
+void SearchSpace::dump_trace(const std::vector<StateID> &plan_trace, std::ostream& os) const {
+
+    GlobalState current_state = state_registry.get_initial_state();
+    dump_state(os, current_state);
+    for (size_t i=0; i < plan_trace.size(); ++i) {
+        os << "," << endl;
+        dump_state(os, state_registry.lookup_state(plan_trace[i]));
+    }
+}
+
 void SearchSpace::dump() const {
     for (PerStateInformation<SearchNodeInfo>::const_iterator it =
              search_node_infos.begin(&state_registry);

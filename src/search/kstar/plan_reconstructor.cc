@@ -158,7 +158,7 @@ void PlanReconstructor::save_plans(std::vector<Plan>& top_k_plans, bool dump_pla
     }
 }
 
-void PlanReconstructor::preprocess_and_dump_json(std::vector<Plan>& top_k_plans, std::vector<StateSequence>& top_k_plans_states, std::string file_name) {
+void PlanReconstructor::preprocess_and_dump_state_action_pairs_to_json(std::vector<Plan>& top_k_plans, std::vector<StateSequence>& top_k_plans_states, std::string file_name) {
     if (top_k_plans_states.size() == 0)
         return;
     std::unordered_map<StateID, OperatorSet> ops_by_state; 
@@ -201,7 +201,6 @@ void PlanReconstructor::preprocess_and_dump_json(std::vector<Plan>& top_k_plans,
     os << "]";
     os << "}" << endl;
 }
-
 
 
 void PlanReconstructor::dump_dot_plan(const Plan& plan) {

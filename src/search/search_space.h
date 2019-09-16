@@ -63,6 +63,10 @@ public:
     void trace_path(const GlobalState &goal_state,
                     std::vector<const GlobalOperator *> &path) const;
 
+    void dump_state(std::ostream& os, const GlobalState& state) const;
+    void dump_trace(const std::vector<StateID> &plan_trace, std::ostream& os) const;
+    void trace_from_plan(const std::vector<const GlobalOperator *> &plan, std::vector<StateID> &plan_trace) const;
+
     void dump() const;
     void print_statistics() const;
     void dump_dot() const;

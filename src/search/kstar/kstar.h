@@ -17,6 +17,8 @@ protected:
     int optimal_solution_cost;
     bool simple_plans_only;
     bool dump_plans;
+    bool dump_states;
+    bool dump_state_action_pairs;
     bool dump_json;
     std::string json_filename;
     

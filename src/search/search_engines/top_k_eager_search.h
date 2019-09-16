@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <vector>
 #include <queue>
+#include <iostream>
 
 class GlobalOperator;
 class Heuristic;
@@ -68,6 +69,9 @@ protected:
     void sort_and_remove(GlobalState  s);
     std::string get_node_label(StateActionPair &edge);
     std::string get_node_name(StateActionPair &edge);
+
+    void dump_plans_json(std::ostream& os, bool dump_states) const;
+    void dump_plan_json(Plan plan, std::ostream& os, bool dump_states) const;
 
 public:
     explicit TopKEagerSearch(const options::Options &opts);

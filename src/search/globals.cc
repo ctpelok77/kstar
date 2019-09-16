@@ -153,8 +153,8 @@ void read_variables(istream &in) {
     g_variable_name.push_back("goal_var");
     g_axiom_layers.push_back(-1);
     std::vector<string> fact_names;
-    fact_names.push_back("false");
-    fact_names.push_back("true");
+    fact_names.push_back("__special_value_false__");
+    fact_names.push_back("__special_value_true__");
     g_fact_names.push_back(fact_names);
 }
 

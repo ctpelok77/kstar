@@ -7,7 +7,6 @@
 #include "../utils/countdown_timer.h"
 #include "util.h"
 
-
 using namespace top_k_eager_search;
 
 namespace kstar{
@@ -16,6 +15,8 @@ KStar::KStar(const options::Options &opts) : TopKEagerSearch(opts),
         optimal_solution_cost(-1),
         simple_plans_only(opts.get<bool>("simple_plans_only")),
         dump_plans(opts.get<bool>("dump_plans")),
+        dump_states(opts.get<bool>("dump_states")),
+        dump_state_action_pairs(opts.get<bool>("dump_state_action_pairs")),
         dump_json(opts.contains("json_file_to_dump")),
         json_filename(""),
         num_node_expansions(0),
@@ -36,6 +37,7 @@ KStar::KStar(const options::Options &opts) : TopKEagerSearch(opts),
                                                        goal_state,
                                                        &state_registry,
                                                        &search_space));
+
 }
 
 void KStar::search() {
@@ -98,8 +100,14 @@ void KStar::search() {
 
     plan_reconstructor->save_plans(top_k_plans, dump_plans);
 
-    if (dump_json)
-        plan_reconstructor->preprocess_and_dump_json(top_k_plans, top_k_plans_states, json_filename);
+    if (dump_json) {
+        if (dump_state_action_pairs) {
+            plan_reconstructor->preprocess_and_dump_state_action_pairs_to_json(top_k_plans, top_k_plans_states, json_filename);
+        } else {
+            ofstream os(json_filename.c_str());
+            dump_plans_json(os, dump_states);
+        } 
+    }
 
     cout << "Actual search time: " << timer
          << " [t=" << utils::g_timer << "]" << endl;
@@ -338,9 +346,13 @@ static SearchEngine *_parse(OptionParser &parser) {
     parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");
     parser.add_option<int>("k", "Number of plans", "1000");
     parser.add_option<bool>("dump_plans", "Print plans", "false");
+    parser.add_option<bool>("dump_states", "Dump states to json", "false");
+    parser.add_option<bool>("dump_state_action_pairs", "Dump states to json", "false");
+    
     parser.add_option<string>("json_file_to_dump",
         "A path to the json file to use for dumping",
         OptionParser::NONE);
+
     top_k_eager_search::add_pruning_option(parser);
     add_simple_plans_only_option(parser);
     SearchEngine::add_options_to_parser(parser);
