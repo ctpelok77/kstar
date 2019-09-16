@@ -567,6 +567,43 @@ void TopKEagerSearch::output_plans() {
     }
 }
 
+
+void TopKEagerSearch::dump_plans_json(std::ostream& os, bool dump_states) const {
+    os << "{ \"plans\" : [" << endl;
+    bool first_dumped = false;
+    for (size_t i = 0; i < top_k_plans.size(); ++i) {
+            if (first_dumped)
+                    os << "," << endl;
+                dump_plan_json(top_k_plans[i], os, dump_states);
+                first_dumped = true;
+    }
+    os << "]}" << endl;
+}
+
+void TopKEagerSearch::dump_plan_json(Plan plan, std::ostream& os, bool dump_states) const {
+    int plan_cost = calculate_plan_cost(plan);
+    os << "{ ";
+    os << "\"cost\" : " << plan_cost << "," << endl; 
+    os << "\"actions\" : [" << endl;
+    if (plan.size() > 0) {
+        os << "\""  << plan[0]->get_name() << "\"";
+        for (size_t i = 1; i < plan.size(); ++i) {
+            os << ", \"" << plan[i]->get_name() << "\"";
+        }
+    }
+    os << "]";
+    if (dump_states) {
+        os << "," << endl;
+        os << "\"states\" : [" << endl;
+
+        vector<StateID> trace;
+        search_space.trace_from_plan(plan, trace);
+        search_space.dump_trace(trace, os);
+        os << "]";
+    }
+    os << "}" << endl;
+}
+
 void TopKEagerSearch::print_plan(Plan plan, bool generates_multiple_plan_files) {
 
     ostringstream filename;
