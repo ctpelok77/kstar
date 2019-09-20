@@ -42,11 +42,11 @@ def main():
             if component == "translate":
                 run_components.run_translate(args)
             elif component == "search":
-				exitcode = run_components.run_search(args)
-				success = sanity_checker.solution_sanity_check()
-				sanity_checker.remove_plan_files()
-				if exitcode == 0 and not success:
-					exitcode = -1
+                exitcode = run_components.run_search(args)
+                success = sanity_checker.solution_sanity_check()
+                sanity_checker.remove_plan_files()
+                if exitcode == 0 and not success:
+                    exitcode = -1
             elif component == "validate":
                 pass
                 #run_components.run_validate(args)
