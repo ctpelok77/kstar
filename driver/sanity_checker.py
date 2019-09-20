@@ -20,23 +20,23 @@ def solution_sanity_check():
     #duplicates = exist_duplicates(directory)
     success = True
     #if not duplicates:
-	#	print "No duplicate plans."
+    #	print "No duplicate plans."
     #else: 
-	#	print "Duplicate plans found."
-	#	success = False 
+    #	print "Duplicate plans found."
+    #	success = False 
 #
 #    ascending = in_ascending_order(directory)
 #    if ascending:
 #       print "Plans are in ascending order."
 #    else:
-#		print "Plans are not in ascending order."
-#		success = True
+#        print "Plans are not in ascending order."
+#        success = True
 #
 #    plan_frequencies("found_plans") 
     return success  
 
 def exist_duplicates(directory):
-    print "Checking for duplicate plans..."
+    print("Checking for duplicate plans...")
     duplicates = False
     for filename1 in os.listdir(directory):
         for filename2 in os.listdir(directory):
@@ -46,11 +46,11 @@ def exist_duplicates(directory):
             f2 = directory+"/"+filename2
             if md5(f1) == md5(f2):
                 duplicates =  True
-                print "[ERR] "+ filename1 + " and " + filename2 +" are identical!"  
+                print("[ERR] "+ filename1 + " and " + filename2 +" are identical!")
     return duplicates
 
 def in_ascending_order(directory):
-    print "Checking ascending order of the plans..."
+    print("Checking ascending order of the plans...")
     ascending = True
     num_plans = len(fnmatch.filter(os.listdir(directory), 'sas_plan.*'))
     plan_cost = -1
@@ -65,7 +65,7 @@ def in_ascending_order(directory):
     for i in range(1, num_plans):
         current_val = plan_costs[i]
         if current_val < old_val:
-            print "[ERR] " + filename+str(i) +" has less cost than "+ filename+str(i-1)   
+            print("[ERR] " + filename+str(i) +" has less cost than "+ filename+str(i-1))
             ascending = False
     return ascending 
 
@@ -81,13 +81,13 @@ def plan_frequencies(directory):
     counter=collections.Counter(plan_costs)
     
     f = open('plan_frequencies','w')
-    print "(plan-cost, frequency)"
+    print("(plan-cost, frequency)")
     items = counter.items()
     items.sort(reverse=True)
     for key, value in items: 
-		print (key,value)
-		line = str(key) + " "+ str(value) + "\n"
-		f.write(line)
+        print (key,value)
+        line = str(key) + " "+ str(value) + "\n"
+        f.write(line)
 
 
 def search_for_pattern(filename):
