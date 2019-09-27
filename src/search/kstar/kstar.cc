@@ -169,12 +169,22 @@ void KStar::initialize_djkstra() {
 }
 
 bool KStar::enough_plans_found() {
-    int num_plans_found = top_k_plans.size();
-    if (num_plans_found >= number_of_plans) {
-        return true;
-    }
-    return false;
+    return enough_plans_found_topk() || enough_plans_found_topq();
 }
+
+bool KStar::enough_plans_found_topk() {
+    return ( number_of_plans >0 && (int) top_k_plans.size() >= number_of_plans);
+}
+
+bool KStar::enough_plans_found_topq() {
+    if (quality_bound < 1.0 || optimal_solution_cost == -1 || top_k_plans.size() == 0)
+        return false;
+
+    int cost = calculate_plan_cost(top_k_plans[top_k_plans.size()-1]);
+    double actual_bound = optimal_solution_cost * quality_bound;
+    return (cost > actual_bound);
+}
+
 
 // init the neccessary tree heaps for the successor generation
 // of s that is tree_heap[s] (obviously) and from (for the cross edge)
@@ -206,16 +216,18 @@ bool KStar::djkstra_search() {
     int exps = 0;
     while (!queue_djkstra.empty()) {
         Node node = queue_djkstra.top();
-        if(!enough_nodes_expanded())
+        if (!enough_nodes_expanded()) {
             return false;
+        }
         queue_djkstra.pop();
 
         //notify_expand(node, &state_registry, num_node_expansions);
         plan_reconstructor->add_plan(node, top_k_plans, top_k_plans_states, simple_plans_only);
         inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
         statistics.inc_plans_found();
-        if (enough_plans_found())
+        if (enough_plans_found()) {
             return true;
+        }
         exps++;
         init_tree_heaps(node);
         std::vector<Node> successors;
@@ -344,7 +356,9 @@ void add_simple_plans_only_option(OptionParser &parser) {
 
 static SearchEngine *_parse(OptionParser &parser) {
     parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");
-    parser.add_option<int>("k", "Number of plans", "1000");
+
+    top_k_eager_search::add_top_k_option(parser);
+
     parser.add_option<bool>("dump_plans", "Print plans", "false");
     parser.add_option<bool>("dump_states", "Dump states to json", "false");
     parser.add_option<bool>("dump_state_action_pairs", "Dump states to json", "false");

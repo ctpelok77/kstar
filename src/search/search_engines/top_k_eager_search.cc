@@ -20,6 +20,7 @@ TopKEagerSearch::TopKEagerSearch(const Options &opts)
     : SearchEngine(opts),
       reopen_closed_nodes(opts.get<bool>("reopen_closed")),
       number_of_plans(opts.get<int>("k")),
+      quality_bound(opts.get<double>("q")),
       open_list(opts.get<shared_ptr<OpenListFactory>>("open")->
                 create_state_open_list()),
       f_evaluator(opts.get<ScalarEvaluator *>("f_eval", nullptr)),
@@ -29,6 +30,16 @@ TopKEagerSearch::TopKEagerSearch(const Options &opts)
       most_expensive_successor(-1),
       next_node_f(-1),
       first_plan_found(false){
+    if (number_of_plans < 1 && quality_bound < 1) {
+        cerr << "Either the number of plans or the quality bound should be specified and be at least 1." << endl;
+        utils::exit_with(utils::ExitCode::INPUT_ERROR);
+    }
+    /*
+    if (number_of_plans >= 1 && quality_bound >= 1.0) {
+        cerr << "Either the number of plans or the quality bound should be specified, not both." << endl;
+        utils::exit_with(utils::ExitCode::INPUT_ERROR);
+    }
+    */
 }
 
 void TopKEagerSearch::initialize() {
@@ -425,7 +436,8 @@ void add_pruning_option(OptionParser &parser) {
 }
 
 void add_top_k_option(OptionParser &parser) {
-    parser.add_option<int>("K", "Number of plans", "20");
+    parser.add_option<int>("k", "Number of plans", "-1");
+    parser.add_option<double>("q", "Quality bound multiplier (of optimal solution cost)", "0.0");    
 }
 
 static SearchEngine *_parse(OptionParser &parser) {

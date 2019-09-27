@@ -30,6 +30,7 @@ class TopKEagerSearch : public SearchEngine {
     const bool reopen_closed_nodes;
 protected:
     const int number_of_plans;
+    const double quality_bound;
     std::unique_ptr<StateOpenList> open_list;
     ScalarEvaluator *f_evaluator;
     std::vector<Heuristic *> heuristics;
