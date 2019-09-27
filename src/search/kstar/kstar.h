@@ -43,6 +43,8 @@ protected:
     void throw_everything();
     void add_plan(Node& p);
     bool enough_plans_found();
+    bool enough_plans_found_topk();
+    bool enough_plans_found_topq();
     void set_optimal_plan_cost();
     void update_most_expensive_succ();
     void dump_tree_edge();
