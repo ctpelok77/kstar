@@ -22,7 +22,7 @@ struct Proposition {
 
     Proposition() : constraint_index(-1) {
     }
-    ~Proposition() = default;
+    virtual ~Proposition() = default;
 };
 
 class StateEquationConstraints : public ConstraintGenerator {

@@ -29,7 +29,8 @@ TopKEagerSearch::TopKEagerSearch(const Options &opts)
       interrupted(false),
       most_expensive_successor(-1),
       next_node_f(-1),
-      first_plan_found(false){
+      first_plan_found(false),
+      verbosity(static_cast<kstar::Verbosity>(opts.get_enum("verbosity"))) {
     if (number_of_plans < 1 && quality_bound < 1) {
         cerr << "Either the number of plans or the quality bound should be specified and be at least 1." << endl;
         utils::exit_with(utils::ExitCode::INPUT_ERROR);
@@ -122,6 +123,9 @@ SearchStatus TopKEagerSearch::step() {
         update_next_node_f();
 
         if (test_goal(s) && !first_plan_found) {
+            if (verbosity >= kstar::Verbosity::NORMAL) {
+                cout << "[TKES] First plan is found!" << endl;
+            }
             goal_state = s.get_id();
             first_plan_found = true;
             sort_and_remove(s);
@@ -135,6 +139,10 @@ SearchStatus TopKEagerSearch::step() {
 
     SearchNode node = n.first;
     GlobalState s = node.get_state();
+    if (verbosity >= kstar::Verbosity::VERBOSE) {
+        cout << "[TKES] Expanding state " << endl;
+        s.dump_pddl();
+    }
     vector<const GlobalOperator *> applicable_ops;
     g_successor_generator->generate_applicable_ops(s, applicable_ops);
 
@@ -158,6 +166,9 @@ SearchStatus TopKEagerSearch::step() {
         statistics.inc_generated();
         bool is_preferred = preferred_operators.contains(op);
         SearchNode succ_node = search_space.get_node(succ_state);
+        if (verbosity >= kstar::Verbosity::VERBOSE) {
+            cout << "[TKES] Adding incoming edge from " << s.get_id() << " to " << succ_state.get_id() << " via " << op->get_name() << endl;
+        }
         add_incomming_edge(node, op, succ_node);
 
         // Previously encountered dead end. Don't re-evaluate.
@@ -286,7 +297,13 @@ void TopKEagerSearch::add_incomming_edge(SearchNode node,
 // Recursively trace the search path to state and add all top elements
 // of incomming heaps
 void TopKEagerSearch::init_tree_heap(GlobalState& state) {
+    if (verbosity >= kstar::Verbosity::VERBOSE) {
+        cout << "[TKES] Initializing tree heap for state " << state.get_id() << endl;
+    }
     StateID parent_id = search_space.search_node_infos[state].parent_state_id;
+    if (verbosity >= kstar::Verbosity::VERBOSE) {
+       cout << "[TKES] Parent state " << parent_id << endl;
+    }
     tree_heap[state].clear();
     if (parent_id != StateID::no_state) {
         GlobalState parent_state = state_registry.lookup_state(parent_id);
@@ -295,12 +312,38 @@ void TopKEagerSearch::init_tree_heap(GlobalState& state) {
                 tree_heap[parent_state].begin(),
                 tree_heap[parent_state].end());
     }
+    if (verbosity >= kstar::Verbosity::VERBOSE) {
+        cout << "[TKES] Incoming heap for state " << state.get_id() << " is" << endl;
+        dump_incoming_heap(state);
+    }
     // Copy root_in[state] to tree_heap[heap]
     if (!incomming_heap[state].empty()) {
+        if (verbosity >= kstar::Verbosity::VERBOSE) {
+            cout << "[TKES] Pushing into tree heap" << endl;
+        }
         Sap &p = incomming_heap[state].front();
         tree_heap[state].push_back(p);
     }
     std::stable_sort(tree_heap[state].begin(), tree_heap[state].end(), Cmp<Sap>());
+    if (verbosity >= kstar::Verbosity::VERBOSE) {
+        cout << "[TKES] Tree heap for state " << state.get_id() << " is" << endl;
+        dump_tree_heap(state);
+    }
+}
+
+void TopKEagerSearch::dump_incoming_heap(const GlobalState& s) const {
+    for (Sap sap: incomming_heap[s]) {
+        cout << sap->get_from_state().get_id() << "  ->  " << sap->get_to_state().get_id();
+        cout <<" [ " << sap->op->get_name();
+        cout << "/"<< sap->op->get_cost() << "]" << endl;
+    }
+}
+void TopKEagerSearch::dump_tree_heap(const GlobalState& s) const {
+    for (Sap sap: tree_heap[s]) {
+        cout << sap->get_from_state().get_id() << "  ->  " << sap->get_to_state().get_id();
+        cout <<" [ " << sap->op->get_name();
+        cout << "/"<< sap->op->get_cost() << "]" << endl;
+    }
 }
 
 std::string TopKEagerSearch::get_node_label(StateActionPair &edge) {

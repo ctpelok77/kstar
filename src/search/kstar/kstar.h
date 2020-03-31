@@ -21,7 +21,7 @@ protected:
     bool dump_state_action_pairs;
     bool dump_json;
     std::string json_filename;
-    
+
     int num_node_expansions;
     bool djkstra_initialized;
     std::priority_queue<Node> queue_djkstra;
@@ -31,7 +31,6 @@ protected:
     std::shared_ptr<SuccessorGenerator> pg_succ_generator;
     // root of the path graph
     shared_ptr<Node> pg_root;
-
     void initialize_djkstra();
     // djkstra search return true if k solutions have been found and false otherwise
     bool djkstra_search();

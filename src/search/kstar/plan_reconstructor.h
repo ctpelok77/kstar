@@ -11,6 +11,7 @@ class PlanReconstructor {
     StateID goal_state;
     StateRegistry* state_registry;
     SearchSpace* search_space;
+    Verbosity verbosity;
 
     std::string fact_to_pddl(std::string fact) const;
     std::string restructure_fact(std::string fact) const;
@@ -24,7 +25,8 @@ public:
                        std::unordered_set<Edge>& cross_edge,
                        StateID goal_state,
                        StateRegistry* state_registry,
-                       SearchSpace* search_space);
+                       SearchSpace* search_space,     
+                       Verbosity verbosity);
 
     virtual ~PlanReconstructor() = default;
     std::vector<Node> djkstra_traceback(Node node);

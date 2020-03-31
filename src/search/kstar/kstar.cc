@@ -36,7 +36,7 @@ KStar::KStar(const options::Options &opts) : TopKEagerSearch(opts),
                                                        cross_edge,
                                                        goal_state,
                                                        &state_registry,
-                                                       &search_space));
+                                                       &search_space, verbosity));
 
 }
 
@@ -47,52 +47,118 @@ void KStar::search() {
            || status == FIRST_PLAN_FOUND) {
         status = step();
         if (timer.is_expired()) {
-            cout << "Time limit reached. Abort search." << endl;
+            cout << "Time limit reached. Aborting search." << endl;
             status = TIMEOUT;
             break;
         }
         // First solution found. Add R to path graph, perform Dijkstra
         if (status == FIRST_PLAN_FOUND) {
+            if (verbosity >= Verbosity::NORMAL) {
+                cout << "[KSTAR] First plan is found" << endl;
+            }            
             if (djkstra_search()) {
+                if (verbosity >= Verbosity::NORMAL) {
+                    cout << "[KSTAR] Dijkstra search finished successfully, found all required plans" << endl;
+                }                
                 status = SOLVED;
                 solution_found = true;
+                // Michael: need to break here
+                break;
             }
+            if (verbosity >= Verbosity::NORMAL) {
+                cout << "[KSTAR] Dijkstra search could not find all required plans" << endl;
+            }            
             interrupt();
         }
 
         // Check whether A* has expanded enough nodes and if yes
         // start a Dijkstra search on P(G)
         if (status == INTERRUPTED) {
+            if (verbosity >= Verbosity::NORMAL) {
+                cout << "[KSTAR] status INTERRUPTED" << endl;
+            }
             if (!open_list->empty() && !queue_djkstra.empty()) {
                 // if enough nodes expanded do Dijkstra search
+                if (verbosity >= Verbosity::NORMAL) {
+                    cout << "[KSTAR] open list not empty, dijkstra queue not empty" << endl;
+                }
                 if (enough_nodes_expanded()) {
+                    if (verbosity >= Verbosity::NORMAL) {
+                        cout << "[KSTAR] enough nodes are expanded" << endl;
+                    }
                     if (djkstra_search()) {
+                        if (verbosity >= Verbosity::NORMAL) {
+                            cout << "[KSTAR] Dijkstra search finished successfully, found all required plans" << endl;
+                        }
                         status = SOLVED;
                         solution_found = true;
                         break;
                     }
-                }
-                else {
+                    if (verbosity >= Verbosity::NORMAL) {
+                        cout << "[KSTAR] Dijkstra search could not find all required plans" << endl;
+                    }
+                } else {
+                    if (verbosity >= Verbosity::NORMAL) {
+                        cout << "[KSTAR] not enough nodes are expanded, resuming Astar" << endl;
+                    }
                     resume_astar();
                 }
             }
             if (!open_list->empty() && queue_djkstra.empty()) {
+                if (verbosity >= Verbosity::NORMAL) {
+                    cout << "[KSTAR] open list not empty, dijkstra queue empty, resuming Astar" << endl;
+                }
                 resume_astar();
             }
 
             if (open_list->empty()) {
+                if (verbosity >= Verbosity::NORMAL) {
+                    cout << "[KSTAR] Astar open list is empty, trying Dijkstra" << endl;
+                }
                 if (djkstra_search()) {
+                    if (verbosity >= Verbosity::NORMAL) {
+                        cout << "[KSTAR] Dijkstra search finished successfully, found all required plans" << endl;
+                    }
                     status = SOLVED;
-                    solution_found = true;
-                    break;
-                }
-                else {
+                } else {
+                    if (verbosity >= Verbosity::NORMAL) {
+                        cout << "[KSTAR] Dijkstra search could not find all required plans" << endl;
+                    }
                     status = FAILED;
-                    solution_found =  false;
-                    break;
                 }
+                solution_found = true;
+                break;
             }
         }
+    }
+
+    /* Michael: UGLY HACK for the case of a single plan
+     *
+     * It seems like in the case there is only one plan for the problem, the Dijkstra step fails to reconstruct it.
+     * As a result, after running the K* search, if there was a plan found, and there were no reconstructed plans, 
+     * we add the first found plan manually.
+     */
+
+    if (top_k_plans.size() == 0 && first_plan_found) {
+        // There has to be at least one plan
+        GlobalState g = state_registry.lookup_state(goal_state);
+
+        Plan plan;
+        search_space.trace_path(g, plan);
+        StateSequence state_seq;
+        search_space.trace_from_plan(plan, state_seq);
+
+        plan.shrink_to_fit();
+        plan.pop_back();
+        top_k_plans.push_back(plan);
+        
+        state_seq.shrink_to_fit();
+        state_seq.pop_back();
+        top_k_plans_states.push_back(state_seq);
+
+        set_optimal_plan_cost();
+        inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
+        statistics.inc_plans_found();
     }
 
     if (dump_plans)
@@ -114,11 +180,19 @@ void KStar::search() {
 }
 
 bool KStar::enough_nodes_expanded() {
-    if (open_list->empty())
+    if (open_list->empty()) {
+        if (verbosity >= Verbosity::NORMAL) {
+            cout << "[KSTAR] Open list is empty" << endl;
+        }
         return true;
+    }
     update_most_expensive_succ();
-    if (optimal_solution_cost == -1)
+    if (optimal_solution_cost == -1) {
+        if (verbosity >= Verbosity::NORMAL) {
+           cout << "[KSTAR] Optimal solution cost is -1" << endl;
+        }
         return false;
+    }
     int max_plan_cost =  optimal_solution_cost + most_expensive_successor;
     if (max_plan_cost <= next_node_f)
         return true;
@@ -126,7 +200,9 @@ bool KStar::enough_nodes_expanded() {
 }
 
 void KStar::resume_astar() {
-    cout << "Resuming A*" << endl;
+    if (verbosity >= Verbosity::NORMAL) {
+        cout << "[KSTAR] Resuming Astar" << endl;
+    }
     interrupted = false;
 }
 
@@ -142,15 +218,28 @@ void KStar::set_optimal_plan_cost() {
 }
 
 void KStar::initialize_djkstra() {
-       if(djkstra_initialized || goal_state == StateID::no_state)
+    if(djkstra_initialized || goal_state == StateID::no_state)
         return;
+
+    if (verbosity >= Verbosity::NORMAL) {
+        cout << "[KSTAR] Initializing Dijkstra" << endl;
+    }
 
     GlobalState g = state_registry.lookup_state(goal_state);
     plan_reconstructor->set_goal_state(goal_state);
+    if (verbosity >= Verbosity::VERBOSE) {
+        cout << "[KSTAR] Initializing tree heap for goal state" << endl;
+        g.dump_pddl();
+    }
     init_tree_heap(g);
-    if (tree_heap[g].empty())
-       return;
+    if (tree_heap[g].empty()) {
+        return;
+    }
     // Generate root of path graph
+    if (verbosity >= Verbosity::NORMAL) {
+        cout << "[KSTAR] Generating root of path graph" << endl;
+    }
+
     Sap sap = make_shared<StateActionPair>(StateID::no_state,
                                            goal_state, nullptr,
                                            &state_registry, &search_space);
@@ -197,6 +286,9 @@ void KStar::init_tree_heaps(Node node) {
 
 void KStar::throw_everything() {
     djkstra_initialized = false;
+    if (verbosity >= Verbosity::NORMAL) {
+        cout << "[KSTAR] Before throwing everything we had " << top_k_plans.size() << " plans" << endl;
+    }
     top_k_plans.clear();
     top_k_plans_states.clear();
     num_node_expansions = 0;
@@ -207,21 +299,35 @@ void KStar::throw_everything() {
 
 // Djkstra search on path graph P(G) returns true if enough plans have been found
 bool KStar::djkstra_search() {
-    std::cout << "Switching to djkstra search on path graph" << std::endl;
+    if (verbosity >= Verbosity::NORMAL) {
+        std::cout << "[KSTAR] Switching to djkstra search on path graph" << std::endl;
+    }
     // When Djkstra restarts remove everything from its last iteration
     throw_everything();
     statistics.inc_djkstra_runs();
     initialize_djkstra();
+    if (verbosity >= Verbosity::NORMAL) {
+        dump_dot();
+    }
     int succ_gens = 0;
     int exps = 0;
+    if (verbosity >= Verbosity::NORMAL) {
+        cout << "[KSTAR] Start reconstructing plans using Dijkstra" << endl;
+    }
     while (!queue_djkstra.empty()) {
         Node node = queue_djkstra.top();
         if (!enough_nodes_expanded()) {
+            if (verbosity >= Verbosity::NORMAL) {
+                cout << "[KSTAR] Not enough nodes are expanded by Astar" << endl;
+            }
             return false;
         }
         queue_djkstra.pop();
 
         //notify_expand(node, &state_registry, num_node_expansions);
+        if (verbosity >= Verbosity::NORMAL) {
+            cout << "[KSTAR] Getting a plan for the node " << node.id << endl;
+        }
         plan_reconstructor->add_plan(node, top_k_plans, top_k_plans_states, simple_plans_only);
         inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
         statistics.inc_plans_found();
@@ -237,8 +343,10 @@ bool KStar::djkstra_search() {
             queue_djkstra.push(succ);
             statistics.inc_total_djkstra_generations();
         }
-        if (succ_gens % 1000 == 0) {
-            std::cout << "Djkstra ["<< exps << " expanded, "<< succ_gens << " generated]" << std::endl;
+        if (verbosity >= Verbosity::NORMAL) {
+            if (succ_gens % 1000 == 0) {
+                std::cout << "[KSTAR] Djkstra ["<< exps << " expanded, "<< succ_gens << " generated]" << std::endl;
+            }
         }
     }
     return false;
@@ -318,7 +426,7 @@ void KStar::dump_dot() const {
 
     // Write state space to dot file
     std::ofstream file;
-    file.open("full_state_space.dot", std::ofstream::out);
+    file.open("full_state_space" + std::to_string(statistics.get_num_djkstra_runs()) + ".dot", std::ofstream::out);
     file << stream.rdbuf();
     file << node_stream.rdbuf();
     file.close();
@@ -366,6 +474,27 @@ static SearchEngine *_parse(OptionParser &parser) {
     parser.add_option<string>("json_file_to_dump",
         "A path to the json file to use for dumping",
         OptionParser::NONE);
+
+    vector<string> verbosity_levels;
+    vector<string> verbosity_level_docs;
+    verbosity_levels.push_back("silent");
+    verbosity_level_docs.push_back(
+        "silent: no output during construction, only starting and final "
+        "statistics");
+    verbosity_levels.push_back("normal");
+    verbosity_level_docs.push_back(
+        "normal: basic output during construction, starting and final "
+        "statistics");
+    verbosity_levels.push_back("verbose");
+    verbosity_level_docs.push_back(
+        "verbose: full output during construction, starting and final "
+        "statistics");
+    parser.add_enum_option(
+        "verbosity",
+        verbosity_levels,
+        "Option to specify the level of verbosity.",
+        "normal",
+        verbosity_level_docs);
 
     top_k_eager_search::add_pruning_option(parser);
     add_simple_plans_only_option(parser);

@@ -43,7 +43,7 @@ class PatternCollectionGeneratorSystematic : public PatternCollectionGenerator {
     void build_patterns_naive(const TaskProxy &task_proxy);
 public:
     explicit PatternCollectionGeneratorSystematic(const options::Options &opts);
-    ~PatternCollectionGeneratorSystematic() = default;
+    virtual ~PatternCollectionGeneratorSystematic() = default;
 
     virtual PatternCollectionInformation generate(
         const std::shared_ptr<AbstractTask> &task) override;

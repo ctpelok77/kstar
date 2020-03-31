@@ -15,12 +15,14 @@ PlanReconstructor::PlanReconstructor(std::unordered_map<Node, Node>& parent_sap,
                                       std::unordered_set<Edge>& cross_edge,
                                       StateID goal_state,
                                       StateRegistry* state_registry,
-                                      SearchSpace* search_space) :
+                                      SearchSpace* search_space,     
+                                      Verbosity verbosity) :
                                               parent_node(parent_sap),
                                               cross_edge(cross_edge),
                                               goal_state(goal_state),
                                               state_registry(state_registry),
-                                              search_space(search_space)  {
+                                              search_space(search_space),
+                                              verbosity(verbosity)  {
 }
 
 void PlanReconstructor::set_goal_state(StateID goal_state) {
@@ -89,20 +91,22 @@ void PlanReconstructor::extract_plan(vector<Node> &seq,
             current_state = state_registry->lookup_state(info.parent_state_id);
         }
         state_seq.push_back(current_state.get_id());
-        // Check that the last op on plan leads from the last state in state_seq to the one before it
-        StateID parentID = state_seq[state_seq.size()-1]; 
-        StateID childID = state_seq[state_seq.size()-2]; 
-        const GlobalOperator* curr_op = plan[plan.size() - 1];
-        GlobalState parent = state_registry->lookup_state(parentID);
-        GlobalState next = state_registry->get_successor_state(parent, *curr_op);
-        if (next.get_id() != childID) {
-            cout << "----------------------" << endl;
-            cout << "State in sequence" << endl;
-            GlobalState child = state_registry->lookup_state(childID);
-            child.dump_fdr();
-            cout << "Real successor" << endl;
-            next.dump_fdr();
-            cout << "----------------------" << endl;
+        if (verbosity >= Verbosity::NORMAL) {
+            // Check that the last op on plan leads from the last state in state_seq to the one before it
+            StateID parentID = state_seq[state_seq.size()-1]; 
+            StateID childID = state_seq[state_seq.size()-2]; 
+            const GlobalOperator* curr_op = plan[plan.size() - 1];
+            GlobalState parent = state_registry->lookup_state(parentID);
+            GlobalState next = state_registry->get_successor_state(parent, *curr_op);
+            if (next.get_id() != childID) {
+                cout << "----------------------" << endl;
+                cout << "State in sequence" << endl;
+                GlobalState child = state_registry->lookup_state(childID);
+                child.dump_fdr();
+                cout << "Real successor" << endl;
+                next.dump_fdr();
+                cout << "----------------------" << endl;
+            }
         }
 
     }
@@ -153,7 +157,6 @@ void PlanReconstructor::save_plans(std::vector<Plan>& top_k_plans, bool dump_pla
     for (auto& plan : top_k_plans) {
         if (dump_plans)
             dump_dot_plan(plan);
-        
         save_plan(plan, true);
     }
 }
@@ -165,19 +168,20 @@ void PlanReconstructor::preprocess_and_dump_state_action_pairs_to_json(std::vect
     for (size_t i = 0; i< top_k_plans.size(); ++i) {
         const Plan& plan = top_k_plans[i];
         const StateSequence& states = top_k_plans_states[i];
-        if (plan.size() + 1 != states.size()) {
-            cout << "PROBLEM, the action sequence and state sequence sizes do not match! " << plan.size() << ", " << states.size() << endl;
-            cout << "----------------------" << endl;
-            for (size_t j = 0; j< states.size(); ++j) {
-                GlobalState current_state = state_registry->lookup_state(states[j]);
-                current_state.dump_fdr();
-                cout << endl;
-                if (j < plan.size()) {
-                    plan[j]->dump();
-                }
+        if (verbosity >= Verbosity::NORMAL) {
+            if (plan.size() + 1 != states.size()) {
+                cout << "PROBLEM, the action sequence and state sequence sizes do not match! " << plan.size() << ", " << states.size() << endl;
                 cout << "----------------------" << endl;
+                for (size_t j = 0; j< states.size(); ++j) {
+                    GlobalState current_state = state_registry->lookup_state(states[j]);
+                    current_state.dump_fdr();
+                    cout << endl;
+                    if (j < plan.size()) {
+                        plan[j]->dump();
+                    }
+                    cout << "----------------------" << endl;
+                }
             }
-
         }
         for (size_t j = 0; j< plan.size(); ++j) {
             ops_by_state[states[j]].insert(plan[j]);

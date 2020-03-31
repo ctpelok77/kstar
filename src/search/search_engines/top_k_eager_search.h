@@ -51,6 +51,7 @@ protected:
     // The f-value of the top node of the open list of A*
     int next_node_f;
     bool first_plan_found;
+    kstar::Verbosity verbosity;
 
     void update_next_node_f();
     int get_f_value(StateID id);
@@ -66,6 +67,9 @@ protected:
     void interrupt();
     void add_incomming_edge(SearchNode node, const GlobalOperator *op,
                              SearchNode succ_node);
+    void dump_incoming_heap(const GlobalState& s) const;
+    void dump_tree_heap(const GlobalState& s) const;
+
     void remove_tree_edge(GlobalState s);
     void sort_and_remove(GlobalState  s);
     std::string get_node_label(StateActionPair &edge);

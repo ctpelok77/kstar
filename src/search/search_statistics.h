@@ -45,14 +45,14 @@ public:
     void inc_generated_ops(int inc = 1) {generated_ops += inc; }
     void inc_evaluations(int inc = 1) {evaluations += inc; }
     void inc_dead_ends(int inc = 1) {dead_end_states += inc; }
-	void inc_plans_found(int inc = 1){num_plans_found += inc;};
-	void inc_opt_plans(int inc = 1){num_opt_plans += inc;};
+    void inc_plans_found(int inc = 1){num_plans_found += inc;};
+    void inc_opt_plans(int inc = 1){num_opt_plans += inc;};
 	
-	void reset_plans_found(){num_plans_found = 0;};
-	void reset_opt_found(){num_opt_plans = 0;};
+    void reset_plans_found(){num_plans_found = 0;};
+    void reset_opt_found(){num_opt_plans = 0;};
 
-	void inc_djkstra_runs(int inc = 1){num_djkstra_runs += inc;};
-	void inc_total_djkstra_generations(int inc = 1){total_djkstra_node_generations += inc;};
+    void inc_djkstra_runs(int inc = 1){num_djkstra_runs += inc;};
+    void inc_total_djkstra_generations(int inc = 1){total_djkstra_node_generations += inc;};
 
     // Methods that access statistics.
     int get_expanded() const {return expanded_states; }
@@ -61,7 +61,8 @@ public:
     int get_generated() const {return generated_states; }
     int get_reopened() const {return reopened_states; }
     int get_generated_ops() const {return generated_ops; }
-
+    
+    int get_num_djkstra_runs() const {return num_djkstra_runs; }
     /*
       Call the following method with the f value of every expanded
       state. It will notice "jumps" (i.e., when the expanded f value

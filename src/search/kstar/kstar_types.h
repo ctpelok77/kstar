@@ -14,6 +14,13 @@ namespace kstar {
     typedef std::vector<StateID> StateSequence;
     typedef std::stringstream Stream;
     typedef std::unordered_set<const GlobalOperator*> OperatorSet;
+
+    enum class Verbosity {
+        SILENT,
+        NORMAL,
+        VERBOSE
+    };
+
 }
 
 #endif
