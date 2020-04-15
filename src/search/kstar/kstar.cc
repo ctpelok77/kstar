@@ -493,7 +493,7 @@ static SearchEngine *_parse(OptionParser &parser) {
         "verbosity",
         verbosity_levels,
         "Option to specify the level of verbosity.",
-        "normal",
+        "silent",
         verbosity_level_docs);
 
     top_k_eager_search::add_pruning_option(parser);
