@@ -6,7 +6,7 @@
 ```
 ## Suggested build for 64bit
 
-./build release64
+./build.py release64
 ```
 
 ### Usage ###
