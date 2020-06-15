@@ -56,5 +56,5 @@ COPY --from=builder /workspace/kstar/driver ./driver
 
 WORKDIR /work
 
-#ENTRYPOINT ["/usr/bin/python3", "/workspace/kstar/fast-downward.py", "--build", "release64"]
+# ENTRYPOINT ["/usr/bin/python3", "/workspace/kstar/fast-downward.py", "--build", "release64"]
 CMD /bin/bash
