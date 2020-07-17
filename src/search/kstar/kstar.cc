@@ -36,7 +36,7 @@ KStar::KStar(const options::Options &opts) : TopKEagerSearch(opts),
                                                        cross_edge,
                                                        goal_state,
                                                        &state_registry,
-                                                       &search_space, verbosity));
+                                                       &search_space, opts.get<bool>("skip_reorderings"), verbosity));
 
 }
 
@@ -246,7 +246,9 @@ void KStar::initialize_djkstra() {
     pg_root = make_shared<Node>(0, sap, StateID::no_state);
     pg_root->id = g_djkstra_nodes;
     ++g_djkstra_nodes;
-    plan_reconstructor->add_plan(*pg_root, top_k_plans, top_k_plans_states, simple_plans_only);
+    bool added = plan_reconstructor->add_plan(*pg_root, top_k_plans, top_k_plans_states, simple_plans_only);
+    // cout << "Plan was added: " << added << endl; 
+    assert(added); // The first plan should always be successfully added
     set_optimal_plan_cost();
     inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
     statistics.inc_plans_found();
@@ -291,6 +293,8 @@ void KStar::throw_everything() {
     }
     top_k_plans.clear();
     top_k_plans_states.clear();
+    plan_reconstructor->clear();    
+
     num_node_expansions = 0;
     statistics.reset_plans_found();
     statistics.reset_opt_found();
@@ -328,9 +332,12 @@ bool KStar::djkstra_search() {
         if (verbosity >= Verbosity::NORMAL) {
             cout << "[KSTAR] Getting a plan for the node " << node.id << endl;
         }
-        plan_reconstructor->add_plan(node, top_k_plans, top_k_plans_states, simple_plans_only);
-        inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
-        statistics.inc_plans_found();
+        if (plan_reconstructor->add_plan(node, top_k_plans, top_k_plans_states, simple_plans_only)) {
+            // cout << 21 << endl;
+            inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
+            statistics.inc_plans_found();
+        }
+        // cout << 22 << endl;
         if (enough_plans_found()) {
             return true;
         }

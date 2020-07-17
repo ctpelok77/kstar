@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-import json,sys; 
+import json, sys
 import string
 import subprocess
 
@@ -26,4 +26,4 @@ def main(numPlans, domain, problem):
 
 
 if __name__ == "__main__":
-   main(int(sys.argv[1]), sys.argv[2], sys.argv[3])
+    main(int(sys.argv[1]), sys.argv[2], sys.argv[3])

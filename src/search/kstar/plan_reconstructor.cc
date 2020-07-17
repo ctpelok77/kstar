@@ -15,14 +15,21 @@ PlanReconstructor::PlanReconstructor(std::unordered_map<Node, Node>& parent_sap,
                                       std::unordered_set<Edge>& cross_edge,
                                       StateID goal_state,
                                       StateRegistry* state_registry,
-                                      SearchSpace* search_space,     
+                                      SearchSpace* search_space,
+                                      bool skip_reorderings,     
                                       Verbosity verbosity) :
                                               parent_node(parent_sap),
                                               cross_edge(cross_edge),
                                               goal_state(goal_state),
                                               state_registry(state_registry),
                                               search_space(search_space),
-                                              verbosity(verbosity)  {
+                                              skip_reorderings(skip_reorderings),
+                                              verbosity(verbosity) , attempted_plans(0) {
+}
+
+void PlanReconstructor::clear() {
+    accepted_plans.clear();
+    attempted_plans = 0;
 }
 
 void PlanReconstructor::set_goal_state(StateID goal_state) {
@@ -128,10 +135,15 @@ bool PlanReconstructor::is_simple_plan(StateSequence seq, StateRegistry* state_r
     return true;
 }
 
-void PlanReconstructor::add_plan(Node node,
+bool PlanReconstructor::add_plan(Node node,
                                  std::vector<Plan>& top_k_plans,
                                  std::vector<StateSequence>& top_k_plans_states,
                                  bool simple_plans_only) {
+    // Returns a boolean whether the plan was added
+    attempted_plans++;
+    if (attempted_plans % 100000 == 0) {
+        printf ("Attempted plans: %4.1fM\n", attempted_plans / 1000000.0);
+    }
     vector<Node> path = djkstra_traceback(node);
     vector<Node> seq;
 
@@ -146,11 +158,28 @@ void PlanReconstructor::add_plan(Node node,
     plan.pop_back();
 
     if (!simple_plans_only || is_simple_plan(state_seq, state_registry)) {
-        top_k_plans.push_back(plan);
-        state_seq.shrink_to_fit();
-        state_seq.pop_back();
-        top_k_plans_states.push_back(state_seq);
+        if (!is_duplicate(plan)) {
+            top_k_plans.push_back(plan);
+            state_seq.shrink_to_fit();
+            state_seq.pop_back();
+            top_k_plans_states.push_back(state_seq);
+            return true;
+        }
     }
+    return false;
+}
+
+bool PlanReconstructor::is_duplicate(const Plan& plan) {
+    if (!skip_reorderings)
+        return false;
+    
+    // Checks whether the plan is a duplicate of an existing plan, and if not, add it to existing plans
+
+    // Each plan is kept as a sorted vector by operator ids
+    Plan unordered_plan = plan;
+    std::sort(unordered_plan.begin(), unordered_plan.end());
+	std::pair<PlansSet::iterator, bool > result = accepted_plans.insert(unordered_plan);
+    return !result.second;
 }
 
 void PlanReconstructor::save_plans(std::vector<Plan>& top_k_plans, bool dump_plans) {

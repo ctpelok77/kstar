@@ -480,7 +480,8 @@ void add_pruning_option(OptionParser &parser) {
 
 void add_top_k_option(OptionParser &parser) {
     parser.add_option<int>("k", "Number of plans", "-1");
-    parser.add_option<double>("q", "Quality bound multiplier (of optimal solution cost)", "0.0");    
+    parser.add_option<double>("q", "Quality bound multiplier (of optimal solution cost)", "0.0");
+    parser.add_option<bool>("skip_reorderings", "Skip plans that are reorderings of the previously dumped plans", "false");
 }
 
 static SearchEngine *_parse(OptionParser &parser) {
