@@ -14,7 +14,6 @@ namespace kstar{
 KStar::KStar(const options::Options &opts) : TopKEagerSearch(opts),
         optimal_solution_cost(-1),
         simple_plans_only(opts.get<bool>("simple_plans_only")),
-        dump_plans(opts.get<bool>("dump_plans")),
         dump_states(opts.get<bool>("dump_states")),
         dump_json(opts.contains("json_file_to_dump")),
         json_filename(""),
@@ -35,7 +34,7 @@ KStar::KStar(const options::Options &opts) : TopKEagerSearch(opts),
                                                        cross_edge,
                                                        goal_state,
                                                        &state_registry,
-                                                       &search_space, opts.get<bool>("skip_reorderings"), verbosity));
+                                                       &search_space, opts.get<bool>("skip_reorderings"), opts.get<bool>("dump_plans"), verbosity));
 
 }
 
@@ -138,30 +137,21 @@ void KStar::search() {
      * we add the first found plan manually.
      */
 
-    if (top_k_plans.size() == 0 && first_plan_found) {
+    if (plan_reconstructor->number_of_plans_found() == 0 && first_plan_found) {
         // There has to be at least one plan
         GlobalState g = state_registry.lookup_state(goal_state);
 
         Plan plan;
         search_space.trace_path(g, plan);
-
-        plan.shrink_to_fit();
-        plan.pop_back();
-        top_k_plans.push_back(plan);
-        
-        set_optimal_plan_cost();
-        inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
+        plan_reconstructor->add_plan_explicit_no_check(plan);
+        set_optimal_plan_cost(plan_reconstructor->get_last_added_plan_cost());
+        inc_optimal_plans_count(plan_reconstructor->get_last_added_plan_cost());
         statistics.inc_plans_found();
     }
 
-    if (dump_plans)
-        output_plans();
-
-    plan_reconstructor->save_plans(top_k_plans, dump_plans);
-
     if (dump_json) {
         ofstream os(json_filename.c_str());
-        dump_plans_json(os, dump_states);
+        plan_reconstructor->dump_plans_json(os, dump_states);
     }
 
     cout << "Actual search time: " << timer
@@ -202,8 +192,8 @@ void KStar::update_most_expensive_succ() {
     most_expensive_successor = n.g + pg_succ_generator->get_max_successor_delta(n, pg_root);
 }
 
-void KStar::set_optimal_plan_cost() {
-    optimal_solution_cost = calculate_plan_cost(top_k_plans[0]);
+void KStar::set_optimal_plan_cost(int plan_cost) {
+    optimal_solution_cost = plan_cost;
 }
 
 void KStar::initialize_djkstra() {
@@ -235,11 +225,11 @@ void KStar::initialize_djkstra() {
     pg_root = make_shared<Node>(0, sap, StateID::no_state);
     pg_root->id = g_djkstra_nodes;
     ++g_djkstra_nodes;
-    bool added = plan_reconstructor->add_plan(*pg_root, top_k_plans, simple_plans_only);
+    bool added = plan_reconstructor->add_plan(*pg_root, simple_plans_only);
     // cout << "Plan was added: " << added << endl; 
     assert(added); // The first plan should always be successfully added
-    set_optimal_plan_cost();
-    inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
+    set_optimal_plan_cost(plan_reconstructor->get_last_added_plan_cost());
+    inc_optimal_plans_count(plan_reconstructor->get_last_added_plan_cost());
     statistics.inc_plans_found();
     Node successor;
     pg_succ_generator->get_successor_pg_root(pg_root, successor);
@@ -248,19 +238,19 @@ void KStar::initialize_djkstra() {
     djkstra_initialized = true;
 }
 
-bool KStar::enough_plans_found() {
+bool KStar::enough_plans_found() const {
     return enough_plans_found_topk() || enough_plans_found_topq();
 }
 
-bool KStar::enough_plans_found_topk() {
-    return ( number_of_plans >0 && (int) top_k_plans.size() >= number_of_plans);
+bool KStar::enough_plans_found_topk() const {
+    return ( number_of_plans >0 && (int) plan_reconstructor->number_of_plans_found() >= number_of_plans);
 }
 
-bool KStar::enough_plans_found_topq() {
-    if (quality_bound < 1.0 || optimal_solution_cost == -1 || top_k_plans.size() == 0)
+bool KStar::enough_plans_found_topq() const {
+    if (quality_bound < 1.0 || optimal_solution_cost == -1 || plan_reconstructor->number_of_plans_found() == 0)
         return false;
 
-    int cost = calculate_plan_cost(top_k_plans[top_k_plans.size()-1]);
+    int cost = plan_reconstructor->get_last_added_plan_cost();
     double actual_bound = optimal_solution_cost * quality_bound;
     return (cost > actual_bound);
 }
@@ -278,9 +268,8 @@ void KStar::init_tree_heaps(Node node) {
 void KStar::throw_everything() {
     djkstra_initialized = false;
     if (verbosity >= Verbosity::NORMAL) {
-        cout << "[KSTAR] Before throwing everything we had " << top_k_plans.size() << " plans" << endl;
+        cout << "[KSTAR] Before throwing everything we had " << plan_reconstructor->number_of_plans_found() << " plans" << endl;
     }
-    top_k_plans.clear();
     plan_reconstructor->clear();    
 
     num_node_expansions = 0;
@@ -320,9 +309,9 @@ bool KStar::djkstra_search() {
         if (verbosity >= Verbosity::NORMAL) {
             cout << "[KSTAR] Getting a plan for the node " << node.id << endl;
         }
-        if (plan_reconstructor->add_plan(node, top_k_plans, simple_plans_only)) {
+        if (plan_reconstructor->add_plan(node, simple_plans_only)) {
             // cout << 21 << endl;
-            inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
+            inc_optimal_plans_count(plan_reconstructor->get_last_added_plan_cost());
             statistics.inc_plans_found();
         }
         // cout << 22 << endl;
@@ -347,9 +336,8 @@ bool KStar::djkstra_search() {
     return false;
 }
 
-void KStar::inc_optimal_plans_count(Plan &plan) {
-    int cost = calculate_plan_cost(plan);
-    if (cost == optimal_solution_cost) {
+void KStar::inc_optimal_plans_count(int plan_cost) {
+    if (plan_cost == optimal_solution_cost) {
         statistics.inc_opt_plans();
     }
 }

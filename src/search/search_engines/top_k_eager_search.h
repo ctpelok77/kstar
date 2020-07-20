@@ -40,8 +40,7 @@ protected:
     StateID goal_state = StateID::no_state;
     bool all_nodes_expanded = false;
     int counter = 0;
-    std::vector<Plan> top_k_plans;
-    std::vector<kstar::StateSequence> top_k_plans_states;
+    // std::vector<kstar::StateSequence> top_k_plans_states;
     PerStateInformation<vector<Sap>> incomming_heap;
     PerStateInformation<vector<Sap>> tree_heap;
 
@@ -62,8 +61,7 @@ protected:
     void print_checkpoint_line(int g) const;
     virtual void initialize() override;
     virtual SearchStatus step() override;
-    void output_plans();
-    void print_plan(Plan plan, bool generates_multiple_plan_files);
+
     void interrupt();
     void add_incoming_edge(SearchNode node, const GlobalOperator *op,
                              SearchNode succ_node);
@@ -74,9 +72,6 @@ protected:
     void sort_and_remove(GlobalState  s);
     std::string get_node_label(StateActionPair &edge);
     std::string get_node_name(StateActionPair &edge);
-
-    void dump_plans_json(std::ostream& os, bool dump_states) const;
-    void dump_plan_json(Plan plan, std::ostream& os, bool dump_states) const;
 
 public:
     explicit TopKEagerSearch(const options::Options &opts);

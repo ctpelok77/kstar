@@ -17,18 +17,23 @@ PlanReconstructor::PlanReconstructor(std::unordered_map<Node, Node>& parent_sap,
                                       StateRegistry* state_registry,
                                       SearchSpace* search_space,
                                       bool skip_reorderings,     
+                                      bool dump_plans,
                                       Verbosity verbosity) :
                                               parent_node(parent_sap),
                                               cross_edge(cross_edge),
                                               goal_state(goal_state),
                                               state_registry(state_registry),
                                               search_space(search_space),
-                                              skip_reorderings(skip_reorderings),
-                                              verbosity(verbosity) , attempted_plans(0) {
+                                              skip_reorderings(skip_reorderings), 
+                                              dump_plans(dump_plans),
+                                              verbosity(verbosity), 
+                                              attempted_plans(0), 
+                                              last_plan_cost(-1), 
+                                              number_of_kept_plans(0) {
 }
 
 void PlanReconstructor::clear() {
-    accepted_plans.clear();
+    // accepted_plans.clear();
     attempted_plans = 0;
 }
 
@@ -135,9 +140,7 @@ bool PlanReconstructor::is_simple_plan(StateSequence seq, StateRegistry* state_r
     return true;
 }
 
-bool PlanReconstructor::add_plan(Node node,
-                                 std::vector<Plan>& plans,
-                                 bool simple_plans_only) {
+bool PlanReconstructor::add_plan(Node node, bool simple_plans_only) {
     // Returns a boolean whether the plan was added
     attempted_plans++;
     if (attempted_plans % 100000 == 0) {
@@ -158,11 +161,49 @@ bool PlanReconstructor::add_plan(Node node,
 
     if (!simple_plans_only || is_simple_plan(state_seq, state_registry)) {
         if (!is_duplicate(plan)) {
-            plans.push_back(plan);
-            return true;
+            last_plan_cost = calculate_plan_cost(plan);
+            return keep_plan(plan, last_plan_cost);
         }
     }
     return false;
+}
+
+void PlanReconstructor::add_plan_explicit_no_check(Plan plan) {
+    plan.shrink_to_fit();
+    plan.pop_back();
+    last_plan_cost = calculate_plan_cost(plan);
+    keep_plan(plan, last_plan_cost);
+}
+
+bool PlanReconstructor::keep_plan(const Plan& plan, int cost) {
+    auto it = kept_plans.find(cost);
+    if (it == kept_plans.end()) {
+        PlansSet plans_for_cost;
+        plans_for_cost.insert(plan);
+        kept_plans.insert({cost, plans_for_cost});
+        number_of_kept_plans++;
+        if (dump_plans) {
+            output_plan(plan, cost);
+            dump_dot_plan(plan);
+        }
+        save_plan(plan, true);
+        return true;
+    } 
+    auto p = it->second.insert(plan);
+    if (p.second) {
+        number_of_kept_plans++;
+        if (dump_plans) {
+            output_plan(plan, cost);
+            dump_dot_plan(plan);
+        }
+        save_plan(plan, true);        
+    }
+    return p.second;
+}
+
+
+int PlanReconstructor::get_last_added_plan_cost() const {
+    return last_plan_cost;
 }
 
 bool PlanReconstructor::is_duplicate(const Plan& plan) {
@@ -178,13 +219,15 @@ bool PlanReconstructor::is_duplicate(const Plan& plan) {
     return !result.second;
 }
 
-void PlanReconstructor::save_plans(std::vector<Plan>& plans, bool dump_plans) {
-    for (auto& plan : plans) {
-        if (dump_plans)
-            dump_dot_plan(plan);
-        save_plan(plan, true);
-    }
-}
+// void PlanReconstructor::save_plans(bool dump_plans) {
+//     for (auto& plans : kept_plans) {
+//         for (auto& plan : plans.second) {
+//             if (dump_plans)
+//                 dump_dot_plan(plan);
+//             save_plan(plan, true);
+//         }
+//     }
+// }
 
 void PlanReconstructor::dump_dot_plan(const Plan& plan) {
     stringstream node_stream, edge_stream;
@@ -364,5 +407,63 @@ void PlanReconstructor::dump_state_json(const StateID& state, std::ostream& os) 
     os << "]";
 }
 
+
+
+// Moved from TopKEagerSearch
+
+// void PlanReconstructor::output_plans() {
+//     for (auto& plans : kept_plans) {
+//         for (auto& plan : plans.second) {
+//             output_plan(plan, plans.first);
+//         }
+//     }    
+// }
+
+void PlanReconstructor::output_plan(const Plan& plan, int cost) {
+    for (size_t j = 0; j < plan.size(); ++j) {
+        plan[j]->dump();
+    }
+    cout << "Plan length: " << plan.size() << " step(s)." << endl;
+    cout << "Plan cost: " << cost << endl;
+}
+
+
+void PlanReconstructor::dump_plans_json(std::ostream& os, bool dump_states) const {
+    os << "{ \"plans\" : [" << endl;
+    bool first_dumped = false;
+    for (auto& plans : kept_plans) {
+        for (auto& plan : plans.second) {    
+            if (first_dumped)
+                    os << "," << endl;
+                dump_plan_json(plan, os, dump_states);
+                first_dumped = true;
+        }
+    }
+    os << "]}" << endl;
+}
+
+void PlanReconstructor::dump_plan_json(Plan plan, std::ostream& os, bool dump_states) const {
+    int plan_cost = calculate_plan_cost(plan);
+    os << "{ ";
+    os << "\"cost\" : " << plan_cost << "," << endl; 
+    os << "\"actions\" : [" << endl;
+    if (plan.size() > 0) {
+        os << "\""  << plan[0]->get_name() << "\"";
+        for (size_t i = 1; i < plan.size(); ++i) {
+            os << ", \"" << plan[i]->get_name() << "\"";
+        }
+    }
+    os << "]";
+    if (dump_states) {
+        os << "," << endl;
+        os << "\"states\" : [" << endl;
+
+        vector<StateID> trace;
+        search_space->trace_from_plan(plan, trace);
+        search_space->dump_trace(trace, os);
+        os << "]";
+    }
+    os << "}" << endl;
+}
 
 }

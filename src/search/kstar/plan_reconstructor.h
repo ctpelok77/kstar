@@ -12,12 +12,17 @@ class PlanReconstructor {
     StateRegistry* state_registry;
     SearchSpace* search_space;
     const bool skip_reorderings;
+    bool dump_plans;
     Verbosity verbosity;
     typedef std::unordered_set<Plan> PlansSet;
 
     // Keep plans (sorted vectors of operators) in a set
     PlansSet accepted_plans;
     int attempted_plans;
+    int last_plan_cost;
+    std::unordered_map<int, PlansSet> kept_plans; // Plans kept in a set by cost
+    int number_of_kept_plans;
+    // std::vector<Plan> top_k_plans;
 
     std::string fact_to_pddl(std::string fact) const;
     std::string restructure_fact(std::string fact) const;
@@ -35,6 +40,10 @@ class PlanReconstructor {
         return seed;
     }
 
+    bool keep_plan(const Plan& plan, int cost);
+    void output_plan(const Plan& plan, int cost);
+    void dump_plan_json(Plan plan, std::ostream& os, bool dump_states) const;
+
 public:
     PlanReconstructor(std::unordered_map<Node, Node>& parent_sap,
                        std::unordered_set<Edge>& cross_edge,
@@ -42,6 +51,7 @@ public:
                        StateRegistry* state_registry,
                        SearchSpace* search_space,
                        bool skip_reorderings,
+                       bool dump_plans,
                        Verbosity verbosity);
 
     virtual ~PlanReconstructor() = default;
@@ -50,10 +60,18 @@ public:
     void extract_plan(vector<Node>& seq, Plan &plan, StateSequence &state_seq);
     bool is_simple_plan(StateSequence seq, StateRegistry* state_registry);
     void set_goal_state(StateID goal_state);
-    bool add_plan(Node node, std::vector<Plan>& plans, bool simple_plans_only);
-    void save_plans(std::vector<Plan>& plans, bool dump_plans);
+    bool add_plan(Node node, bool simple_plans_only);
+    // void save_plans(bool dump_plans);
     void dump_dot_plan(const Plan& plan);
     void clear();
+    int get_last_added_plan_cost() const;
+    void add_plan_explicit_no_check(Plan plan);
+
+
+    void dump_plans_json(std::ostream& os, bool dump_states) const;
+    // void output_plans();
+    size_t number_of_plans_found() const {return number_of_kept_plans; }
+
 };
 }
 

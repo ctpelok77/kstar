@@ -12,11 +12,10 @@
 namespace kstar {
 
 class KStar : public top_k_eager_search::TopKEagerSearch {
-    void inc_optimal_plans_count(Plan &plan);
+    void inc_optimal_plans_count(int plan_cost);
 protected:
     int optimal_solution_cost;
     bool simple_plans_only;
-    bool dump_plans;
     bool dump_states;
     bool dump_json;
     std::string json_filename;
@@ -40,10 +39,10 @@ protected:
     vector<Sap> compute_sidetrack_seq(Node& top_pair, vector<Sap>& path);
     void throw_everything();
     void add_plan(Node& p);
-    bool enough_plans_found();
-    bool enough_plans_found_topk();
-    bool enough_plans_found_topq();
-    void set_optimal_plan_cost();
+    bool enough_plans_found() const;
+    bool enough_plans_found_topk() const;
+    bool enough_plans_found_topq() const;
+    void set_optimal_plan_cost(int plan_cost);
     void update_most_expensive_succ();
     void dump_tree_edge();
     void dump_path_graph();

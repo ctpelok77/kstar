@@ -128,6 +128,14 @@ SearchStatus TopKEagerSearch::step() {
             }
             goal_state = s.get_id();
             first_plan_found = true;
+
+            // We now know that absolute cost bound
+            // Updating search bound accordingly
+
+            SearchNode node = search_space.get_node(s);
+            int optimal_solution_cost = node.get_real_g() - 1;
+            bound = (int) ( (optimal_solution_cost * quality_bound) + 0.00001) + 2;
+            cout << "First plan of cost " << optimal_solution_cost << " is found, the search bound is updated to " << bound - 1 << endl;
             sort_and_remove(s);
             return FIRST_PLAN_FOUND;
         }
@@ -612,78 +620,7 @@ static SearchEngine *_parse_greedy(OptionParser &parser) {
     }
     return engine;
 }
-void TopKEagerSearch::output_plans() {
-    for (size_t i = 0; i < top_k_plans.size(); ++i) {
-        for (size_t j = 0; j < top_k_plans[i].size(); ++j) {
-                top_k_plans[i][j]->dump();
-        }
-        int plan_cost = calculate_plan_cost(top_k_plans[i]);
-        cout << "Plan length: " << top_k_plans[i].size() << " step(s)." << endl;
-        cout << "Plan cost: " << plan_cost << endl;
-    }
-}
 
-
-void TopKEagerSearch::dump_plans_json(std::ostream& os, bool dump_states) const {
-    os << "{ \"plans\" : [" << endl;
-    bool first_dumped = false;
-    for (size_t i = 0; i < top_k_plans.size(); ++i) {
-            if (first_dumped)
-                    os << "," << endl;
-                dump_plan_json(top_k_plans[i], os, dump_states);
-                first_dumped = true;
-    }
-    os << "]}" << endl;
-}
-
-void TopKEagerSearch::dump_plan_json(Plan plan, std::ostream& os, bool dump_states) const {
-    int plan_cost = calculate_plan_cost(plan);
-    os << "{ ";
-    os << "\"cost\" : " << plan_cost << "," << endl; 
-    os << "\"actions\" : [" << endl;
-    if (plan.size() > 0) {
-        os << "\""  << plan[0]->get_name() << "\"";
-        for (size_t i = 1; i < plan.size(); ++i) {
-            os << ", \"" << plan[i]->get_name() << "\"";
-        }
-    }
-    os << "]";
-    if (dump_states) {
-        os << "," << endl;
-        os << "\"states\" : [" << endl;
-
-        vector<StateID> trace;
-        search_space.trace_from_plan(plan, trace);
-        search_space.dump_trace(trace, os);
-        os << "]";
-    }
-    os << "}" << endl;
-}
-
-void TopKEagerSearch::print_plan(Plan plan, bool generates_multiple_plan_files) {
-
-    ostringstream filename;
-    filename << g_plan_filename;
-    int plan_number = g_num_previously_generated_plans + 1;
-    if (generates_multiple_plan_files || g_is_part_of_anytime_portfolio) {
-        filename << "." << plan_number;
-    } else {
-        assert(plan_number == 1);
-    }
-
-    ofstream outfile(filename.str());
-    for (size_t i = 0; i < plan.size(); ++i) {
-        outfile << "(" << plan[i]->get_name() << ")" << endl;
-        plan[i]->dump();
-    }
-    int plan_cost = calculate_plan_cost(plan);
-    outfile << "; cost = " << plan_cost << " ("
-            << (is_unit_cost() ? "unit cost" : "general cost") << ")" << endl;
-    outfile.close();
-    cout << "Plan length: " << plan.size() << " step(s)." << endl;
-    cout << "Plan cost: " << plan_cost << endl;
-    ++g_num_previously_generated_plans;
-}
 
 static Plugin<SearchEngine> _plugin("top_k_eager", _parse);
 static Plugin<SearchEngine> _plugin_astar("top_k_astar", _parse_astar);
