@@ -22,7 +22,6 @@ class PlanReconstructor {
     int last_plan_cost;
     std::unordered_map<int, PlansSet> kept_plans; // Plans kept in a set by cost
     int number_of_kept_plans;
-    // std::vector<Plan> top_k_plans;
 
     std::string fact_to_pddl(std::string fact) const;
     std::string restructure_fact(std::string fact) const;
@@ -61,15 +60,12 @@ public:
     bool is_simple_plan(StateSequence seq, StateRegistry* state_registry);
     void set_goal_state(StateID goal_state);
     bool add_plan(Node node, bool simple_plans_only);
-    // void save_plans(bool dump_plans);
     void dump_dot_plan(const Plan& plan);
     void clear();
     int get_last_added_plan_cost() const;
     void add_plan_explicit_no_check(Plan plan);
 
-
     void dump_plans_json(std::ostream& os, bool dump_states) const;
-    // void output_plans();
     size_t number_of_plans_found() const {return number_of_kept_plans; }
 
 };

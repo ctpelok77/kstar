@@ -33,7 +33,6 @@ PlanReconstructor::PlanReconstructor(std::unordered_map<Node, Node>& parent_sap,
 }
 
 void PlanReconstructor::clear() {
-    // accepted_plans.clear();
     attempted_plans = 0;
 }
 
@@ -219,16 +218,6 @@ bool PlanReconstructor::is_duplicate(const Plan& plan) {
     return !result.second;
 }
 
-// void PlanReconstructor::save_plans(bool dump_plans) {
-//     for (auto& plans : kept_plans) {
-//         for (auto& plan : plans.second) {
-//             if (dump_plans)
-//                 dump_dot_plan(plan);
-//             save_plan(plan, true);
-//         }
-//     }
-// }
-
 void PlanReconstructor::dump_dot_plan(const Plan& plan) {
     stringstream node_stream, edge_stream;
     node_stream << "digraph {\n";
@@ -410,15 +399,6 @@ void PlanReconstructor::dump_state_json(const StateID& state, std::ostream& os) 
 
 
 // Moved from TopKEagerSearch
-
-// void PlanReconstructor::output_plans() {
-//     for (auto& plans : kept_plans) {
-//         for (auto& plan : plans.second) {
-//             output_plan(plan, plans.first);
-//         }
-//     }    
-// }
-
 void PlanReconstructor::output_plan(const Plan& plan, int cost) {
     for (size_t j = 0; j < plan.size(); ++j) {
         plan[j]->dump();
@@ -426,7 +406,6 @@ void PlanReconstructor::output_plan(const Plan& plan, int cost) {
     cout << "Plan length: " << plan.size() << " step(s)." << endl;
     cout << "Plan cost: " << cost << endl;
 }
-
 
 void PlanReconstructor::dump_plans_json(std::ostream& os, bool dump_states) const {
     os << "{ \"plans\" : [" << endl;
