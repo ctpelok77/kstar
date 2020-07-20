@@ -137,7 +137,6 @@ bool PlanReconstructor::is_simple_plan(StateSequence seq, StateRegistry* state_r
 
 bool PlanReconstructor::add_plan(Node node,
                                  std::vector<Plan>& plans,
-                                 std::vector<StateSequence>& state_sequences,
                                  bool simple_plans_only) {
     // Returns a boolean whether the plan was added
     attempted_plans++;
@@ -160,9 +159,6 @@ bool PlanReconstructor::add_plan(Node node,
     if (!simple_plans_only || is_simple_plan(state_seq, state_registry)) {
         if (!is_duplicate(plan)) {
             plans.push_back(plan);
-            state_seq.shrink_to_fit();
-            state_seq.pop_back();
-            state_sequences.push_back(state_seq);
             return true;
         }
     }
@@ -189,52 +185,6 @@ void PlanReconstructor::save_plans(std::vector<Plan>& plans, bool dump_plans) {
         save_plan(plan, true);
     }
 }
-
-void PlanReconstructor::preprocess_and_dump_state_action_pairs_to_json(std::vector<Plan>& plans, std::vector<StateSequence>& state_sequences, std::string file_name) {
-    if (state_sequences.size() == 0)
-        return;
-    std::unordered_map<StateID, OperatorSet> ops_by_state; 
-    for (size_t i = 0; i< plans.size(); ++i) {
-        const Plan& plan = plans[i];
-        const StateSequence& states = state_sequences[i];
-        if (verbosity >= Verbosity::NORMAL) {
-            if (plan.size() + 1 != states.size()) {
-                cout << "PROBLEM, the action sequence and state sequence sizes do not match! " << plan.size() << ", " << states.size() << endl;
-                cout << "----------------------" << endl;
-                for (size_t j = 0; j< states.size(); ++j) {
-                    GlobalState current_state = state_registry->lookup_state(states[j]);
-                    current_state.dump_fdr();
-                    cout << endl;
-                    if (j < plan.size()) {
-                        plan[j]->dump();
-                    }
-                    cout << "----------------------" << endl;
-                }
-            }
-        }
-        for (size_t j = 0; j< plan.size(); ++j) {
-            ops_by_state[states[j]].insert(plan[j]);
-        }
-    }
-    StateID init = state_sequences[0][0];
-    ofstream os(file_name);
-    os << "{ ";
-    os << "\"fd_initial\" : ";
-    dump_state_json(init, os);
-    os << "," << endl;
-    os << "\"data\" : [" << endl;
-    bool first = true;
-    for (auto elem : ops_by_state) {
-        if (!first) {
-            os << "," << endl;
-        }
-        first = false;
-        dump_state_with_actions(elem.first, elem.second, os);
-    }
-    os << "]";
-    os << "}" << endl;
-}
-
 
 void PlanReconstructor::dump_dot_plan(const Plan& plan) {
     stringstream node_stream, edge_stream;

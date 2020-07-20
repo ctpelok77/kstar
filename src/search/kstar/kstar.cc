@@ -16,7 +16,6 @@ KStar::KStar(const options::Options &opts) : TopKEagerSearch(opts),
         simple_plans_only(opts.get<bool>("simple_plans_only")),
         dump_plans(opts.get<bool>("dump_plans")),
         dump_states(opts.get<bool>("dump_states")),
-        dump_state_action_pairs(opts.get<bool>("dump_state_action_pairs")),
         dump_json(opts.contains("json_file_to_dump")),
         json_filename(""),
         num_node_expansions(0),
@@ -145,17 +144,11 @@ void KStar::search() {
 
         Plan plan;
         search_space.trace_path(g, plan);
-        StateSequence state_seq;
-        search_space.trace_from_plan(plan, state_seq);
 
         plan.shrink_to_fit();
         plan.pop_back();
         top_k_plans.push_back(plan);
         
-        state_seq.shrink_to_fit();
-        state_seq.pop_back();
-        top_k_plans_states.push_back(state_seq);
-
         set_optimal_plan_cost();
         inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
         statistics.inc_plans_found();
@@ -167,12 +160,8 @@ void KStar::search() {
     plan_reconstructor->save_plans(top_k_plans, dump_plans);
 
     if (dump_json) {
-        if (dump_state_action_pairs) {
-            plan_reconstructor->preprocess_and_dump_state_action_pairs_to_json(top_k_plans, top_k_plans_states, json_filename);
-        } else {
-            ofstream os(json_filename.c_str());
-            dump_plans_json(os, dump_states);
-        } 
+        ofstream os(json_filename.c_str());
+        dump_plans_json(os, dump_states);
     }
 
     cout << "Actual search time: " << timer
@@ -246,7 +235,7 @@ void KStar::initialize_djkstra() {
     pg_root = make_shared<Node>(0, sap, StateID::no_state);
     pg_root->id = g_djkstra_nodes;
     ++g_djkstra_nodes;
-    bool added = plan_reconstructor->add_plan(*pg_root, top_k_plans, top_k_plans_states, simple_plans_only);
+    bool added = plan_reconstructor->add_plan(*pg_root, top_k_plans, simple_plans_only);
     // cout << "Plan was added: " << added << endl; 
     assert(added); // The first plan should always be successfully added
     set_optimal_plan_cost();
@@ -292,7 +281,6 @@ void KStar::throw_everything() {
         cout << "[KSTAR] Before throwing everything we had " << top_k_plans.size() << " plans" << endl;
     }
     top_k_plans.clear();
-    top_k_plans_states.clear();
     plan_reconstructor->clear();    
 
     num_node_expansions = 0;
@@ -332,7 +320,7 @@ bool KStar::djkstra_search() {
         if (verbosity >= Verbosity::NORMAL) {
             cout << "[KSTAR] Getting a plan for the node " << node.id << endl;
         }
-        if (plan_reconstructor->add_plan(node, top_k_plans, top_k_plans_states, simple_plans_only)) {
+        if (plan_reconstructor->add_plan(node, top_k_plans, simple_plans_only)) {
             // cout << 21 << endl;
             inc_optimal_plans_count(top_k_plans[top_k_plans.size()-1]);
             statistics.inc_plans_found();
@@ -476,7 +464,6 @@ static SearchEngine *_parse(OptionParser &parser) {
 
     parser.add_option<bool>("dump_plans", "Print plans", "false");
     parser.add_option<bool>("dump_states", "Dump states to json", "false");
-    parser.add_option<bool>("dump_state_action_pairs", "Dump states to json", "false");
     
     parser.add_option<string>("json_file_to_dump",
         "A path to the json file to use for dumping",

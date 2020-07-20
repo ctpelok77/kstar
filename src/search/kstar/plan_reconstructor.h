@@ -50,10 +50,9 @@ public:
     void extract_plan(vector<Node>& seq, Plan &plan, StateSequence &state_seq);
     bool is_simple_plan(StateSequence seq, StateRegistry* state_registry);
     void set_goal_state(StateID goal_state);
-    bool add_plan(Node node, std::vector<Plan>& plans, std::vector<StateSequence>& state_sequences, bool simple_plans_only);
+    bool add_plan(Node node, std::vector<Plan>& plans, bool simple_plans_only);
     void save_plans(std::vector<Plan>& plans, bool dump_plans);
     void dump_dot_plan(const Plan& plan);
-    void preprocess_and_dump_state_action_pairs_to_json(std::vector<Plan>& plans, std::vector<StateSequence>& state_sequences, std::string file_name);
     void clear();
 };
 }
