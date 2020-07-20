@@ -65,7 +65,7 @@ protected:
     void output_plans();
     void print_plan(Plan plan, bool generates_multiple_plan_files);
     void interrupt();
-    void add_incomming_edge(SearchNode node, const GlobalOperator *op,
+    void add_incoming_edge(SearchNode node, const GlobalOperator *op,
                              SearchNode succ_node);
     void dump_incoming_heap(const GlobalState& s) const;
     void dump_tree_heap(const GlobalState& s) const;

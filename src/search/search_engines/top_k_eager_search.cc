@@ -169,7 +169,7 @@ SearchStatus TopKEagerSearch::step() {
         if (verbosity >= kstar::Verbosity::VERBOSE) {
             cout << "[TKES] Adding incoming edge from " << s.get_id() << " to " << succ_state.get_id() << " via " << op->get_name() << endl;
         }
-        add_incomming_edge(node, op, succ_node);
+        add_incoming_edge(node, op, succ_node);
 
         // Previously encountered dead end. Don't re-evaluate.
         if (succ_node.is_dead_end()) {
@@ -271,7 +271,7 @@ void TopKEagerSearch::interrupt() {
     interrupted = true;
 }
 
-void TopKEagerSearch::add_incomming_edge(SearchNode node,
+void TopKEagerSearch::add_incoming_edge(SearchNode node,
                                          const GlobalOperator *op,
                                          SearchNode succ_node) {
     auto sap = make_shared<StateActionPair>(node.get_state_id(),
@@ -295,7 +295,7 @@ void TopKEagerSearch::add_incomming_edge(SearchNode node,
 }
 
 // Recursively trace the search path to state and add all top elements
-// of incomming heaps
+// of incoming heaps
 void TopKEagerSearch::init_tree_heap(GlobalState& state) {
     if (verbosity >= kstar::Verbosity::VERBOSE) {
         cout << "[TKES] Initializing tree heap for state " << state.get_id() << endl;
@@ -393,7 +393,7 @@ void TopKEagerSearch::remove_tree_edge(GlobalState s)  {
 }
 
 
-// Sort the incomming heap edges according to their delta
+// Sort the incoming heap edges according to their delta
 // value and remove the tree edge
 void TopKEagerSearch::sort_and_remove(GlobalState s) {
     std::stable_sort(incomming_heap[s].begin(), incomming_heap[s].end(), Cmp<Sap>());
