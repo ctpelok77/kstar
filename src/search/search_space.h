@@ -44,6 +44,8 @@ public:
     void update_parent(const SearchNode &parent_node,
                        const GlobalOperator *parent_op);
     void close();
+    void unclose();
+
     void mark_as_dead_end();
 
     void dump() const;

@@ -160,7 +160,7 @@ void KStar::search() {
 
 bool KStar::enough_nodes_expanded() {
     if (open_list->empty()) {
-        if (verbosity >= Verbosity::NORMAL) {
+        if (verbosity >= Verbosity::VERBOSE) {
             cout << "[KSTAR] Open list is empty" << endl;
         }
         return true;
@@ -225,6 +225,9 @@ void KStar::initialize_djkstra() {
     pg_root = make_shared<Node>(0, sap, StateID::no_state);
     pg_root->id = g_djkstra_nodes;
     ++g_djkstra_nodes;
+    if (verbosity >= Verbosity::NORMAL) {
+        cout << "[KSTAR] Adding the first plan" << endl;
+    }    
     bool added = plan_reconstructor->add_plan(*pg_root, simple_plans_only);
     // cout << "Plan was added: " << added << endl; 
     assert(added); // The first plan should always be successfully added
@@ -307,14 +310,19 @@ bool KStar::djkstra_search() {
 
         //notify_expand(node, &state_registry, num_node_expansions);
         if (verbosity >= Verbosity::NORMAL) {
-            cout << "[KSTAR] Getting a plan for the node " << node.id << endl;
+            cout << "[KSTAR] Getting a plan for the node " << node.id;
         }
         if (plan_reconstructor->add_plan(node, simple_plans_only)) {
-            // cout << 21 << endl;
+            if (verbosity >= Verbosity::NORMAL) {
+                cout << "  added" << endl;
+            }
             inc_optimal_plans_count(plan_reconstructor->get_last_added_plan_cost());
             statistics.inc_plans_found();
+        } else {
+            if (verbosity >= Verbosity::NORMAL) {
+                cout << "  Duplicate, not added" << endl;
+            }
         }
-        // cout << 22 << endl;
         if (enough_plans_found()) {
             return true;
         }

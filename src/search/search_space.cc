@@ -103,6 +103,11 @@ void SearchNode::close() {
     info.status = SearchNodeInfo::CLOSED;
 }
 
+void SearchNode::unclose() {
+    assert(info.status == SearchNodeInfo::CLOSED);
+    info.status = SearchNodeInfo::OPEN;
+}
+
 void SearchNode::mark_as_dead_end() {
     info.status = SearchNodeInfo::DEAD_END;
 }
@@ -112,10 +117,11 @@ void SearchNode::dump() const {
     get_state().dump_fdr();
     if (info.creating_operator != -1) {
         cout << " created by " << g_operators[info.creating_operator].get_name()
-             << " from " << info.parent_state_id << endl;
+             << " from " << info.parent_state_id;
     } else {
-        cout << " no parent" << endl;
+        cout << " no parent";
     }
+    cout << ", g=" << get_real_g() << endl;
 }
 
 SearchSpace::SearchSpace(StateRegistry &state_registry, OperatorCost cost_type)

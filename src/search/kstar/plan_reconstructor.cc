@@ -142,8 +142,8 @@ bool PlanReconstructor::is_simple_plan(StateSequence seq, StateRegistry* state_r
 bool PlanReconstructor::add_plan(Node node, bool simple_plans_only) {
     // Returns a boolean whether the plan was added
     attempted_plans++;
-    if (attempted_plans % 100000 == 0) {
-        printf ("Attempted plans: %4.1fM\n", attempted_plans / 1000000.0);
+    if (attempted_plans % 10000 == 0) {
+        printf ("Attempted plans: %4.2fM\n", attempted_plans / 1000000.0);
     }
     vector<Node> path = djkstra_traceback(node);
     vector<Node> seq;

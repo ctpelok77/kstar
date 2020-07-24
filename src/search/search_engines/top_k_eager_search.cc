@@ -109,44 +109,104 @@ void TopKEagerSearch::print_statistics() const {
 
 
 SearchStatus TopKEagerSearch::step() {
-    if (!open_list->empty()) {
-        StateID id = open_list->top();
-        GlobalState s = state_registry.lookup_state(id);
-        if (interrupted) {
-            if (test_goal(s)) {
-                goal_state = s.get_id();
-                first_plan_found = true;
-                sort_and_remove(s);
-            }
-            return INTERRUPTED;
-        }
-        update_next_node_f();
+    // if (!open_list->empty()) {
+    //     StateID id = open_list->top();
+    //     GlobalState s = state_registry.lookup_state(id);
+    //     if (verbosity >= kstar::Verbosity::NORMAL) {
+    //         cout << "Open list top state "<< id << endl;
+    //         if (test_goal(s)) {
+    //             cout << "===========================> [TKES] Got goal state from the open list" << endl;
+    //         }
+    //     }  
+    //     if (interrupted) {
+    //         if (verbosity >= kstar::Verbosity::NORMAL) {
+    //             cout << "[TKES] Interrupted" << endl;
+    //         }
+    //         if (test_goal(s)) {
+    //             goal_state = s.get_id();
+    //             first_plan_found = true;
+    //             sort_and_remove(s);
+    //         }
+    //         return INTERRUPTED;
+    //     }
+    //     update_next_node_f();
 
-        if (test_goal(s) && !first_plan_found) {
-            if (verbosity >= kstar::Verbosity::NORMAL) {
-                cout << "[TKES] First plan is found!" << endl;
-            }
-            goal_state = s.get_id();
-            first_plan_found = true;
+    //     if (test_goal(s) && !first_plan_found) {
+    //         if (verbosity >= kstar::Verbosity::NORMAL) {
+    //             cout << "[TKES] First plan is found!" << endl;
+    //         }
+    //         goal_state = s.get_id();
+    //         first_plan_found = true;
 
-            // We now know that absolute cost bound
-            // Updating search bound accordingly
+    //         // We now know that absolute cost bound
+    //         // Updating search bound accordingly
 
-            SearchNode node = search_space.get_node(s);
-            int optimal_solution_cost = node.get_real_g() - 1;
-            bound = (int) ( (optimal_solution_cost * quality_bound) + 0.00001) + 2;
-            cout << "First plan of cost " << optimal_solution_cost << " is found, the search bound is updated to " << bound - 1 << endl;
-            sort_and_remove(s);
-            return FIRST_PLAN_FOUND;
-        }
-    }
+    //         SearchNode node = search_space.get_node(s);
+    //         int optimal_solution_cost = node.get_real_g() - 1;
+    //         bound = (int) ( (optimal_solution_cost * quality_bound) + 0.00001) + 2;
+    //         cout << "First plan of cost " << optimal_solution_cost << " is found, the search bound is updated to " << bound - 1 << endl;
+    //         sort_and_remove(s);
+    //         return FIRST_PLAN_FOUND;
+    //     }
+    // }
 
     pair<SearchNode, bool> n = fetch_next_node();
-    if (all_nodes_expanded)
+    if (all_nodes_expanded) {
+        if (verbosity >= kstar::Verbosity::NORMAL) {
+            cout << "[TKES] All nodes expanded, interrupted" << endl;
+        }
         return INTERRUPTED;
+    }
 
     SearchNode node = n.first;
     GlobalState s = node.get_state();
+
+    // Moving the goal test here: if goal state, we need to reopen it and put it back into open_list
+    if (interrupted) {
+        if (verbosity >= kstar::Verbosity::NORMAL) {
+            cout << "[TKES] Interrupted" << endl;
+        }
+        if (test_goal(s)) {
+            goal_state = s.get_id();
+            first_plan_found = true;
+            sort_and_remove(s);
+        }
+        node.unclose();
+        EvaluationContext eval_context(s, node.get_g(), true, &statistics);
+        open_list->insert(eval_context, s.get_id());
+
+        return INTERRUPTED;
+    }
+
+    if (test_goal(s) && !first_plan_found) {
+        if (verbosity >= kstar::Verbosity::NORMAL) {
+            cout << "[TKES] First plan is found!" << endl;
+        }
+        goal_state = s.get_id();
+        first_plan_found = true;
+
+        // We now know that absolute cost bound
+        // Updating search bound accordingly
+
+        int optimal_solution_cost = node.get_real_g() - 1;
+        bound = (int) ( (optimal_solution_cost * quality_bound) + 0.00001) + 2;
+        cout << "First plan of cost " << optimal_solution_cost << " is found, the search bound is updated to " << bound - 1 << endl;
+        sort_and_remove(s);
+
+        node.unclose();
+        EvaluationContext eval_context(s, node.get_g(), true, &statistics);
+        open_list->insert(eval_context, s.get_id());
+        next_node_f = eval_context.get_heuristic_value(f_evaluator);
+
+        return FIRST_PLAN_FOUND;
+    }
+
+    if (verbosity >= kstar::Verbosity::NORMAL) {
+        if (test_goal(s)) {
+            cout << "===========================> [TKES] Fetched goal state from the open list " << s.get_id() << endl;
+        }
+    }  
+
     if (verbosity >= kstar::Verbosity::VERBOSE) {
         cout << "[TKES] Expanding state " << endl;
         s.dump_pddl();
@@ -165,12 +225,20 @@ SearchStatus TopKEagerSearch::step() {
     ordered_set::OrderedSet<const GlobalOperator *> preferred_operators =
             collect_preferred_operators(eval_context, preferred_operator_heuristics);
 
+    next_node_f = eval_context.get_heuristic_value(f_evaluator);
+
+    bool added_goal_successor = false;
     for (const GlobalOperator *op : applicable_ops) {
         if ((node.get_real_g() + op->get_cost()) >= bound) {
             continue;
         }
 
         GlobalState succ_state = state_registry.get_successor_state(s, *op);
+        if (verbosity >= kstar::Verbosity::NORMAL) {
+            if (test_goal(succ_state)) {
+                cout << "[TKES] Found goal successor state" << endl;
+            }
+        }        
         statistics.inc_generated();
         bool is_preferred = preferred_operators.contains(op);
         SearchNode succ_node = search_space.get_node(succ_state);
@@ -181,6 +249,11 @@ SearchStatus TopKEagerSearch::step() {
 
         // Previously encountered dead end. Don't re-evaluate.
         if (succ_node.is_dead_end()) {
+            if (verbosity >= kstar::Verbosity::NORMAL) {
+                if (test_goal(succ_state)) {
+                    cout << "====> [TKES] The goal successor state is a dead end!" << endl;
+                }            
+            }
             continue;
         }
 
@@ -211,15 +284,33 @@ SearchStatus TopKEagerSearch::step() {
             if (open_list->is_dead_end(eval_context)) {
                 succ_node.mark_as_dead_end();
                 statistics.inc_dead_ends();
+                if (verbosity >= kstar::Verbosity::NORMAL) {
+                    if (test_goal(succ_state)) {
+                        cout << "====> [TKES] The goal successor node is a dead end!" << endl;
+                    }            
+                }
                 continue;
             }
             succ_node.open(node, op);
+            if (verbosity >= kstar::Verbosity::NORMAL) {
+                if (test_goal(succ_state)) {
+                    cout << "[TKES] Adding the goal successor node to the open list" << endl;
+                    succ_node.dump();
+                    added_goal_successor = true;
+                }
+            }
             open_list->insert(eval_context, succ_state.get_id());
             if (search_progress.check_progress(eval_context)) {
                 print_checkpoint_line(succ_node.get_g());
                 reward_progress();
             }
         } else if (succ_node.get_g() > node.get_g() + get_adjusted_cost(*op)) {
+            if (verbosity >= kstar::Verbosity::NORMAL) {
+                if (test_goal(succ_state)) {
+                    cout << "====> [TKES] The goal successor node is not new!" << endl;
+                }            
+            }
+
             // We found a new cheapest path to an open or closed state.
             if (reopen_closed_nodes) {
                 if (succ_node.is_closed()) {
@@ -255,7 +346,7 @@ SearchStatus TopKEagerSearch::step() {
                   from scratch.
                 */
                 open_list->insert(eval_context, succ_state.get_id());
-            } else {
+            } else { 
 
                 // If we do not reopen closed nodes, we just update the parent pointers.
                 // Note that this could cause an incompatibility between
@@ -263,7 +354,18 @@ SearchStatus TopKEagerSearch::step() {
                 succ_node.update_parent(node, op);
             }
 
+        } else {
+            if (verbosity >= kstar::Verbosity::NORMAL) {
+                if (test_goal(succ_state)) {
+                    cout << "====> [TKES] The goal successor node is not new, nothing to update" << endl;
+                }               
+            }
         }
+    }
+    if (verbosity >= kstar::Verbosity::NORMAL) {
+        if (added_goal_successor) {
+            cout << "====> [TKES] At least one goal successor was added to the open list, continuing." << endl;
+        }       
     }
     return IN_PROGRESS;
 }
@@ -435,8 +537,12 @@ pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
         GlobalState s = state_registry.lookup_state(id);
         SearchNode node = search_space.get_node(s);
 
-        if (node.is_closed())
+        if (node.is_closed()) {
+            if (verbosity >= kstar::Verbosity::NORMAL) {
+                cout << "====> [TKES] skipping closed node " << s.get_id() << endl;
+            }
             continue;
+        }
 
         node.close();
         sort_and_remove(s);
