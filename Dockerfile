@@ -45,6 +45,8 @@ FROM ubuntu:18.04
 # Install any package needed to *run* the planner
 RUN apt-get update && apt-get install --no-install-recommends -y \
     python3  \
+    python3-pip \
+    python3-setuptools \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace/kstar/
@@ -54,7 +56,17 @@ COPY --from=builder /workspace/kstar/fast-downward.py .
 COPY --from=builder /workspace/kstar/builds/release64/bin/ ./builds/release64/bin/
 COPY --from=builder /workspace/kstar/driver ./driver
 
-WORKDIR /work
+COPY requirements.txt .
+RUN pip3 install -r requirements.txt 
+
+# Copy the Flask web service over
+COPY app.py .
+
+# Establish a working folder that can be mapped to a volume
+ENV WORK_FOLDER /work
+VOLUME $WORK_FOLDER
+WORKDIR $WORK_FOLDER
 
 # ENTRYPOINT ["/usr/bin/python3", "/workspace/kstar/fast-downward.py", "--build", "release64"]
-CMD /bin/bash
+# CMD /bin/bash
+CMD ["gunicorn", "--log-level=info", "-b 0.0.0.0:4501", "--chdir=/workspace/kstar", "app:app"]
