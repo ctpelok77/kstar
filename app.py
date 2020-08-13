@@ -168,6 +168,11 @@ class KStarPlanner(Resource):
 
         return plans, 201
 
+    # ------------------------------------------------------------------
+    # DEELETE OLD PLAN FILES
+    # ------------------------------------------------------------------
+    @api.doc("delete_plans")
+    @api.response(204, "Plan files successfully deleted")
     def delete(self, category, planner):
         """ Delete all work files
 
