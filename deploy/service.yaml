@@ -1,0 +1,15 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: kstar-planner
+  labels:
+    app: kstar-planner
+spec:
+  selector:
+    app: kstar-planner
+  type: ClusterIP
+  ports:
+    - name: primary
+      protocol: TCP
+      port: 4501
+      targetPort: 4501

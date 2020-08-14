@@ -1,0 +1,60 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: kstar-planner
+  labels:
+    app: kstar-planner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kstar-planner
+  template:
+    metadata:
+      labels:
+        app: kstar-planner
+      annotations:
+        alpha.image.policy.openshift.io/resolve-names: '*'
+    spec:
+      restartPolicy: Always
+      serviceAccountName: igm4c-sa
+      initContainers:
+        - name: take-work-dir-ownership
+          image: alpine:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - "chown -R 1001:1001 /work;"
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          volumeMounts:
+            - name: kstar-planner-vol
+              mountPath: /work
+      containers:
+        - name: kstar-planner
+          image: 'rofrano/kstar:1.1.2'
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: WORK_FOLDER
+              value: /work
+          ports:
+            - containerPort: 4501
+              protocol: TCP
+          volumeMounts:
+            - name: kstar-planner-vol
+              mountPath: /work
+          resources:
+            limits:
+              cpu: 500m
+              memory: 2Gi
+            requests:
+              cpu: 250m
+              memory: 1Gi
+      volumes:
+        - name: kstar-planner-vol
+          persistentVolumeClaim:
+            claimName: kstar-planner-vol
