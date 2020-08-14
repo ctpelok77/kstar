@@ -82,8 +82,8 @@ plan_response = api.model(
 # category="topk"
 # planner="kstar-topk"
 # url=http://localhost:4501/planners/"$category"/"$planner"
-# domain=`sed 's/;/\n;/g' <DOMAIN-FILE> | sed '/^;/d' | tr -d '\n'`
-# problem=`sed 's/;/\n;/g' <PROBLEM-FILE> | sed '/^;/d' | tr -d '\n'`
+# domain=`sed 's/;/\n;/g' domain.pddl | sed '/^;/d' | tr -d '\n'`
+# problem=`sed 's/;/\n;/g' problem.pddl | sed '/^;/d' | tr -d '\n'`
 # body="{\"domain\": \"$domain\", \"problem\": \"$problem\", \"numplans\":<NUMBER-OF-PLANS>}"
 # basebody=`echo $body`
 # curl -d "$basebody" -H "Content-Type: application/json" "$url"
@@ -142,8 +142,8 @@ class KStarPlanner(Resource):
         )
         output = subprocess.check_output(
             [
-                "python3",
-                "fast-downward.py",
+                "/usr/bin/python3",
+                "/workspace/kstar/fast-downward.py",
                 "--build",
                 "release64",
                 domain_pddl,
@@ -151,7 +151,7 @@ class KStarPlanner(Resource):
                 "--search",
                 search_args,
             ],
-            stderr=subprocess.STDOUT,
+            stderr=subprocess.STDOUT
         )
 
         app.logger.info("Process output: %s", output)
