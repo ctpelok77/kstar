@@ -154,7 +154,7 @@ class KStarPlanner(Resource):
             stderr=subprocess.STDOUT
         )
 
-        app.logger.info("Process output: %s", output)
+        app.logger.info("Process output: %s", output.decode("utf-8"))
 
         # Read the plan file that was created
         plans = []
