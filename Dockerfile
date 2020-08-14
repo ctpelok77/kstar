@@ -62,6 +62,12 @@ RUN pip3 install -r requirements.txt
 # Copy the Flask web service over
 COPY app.py .
 
+# Get the version from the build arguments:
+#  e.g.: --build-arg VERSION=1.2.0
+ARG VERSION
+ENV VERSION=$VERSION
+LABEL version=$VERSION
+
 # Establish a working folder that can be mapped to a volume
 ENV WORK_FOLDER /work
 VOLUME $WORK_FOLDER
