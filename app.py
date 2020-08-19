@@ -82,8 +82,8 @@ plan_response = api.model(
 # category="topk"
 # planner="kstar-topk"
 # url=http://localhost:4501/planners/"$category"/"$planner"
-# domain=`sed 's/;/\n;/g' domain.pddl | sed '/^;/d' | tr -d '\n'`
-# problem=`sed 's/;/\n;/g' problem.pddl | sed '/^;/d' | tr -d '\n'`
+# domain=`sed $'s/;/\\\n;/g' domain.pddl | sed '/^;/d' | tr -d '\n'`
+# problem=`sed $'s/;/\\\n;/g' problem.pddl | sed '/^;/d' | tr -d '\n'`
 # body="{\"domain\": \"$domain\", \"problem\": \"$problem\", \"numplans\":<NUMBER-OF-PLANS>}"
 # basebody=`echo $body`
 # curl -d "$basebody" -H "Content-Type: application/json" "$url"
@@ -127,19 +127,25 @@ class KStarPlanner(Resource):
         domain = api.payload["domain"]
         with open(domain_pddl, "w") as writer:
             writer.write(domain)
+        app.logger.info("Domain PDDL written")
 
         problem_pddl = os.path.join(working_folder, "problem.pddl")
         problem = api.payload["problem"]
         with open(problem_pddl, "w") as writer:
             writer.write(problem)
+        app.logger.info("Problem PDDL written")
 
         numplans = api.payload["numplans"]
         plan_file = os.path.join(working_folder, "plan.json")
 
         # Call the fast forward planner as a process
-        search_args = "kstar(blind(),k={0},json_file_to_dump={1})".format(
+        # search_args = "kstar(blind(),k={0},json_file_to_dump={1})".format(
+        #     numplans, plan_file
+        # )
+        search_args = "kstar(lmcut(),k={0},json_file_to_dump={1})".format(
             numplans, plan_file
         )
+        app.logger.info("Solving for %s plan(s) with --search %s", numplans, search_args)
         output = subprocess.check_output(
             [
                 "/usr/bin/python3",
