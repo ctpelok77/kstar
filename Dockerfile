@@ -21,7 +21,7 @@ WORKDIR /workspace/kstar/
 
 # Set up some environment variables.
 ENV CXX g++
-ENV BUILD_COMMIT_ID 1d4647d
+ENV BUILD_COMMIT_ID dc641ce
 
 
 # Fetch the code at the right commit ID from the Github repo
