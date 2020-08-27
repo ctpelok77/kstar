@@ -55,6 +55,10 @@ plan_request = api.model(
         "numplans": fields.Integer(
             required=True, description="The number of plans to return"
         ),
+        "heuristic": fields.String(
+            required=False, description="The Fast Downward heuristic to use to generate plans",
+            default="lmcut()"
+        ),
     },
 )
 
@@ -79,9 +83,7 @@ plan_response = api.model(
 
 ######################################################################
 # Example usage:
-# category="topk"
-# planner="kstar-topk"
-# url=http://localhost:4501/planners/"$category"/"$planner"
+# url=http://localhost:4501/planners/topk/kstar-topk
 # domain=`sed $'s/;/\\\n;/g' domain.pddl | sed '/^;/d' | tr -d '\n'`
 # problem=`sed $'s/;/\\\n;/g' problem.pddl | sed '/^;/d' | tr -d '\n'`
 # body="{\"domain\": \"$domain\", \"problem\": \"$problem\", \"numplans\":<NUMBER-OF-PLANS>}"
@@ -136,14 +138,14 @@ class KStarPlanner(Resource):
         app.logger.info("Problem PDDL written")
 
         numplans = api.payload["numplans"]
+        heuristic = "lmcut()"
+        if "heuristic" in api.payload:
+            heuristic = api.payload["heuristic"]    # blind(), lmcut()
         plan_file = os.path.join(working_folder, "plan.json")
 
         # Call the fast forward planner as a process
-        # search_args = "kstar(blind(),k={0},json_file_to_dump={1})".format(
-        #     numplans, plan_file
-        # )
-        search_args = "kstar(lmcut(),k={0},json_file_to_dump={1})".format(
-            numplans, plan_file
+        search_args = "kstar({0},k={1},json_file_to_dump={2})".format(
+            heuristic, numplans, plan_file
         )
         app.logger.info("Solving for %s plan(s) with --search %s", numplans, search_args)
         output = subprocess.check_output(

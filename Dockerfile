@@ -73,7 +73,6 @@ COPY app.py .
 
 # Establish a working folder that can be mapped to a volume
 ENV WORK_FOLDER /work
-#VOLUME $WORK_FOLDER
 WORKDIR $WORK_FOLDER
 
 # Become a regular user
