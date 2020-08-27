@@ -42,9 +42,21 @@ RUN strip --strip-all builds/release64/bin/downward
 ###############################################################################
 FROM ubuntu:18.04
 
+# Get the version from the build arguments:
+#  e.g.: --build-arg VERSION=1.2.0
+ARG VERSION
+ENV VERSION=$VERSION
+LABEL version=$VERSION
+
+# Create a user for production
+RUN groupadd -g 1001 planner && \
+    useradd -r -u 1001 -g planner planner
+
 # Install any package needed to *run* the planner
 RUN apt-get update && apt-get install --no-install-recommends -y \
     python3  \
+    python3-pip \
+    python3-setuptools \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace/kstar/
@@ -54,7 +66,20 @@ COPY --from=builder /workspace/kstar/fast-downward.py .
 COPY --from=builder /workspace/kstar/builds/release64/bin/ ./builds/release64/bin/
 COPY --from=builder /workspace/kstar/driver ./driver
 
-WORKDIR /work
+# Add the Flask web application
+COPY requirements.txt .
+RUN pip3 install -r requirements.txt 
+COPY app.py .
+
+# Establish a working folder that can be mapped to a volume
+ENV WORK_FOLDER /work
+WORKDIR $WORK_FOLDER
+
+# Become a regular user
+RUN chown -R planner:planner /workspace
+RUN chown -R planner:planner $WORK_FOLDER
+USER planner
 
 # ENTRYPOINT ["/usr/bin/python3", "/workspace/kstar/fast-downward.py", "--build", "release64"]
-CMD /bin/bash
+# CMD /bin/bash
+CMD ["gunicorn", "--log-level=info", "-b 0.0.0.0:4501", "--chdir=/workspace/kstar", "app:app"]
