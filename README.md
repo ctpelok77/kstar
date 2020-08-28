@@ -35,12 +35,12 @@ docker run --rm -it -v $(pwd):/work rofrano/kstar bash
 ### Usage in Docker
 
 ```sh
-/workspace/kstar/fast-downward.py --build release64 <domain_file> <problem_file> --search "kstar(heuristic,k=<number-of-plans>)"
+/usr/bin/python3 /workspace/kstar/fast-downward.py --build release64 <domain_file> <problem_file> --search "kstar(heuristic,k=<number-of-plans>)"
 ```
 
 For example (using files from [git repo](https://github.com/rofrano/kstar)):
 ```sh
-/workspace/kstar/fast-downward.py --build release64 examples/gripper/domain.pddl examples/gripper/prob01.pddl --search "kstar(blind(),k=100)"
+/usr/bin/python3 /workspace/kstar/fast-downward.py --build release64 examples/gripper/domain.pddl examples/gripper/prob01.pddl --search "kstar(blind(),k=100)"
 ```
 
 ## Running as a Service
