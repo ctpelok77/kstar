@@ -75,58 +75,85 @@ void KStar::search() {
             if (verbosity >= Verbosity::NORMAL) {
                 cout << "[KSTAR] status INTERRUPTED" << endl;
             }
-            if (!open_list->empty() && !queue_djkstra.empty()) {
-                // if enough nodes expanded do Dijkstra search
-                if (verbosity >= Verbosity::NORMAL) {
-                    cout << "[KSTAR] open list not empty, dijkstra queue not empty" << endl;
-                }
-                if (enough_nodes_expanded()) {
-                    if (verbosity >= Verbosity::NORMAL) {
-                        cout << "[KSTAR] enough nodes are expanded" << endl;
-                    }
-                    if (djkstra_search()) {
-                        if (verbosity >= Verbosity::NORMAL) {
-                            cout << "[KSTAR] Dijkstra search finished successfully, found all required plans" << endl;
-                        }
-                        status = SOLVED;
-                        solution_found = true;
-                        break;
-                    }
-                    if (verbosity >= Verbosity::NORMAL) {
-                        cout << "[KSTAR] Dijkstra search could not find all required plans" << endl;
-                    }
-                } else {
-                    if (verbosity >= Verbosity::NORMAL) {
-                        cout << "[KSTAR] not enough nodes are expanded, resuming Astar" << endl;
-                    }
-                    resume_astar();
-                }
-            }
-            if (!open_list->empty() && queue_djkstra.empty()) {
-                if (verbosity >= Verbosity::NORMAL) {
-                    cout << "[KSTAR] open list not empty, dijkstra queue empty, resuming Astar" << endl;
-                }
-                resume_astar();
-            }
+            // if (!open_list->empty() && !queue_djkstra.empty()) {
+            //     // if enough nodes expanded do Dijkstra search
+            //     if (verbosity >= Verbosity::NORMAL) {
+            //         cout << "[KSTAR] open list not empty, dijkstra queue not empty" << endl;
+            //     }
+            //     if (enough_nodes_expanded()) {
+            //         if (verbosity >= Verbosity::NORMAL) {
+            //             cout << "[KSTAR] enough nodes are expanded" << endl;
+            //         }
+            //         if (djkstra_search()) {
+            //             if (verbosity >= Verbosity::NORMAL) {
+            //                 cout << "[KSTAR] Dijkstra search finished successfully, found all required plans" << endl;
+            //             }
+            //             status = SOLVED;
+            //             solution_found = true;
+            //             break;
+            //         }
+            //         if (verbosity >= Verbosity::NORMAL) {
+            //             cout << "[KSTAR] Dijkstra search could not find all required plans" << endl;
+            //         }
+            //     } else {
+            //         if (verbosity >= Verbosity::NORMAL) {
+            //             cout << "[KSTAR] not enough nodes are expanded, resuming Astar" << endl;
+            //         }
+            //         resume_astar();
+            //     }
+            // }
+            // if (!open_list->empty() && queue_djkstra.empty()) {
+            //     if (verbosity >= Verbosity::NORMAL) {
+            //         cout << "[KSTAR] open list not empty, dijkstra queue empty, resuming Astar" << endl;
+            //     }
+            //     resume_astar();
+            // }
 
-            if (open_list->empty()) {
+            // if (open_list->empty()) {
+            //     if (verbosity >= Verbosity::NORMAL) {
+            //         cout << "[KSTAR] Astar open list is empty, trying Dijkstra" << endl;
+            //     }
+            //     if (djkstra_search()) {
+            //         if (verbosity >= Verbosity::NORMAL) {
+            //             cout << "[KSTAR] Dijkstra search finished successfully, found all required plans" << endl;
+            //         }
+            //         status = SOLVED;
+            //     } else {
+            //         if (verbosity >= Verbosity::NORMAL) {
+            //             cout << "[KSTAR] Dijkstra search could not find all required plans" << endl;
+            //         }
+            //         status = FAILED;
+            //     }
+            //     solution_found = true;
+            //     break;
+            // }
+
+            // Michael: October 9, 2020. Rewriting the part above, running Dijkstra/A* after A* was interrupted
+            // First, we try Dijkstra. If enough plans found, we are done. If not, if A* queue is not empty, we continue A*.
+            if (djkstra_search()) {
                 if (verbosity >= Verbosity::NORMAL) {
-                    cout << "[KSTAR] Astar open list is empty, trying Dijkstra" << endl;
+                    cout << "[KSTAR] Dijkstra search finished successfully, found all required plans" << endl;
                 }
-                if (djkstra_search()) {
-                    if (verbosity >= Verbosity::NORMAL) {
-                        cout << "[KSTAR] Dijkstra search finished successfully, found all required plans" << endl;
-                    }
-                    status = SOLVED;
-                } else {
-                    if (verbosity >= Verbosity::NORMAL) {
-                        cout << "[KSTAR] Dijkstra search could not find all required plans" << endl;
-                    }
-                    status = FAILED;
-                }
+                status = SOLVED;
                 solution_found = true;
                 break;
             }
+            if (verbosity >= Verbosity::NORMAL) {
+                cout << "[KSTAR] Dijkstra search could not find all required plans" << endl;
+            }
+            if (!open_list->empty()) {
+                if (verbosity >= Verbosity::NORMAL) {
+                    cout << "[KSTAR] Astar open list not empty, resuming Astar" << endl;
+                }
+                resume_astar();
+            } else {
+                if (verbosity >= Verbosity::NORMAL) {
+                    cout << "[KSTAR] Astar open list empty, no more solutions can be found" << endl;
+                }
+                status = FAILED;
+                solution_found = true;
+                break;
+            }             
         }
     }
 
@@ -165,14 +192,18 @@ bool KStar::enough_nodes_expanded() {
         }
         return true;
     }
-    update_most_expensive_succ();
     if (optimal_solution_cost == -1) {
         if (verbosity >= Verbosity::NORMAL) {
            cout << "[KSTAR] Optimal solution cost is -1" << endl;
         }
         return false;
     }
+    update_most_expensive_succ();
+
     int max_plan_cost =  optimal_solution_cost + most_expensive_successor;
+    if (verbosity >= Verbosity::NORMAL) {
+        cout << "[KSTAR] Checking if enough nodes expanded. Max plan cost: " << most_expensive_successor << ", optimal solution cost: " << optimal_solution_cost << ", next node f: " << next_node_f << endl;
+    }    
     if (max_plan_cost <= next_node_f)
         return true;
     return false;
@@ -324,6 +355,9 @@ bool KStar::djkstra_search() {
             }
         }
         if (enough_plans_found()) {
+            if (verbosity >= Verbosity::NORMAL) {
+                cout << "Number of plans found: " << plan_reconstructor->number_of_plans_found() << endl;
+            }
             return true;
         }
         exps++;
@@ -341,11 +375,14 @@ bool KStar::djkstra_search() {
             }
         }
     }
+    if (verbosity >= Verbosity::NORMAL) {
+        cout << "Number of plans found: " << plan_reconstructor->number_of_plans_found() << endl;
+    }
     return false;
 }
 
 void KStar::inc_optimal_plans_count(int plan_cost) {
-    if (plan_cost == optimal_solution_cost) {
+    if (plan_cost == optimal_solution_cost && plan_cost >= 0) {
         statistics.inc_opt_plans();
     }
 }
