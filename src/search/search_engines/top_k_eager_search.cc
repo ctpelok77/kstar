@@ -189,8 +189,14 @@ SearchStatus TopKEagerSearch::step() {
         // Updating search bound accordingly
 
         int optimal_solution_cost = node.get_real_g() - 1;
-        bound = (int) ( (optimal_solution_cost * quality_bound) + 0.00001) + 2;
-        cout << "First plan of cost " << optimal_solution_cost << " is found, the search bound is updated to " << bound - 1 << endl;
+        cout << "First plan of cost " << optimal_solution_cost << " is found";
+        if (quality_bound < 1.0) {
+            cout << endl;
+        } else {
+            // Updating the search cost bound
+            bound = (int) ( (optimal_solution_cost * quality_bound) + 0.00001) + 2;
+            cout << ", the search bound is updated to " << bound - 1 << endl;
+        }
         sort_and_remove(s);
 
         node.unclose();
@@ -225,6 +231,7 @@ SearchStatus TopKEagerSearch::step() {
     ordered_set::OrderedSet<const GlobalOperator *> preferred_operators =
             collect_preferred_operators(eval_context, preferred_operator_heuristics);
 
+    int prev_f = next_node_f;
     next_node_f = eval_context.get_heuristic_value(f_evaluator);
 
     bool added_goal_successor = false;
@@ -367,15 +374,20 @@ SearchStatus TopKEagerSearch::step() {
             cout << "====> [TKES] At least one goal successor was added to the open list, continuing." << endl;
         }       
     }
+    if (prev_f < next_node_f) {
+        // Trying to get solutions at each new layer
+        // cout << " ========> f values, prev: " << prev_f << ", next: " << next_node_f << endl;
+        return INTERRUPTED;
+    }
     return IN_PROGRESS;
 }
 
-void TopKEagerSearch::update_next_node_f() {
-    if(!open_list->empty()) {
-        StateID state_id = open_list->top();
-        next_node_f = get_f_value(state_id);
-    }
-}
+// void TopKEagerSearch::update_next_node_f() {
+//     if(!open_list->empty()) {
+//         StateID state_id = open_list->top();
+//         next_node_f = get_f_value(state_id);
+//     }
+// }
 
 void TopKEagerSearch::interrupt() {
     interrupted = true;
@@ -471,13 +483,13 @@ std::string TopKEagerSearch::get_node_name(StateActionPair &edge) {
     return node_name;
 }
 
-int TopKEagerSearch::get_f_value(StateID id) {
-    GlobalState s = state_registry.lookup_state(id);
-    int g = search_space.get_node(s).get_g();
-    EvaluationContext eval_context(s, g, false, &statistics);
-    int f = eval_context.get_heuristic_value(f_evaluator);
-    return f;
-}
+// int TopKEagerSearch::get_f_value(StateID id) {
+//     GlobalState s = state_registry.lookup_state(id);
+//     int g = search_space.get_node(s).get_g();
+//     EvaluationContext eval_context(s, g, false, &statistics);
+//     int f = eval_context.get_heuristic_value(f_evaluator);
+//     return f;
+// }
 
 // removing the tree edge
 void TopKEagerSearch::remove_tree_edge(GlobalState s)  {
@@ -540,6 +552,14 @@ pair<SearchNode, bool> TopKEagerSearch::fetch_next_node() {
         if (node.is_closed()) {
             if (verbosity >= kstar::Verbosity::NORMAL) {
                 cout << "====> [TKES] skipping closed node " << s.get_id() << endl;
+            }
+            continue;
+        }
+        
+        // Michael: Added October 9, 2020. Skipping nodes above the bound, added before the bound was set.
+        if (node.get_real_g() > bound) {
+            if (verbosity >= kstar::Verbosity::NORMAL) {
+                cout << "====> [TKES] skipping nodes above bound " << s.get_id() << endl;
             }
             continue;
         }

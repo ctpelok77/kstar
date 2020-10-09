@@ -52,8 +52,8 @@ protected:
     bool first_plan_found;
     kstar::Verbosity verbosity;
 
-    void update_next_node_f();
-    int get_f_value(StateID id);
+    // void update_next_node_f();
+    // int get_f_value(StateID id);
     std::pair<SearchNode, bool> fetch_next_node();
     void start_f_value_statistics(EvaluationContext &eval_context);
     void update_f_value_statistics(const SearchNode &node);

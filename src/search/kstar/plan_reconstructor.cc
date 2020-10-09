@@ -34,6 +34,9 @@ PlanReconstructor::PlanReconstructor(std::unordered_map<Node, Node>& parent_sap,
 
 void PlanReconstructor::clear() {
     attempted_plans = 0;
+    number_of_kept_plans = 0;
+    kept_plans.clear();
+    accepted_plans.clear();
 }
 
 void PlanReconstructor::set_goal_state(StateID goal_state) {
