@@ -25,7 +25,8 @@ ENV BUILD_COMMIT_ID dc641ce
 
 
 # Fetch the code at the right commit ID from the Github repo
-RUN curl -L https://github.com/ctpelok77/kstar/archive/${BUILD_COMMIT_ID}.tar.gz | tar xz --strip=1
+# RUN curl -L https://github.com/ctpelok77/kstar/archive/${BUILD_COMMIT_ID}.tar.gz | tar xz --strip=1
+COPY . .
 
 # Invoke the build script with appropriate options
 RUN python3 ./build.py -j4 release64
