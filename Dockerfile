@@ -40,6 +40,10 @@ RUN strip --strip-all builds/release64/bin/downward
 ## This is the image that will be distributed, we will simply copy here
 ## the files that we fetched and compiled in the previous image and that 
 ## are strictly necessary to run the planner
+##
+## Build passing in version like this:
+##     export VERSION=`cat VERSION`
+##     docker build -t kstar:$VERSION --build-arg VERSION=$VERSION .
 ###############################################################################
 FROM ubuntu:18.04
 

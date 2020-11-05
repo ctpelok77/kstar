@@ -27,6 +27,15 @@ api = Api(
     doc="/",
 )
 
+
+######################################################################
+# GLOBAL CONSTANTS
+######################################################################
+HTTP_200_OK = 200
+HTTP_201_CREATED = 201
+HTTP_204_NO_CONTENT = 204
+HTTP_400_BAD_REQUEST = 400
+
 ######################################################################
 # Set up logging for gunicorn production
 ######################################################################
@@ -82,6 +91,25 @@ plan_response = api.model(
 )
 
 ######################################################################
+# GET HEALTH CHECKS
+######################################################################
+@api.route("/health", strict_slashes=False)
+class HealthCheck(Resource):
+    """ Health Check
+
+    Returns 200_OK is service is healthy
+    """
+
+    # ------------------------------------------------------------------
+    # GET A HEALTH CHECK
+    # ------------------------------------------------------------------
+    @api.doc("health_check")
+    @api.response(HTTP_200_OK, "the service is healthy")
+    def get(self):
+        return dict(status=HTTP_200_OK, message="Healthy"), HTTP_200_OK
+
+
+######################################################################
 # Example usage:
 # url=http://localhost:4501/planners/topk/kstar-topk
 # domain=`sed $'s/;/\\\n;/g' domain.pddl | sed '/^;/d' | tr -d '\n'`
@@ -105,10 +133,10 @@ class KStarPlanner(Resource):
     # CREATE A NEW PLAN
     # ------------------------------------------------------------------
     @api.doc("create_plans")
-    @api.response(400, "The posted data was not valid")
-    @api.response(201, "Plan created successfully")
+    @api.response(HTTP_400_BAD_REQUEST, "The posted data was not valid")
+    @api.response(HTTP_201_CREATED, "Plan created successfully")
     @api.expect(plan_request, validate=True)
-    @api.marshal_with(plan_response, code=201)
+    @api.marshal_with(plan_response, code=HTTP_201_CREATED)
     def post(self, category, planner):
         """ Creates a new Plan
 
@@ -174,13 +202,13 @@ class KStarPlanner(Resource):
 
         app.logger.info("Returning plan: %s", plans)
 
-        return plans, 201
+        return plans, HTTP_201_CREATED
 
     # ------------------------------------------------------------------
     # DEELETE OLD PLAN FILES
     # ------------------------------------------------------------------
     @api.doc("delete_plans")
-    @api.response(204, "Plan files successfully deleted")
+    @api.response(HTTP_204_NO_CONTENT, "Plan files successfully deleted")
     def delete(self, category, planner):
         """ Delete all work files
 
@@ -195,4 +223,4 @@ class KStarPlanner(Resource):
             shutil.rmtree(name)
 
         app.logger.info("Clean up complete")
-        return "", 204
+        return "", HTTP_204_NO_CONTENT
