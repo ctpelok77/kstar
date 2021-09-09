@@ -178,10 +178,8 @@ void PlanReconstructor::add_plan_explicit_no_check(Plan plan) {
 }
 
 bool PlanReconstructor::keep_plan(const Plan& plan, int cost) {
-    cout << "Checking if kept this plan already" << endl;
     auto it = kept_plans.find(cost);
     if (it == kept_plans.end()) {
-        cout << "No plans of cost " << cost << " were kept yet" << endl;
         PlansSet plans_for_cost;
         plans_for_cost.insert(plan);
         kept_plans.insert({cost, plans_for_cost});
