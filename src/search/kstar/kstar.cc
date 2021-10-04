@@ -202,7 +202,7 @@ bool KStar::enough_nodes_expanded() {
 
     int max_plan_cost =  optimal_solution_cost + most_expensive_successor;
     if (verbosity >= Verbosity::NORMAL) {
-        cout << "[KSTAR] Checking if enough nodes expanded. Max plan cost: " << most_expensive_successor << ", optimal solution cost: " << optimal_solution_cost << ", next node f: " << next_node_f << endl;
+        cout << "[KSTAR] Checking if enough nodes expanded. Max plan cost: " << max_plan_cost << ", optimal solution cost: " << optimal_solution_cost << ", next node f: " << next_node_f << endl;
     }    
     if (max_plan_cost <= next_node_f)
         return true;
@@ -345,7 +345,7 @@ bool KStar::djkstra_search() {
         }
         if (plan_reconstructor->add_plan(node, simple_plans_only)) {
             if (verbosity >= Verbosity::NORMAL) {
-                cout << "  added" << endl;
+                cout << "  added with cost" << plan_reconstructor->get_last_added_plan_cost() << endl;
             }
             inc_optimal_plans_count(plan_reconstructor->get_last_added_plan_cost());
             statistics.inc_plans_found();
