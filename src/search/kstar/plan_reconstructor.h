@@ -20,6 +20,7 @@ class PlanReconstructor {
     PlansSet accepted_plans;
     int attempted_plans;
     int last_plan_cost;
+    int best_plan_cost;
     std::unordered_map<int, PlansSet> kept_plans; // Plans kept in a set by cost
     int number_of_kept_plans;
 
@@ -42,6 +43,7 @@ class PlanReconstructor {
     bool keep_plan(const Plan& plan, int cost);
     void output_plan(const Plan& plan, int cost);
     void dump_plan_json(Plan plan, std::ostream& os, bool dump_states) const;
+    void check_set_best_plan(int cost);
 
 public:
     PlanReconstructor(std::unordered_map<Node, Node>& parent_sap,
@@ -67,6 +69,9 @@ public:
 
     void dump_plans_json(std::ostream& os, bool dump_states) const;
     size_t number_of_plans_found() const {return number_of_kept_plans; }
+
+    // Run at the end of the successful Dijkstra iteration
+    void write_non_optimal_plans();
 
 };
 }
