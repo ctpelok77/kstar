@@ -374,7 +374,7 @@ SearchStatus TopKEagerSearch::step() {
             cout << "====> [TKES] At least one goal successor was added to the open list, continuing." << endl;
         }       
     }
-    if (prev_f < next_node_f) {
+    if (prev_f < next_node_f && first_plan_found) {
         // Trying to get solutions at each new layer
         // cout << " ========> f values, prev: " << prev_f << ", next: " << next_node_f << endl;
         return INTERRUPTED;

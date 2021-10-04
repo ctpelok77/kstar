@@ -91,6 +91,7 @@ void save_plan(const vector<const GlobalOperator *> &plan,
     //cout << "Plan length: " << plan.size() << " step(s)." << endl;
     //cout << "Plan cost: " << plan_cost << endl;
     ++g_num_previously_generated_plans;
+    // cout << "Written to file " << filename.str() << endl;
 }
 
 void check_magic(istream &in, string magic) {
