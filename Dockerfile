@@ -21,7 +21,7 @@ WORKDIR /workspace/kstar/
 
 # Set up some environment variables.
 ENV CXX g++
-ENV BUILD_COMMIT_ID d78ec31
+ENV BUILD_COMMIT_ID ab13ab2
 
 # Fetch the code at the right commit ID from the Github repo
 RUN curl -L https://github.com/ctpelok77/kstar/archive/${BUILD_COMMIT_ID}.tar.gz | tar xz --strip=1
