@@ -47,6 +47,7 @@ void KStar::search() {
         if (timer.is_expired()) {
             cout << "Time limit reached. Aborting search." << endl;
             status = TIMEOUT;
+            plan_reconstructor->write_non_optimal_plans();
             break;
         }
         // First solution found. Add R to path graph, perform Dijkstra
@@ -61,6 +62,7 @@ void KStar::search() {
                 status = SOLVED;
                 solution_found = true;
                 // Michael: need to break here
+                // Here, non-optimal plans are written at the end of the successful execution of djkstra_search()
                 break;
             }
             if (verbosity >= Verbosity::NORMAL) {
@@ -136,6 +138,7 @@ void KStar::search() {
                 }
                 status = SOLVED;
                 solution_found = true;
+                // Here, non-optimal plans are written at the end of the successful execution of djkstra_search()
                 break;
             }
             if (verbosity >= Verbosity::NORMAL) {
@@ -152,6 +155,7 @@ void KStar::search() {
                 }
                 status = FAILED;
                 solution_found = true;
+                plan_reconstructor->write_non_optimal_plans();
                 break;
             }             
         }
@@ -304,7 +308,7 @@ void KStar::throw_everything() {
     if (verbosity >= Verbosity::NORMAL) {
         cout << "[KSTAR] Before throwing everything we had " << plan_reconstructor->number_of_plans_found() << " plans" << endl;
     }
-    plan_reconstructor->clear();    
+    plan_reconstructor->clear();
 
     num_node_expansions = 0;
     statistics.reset_plans_found();
@@ -358,6 +362,8 @@ bool KStar::djkstra_search() {
             if (verbosity >= Verbosity::NORMAL) {
                 cout << "Number of plans found: " << plan_reconstructor->number_of_plans_found() << endl;
             }
+            // Writing the non-optimal plans found
+            plan_reconstructor->write_non_optimal_plans();
             return true;
         }
         exps++;

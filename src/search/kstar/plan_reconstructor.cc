@@ -29,14 +29,30 @@ PlanReconstructor::PlanReconstructor(std::unordered_map<Node, Node>& parent_sap,
                                               verbosity(verbosity), 
                                               attempted_plans(0), 
                                               last_plan_cost(-1), 
+                                              best_plan_cost(-1), 
                                               number_of_kept_plans(0) {
 }
 
 void PlanReconstructor::clear() {
-    // attempted_plans = 0;
-    // number_of_kept_plans = 0;
-    // kept_plans.clear();
-    // accepted_plans.clear();
+    attempted_plans = 0;
+    for (auto& plans : kept_plans) {
+        if (plans.first == best_plan_cost) {
+            // Keeping only the optimal plans
+            number_of_kept_plans = plans.second.size();
+            if (skip_reorderings) {
+                // Kept plans, unordered 
+                accepted_plans.clear();
+                for (auto& plan : plans.second) {
+                    // copying the plan, sorting the actions, adding to the set.
+                    Plan unordered_plan = plan;
+                    std::sort(unordered_plan.begin(), unordered_plan.end());
+	                accepted_plans.insert(unordered_plan);
+                }
+            }
+            continue;
+        }
+        plans.second.clear();
+    }
 }
 
 void PlanReconstructor::set_goal_state(StateID goal_state) {
@@ -141,6 +157,13 @@ bool PlanReconstructor::is_simple_plan(StateSequence seq, StateRegistry* state_r
     }
     return true;
 }
+void PlanReconstructor::check_set_best_plan(int cost) {
+    if (best_plan_cost == -1) {
+        best_plan_cost = cost;
+    }
+    if (best_plan_cost > cost)
+        cerr << "ERROR added cheaper than optimal plan";
+}
 
 bool PlanReconstructor::add_plan(Node node, bool simple_plans_only) {
     // Returns a boolean whether the plan was added
@@ -164,6 +187,7 @@ bool PlanReconstructor::add_plan(Node node, bool simple_plans_only) {
     if (!simple_plans_only || is_simple_plan(state_seq, state_registry)) {
         if (!is_duplicate(plan)) {
             last_plan_cost = calculate_plan_cost(plan);
+            check_set_best_plan(last_plan_cost);
             return keep_plan(plan, last_plan_cost);
         }
     }
@@ -174,33 +198,56 @@ void PlanReconstructor::add_plan_explicit_no_check(Plan plan) {
     plan.shrink_to_fit();
     plan.pop_back();
     last_plan_cost = calculate_plan_cost(plan);
+    check_set_best_plan(last_plan_cost);
     keep_plan(plan, last_plan_cost);
 }
 
 bool PlanReconstructor::keep_plan(const Plan& plan, int cost) {
+    // Check if the plan was kept (was previously found)
+    // Check by cost first
     auto it = kept_plans.find(cost);
     if (it == kept_plans.end()) {
+        // If no plans of this cost, adding a new set 
         PlansSet plans_for_cost;
         plans_for_cost.insert(plan);
         kept_plans.insert({cost, plans_for_cost});
         number_of_kept_plans++;
-        if (dump_plans) {
-            output_plan(plan, cost);
-            dump_dot_plan(plan);
+        // Only if the plan is optimal, we dump and save
+        if (cost == best_plan_cost) {
+            if (dump_plans) {
+                output_plan(plan, cost);
+                dump_dot_plan(plan);
+            }
+            save_plan(plan, true);
         }
-        save_plan(plan, true);
         return true;
     } 
     auto p = it->second.insert(plan);
     if (p.second) {
         number_of_kept_plans++;
-        if (dump_plans) {
-            output_plan(plan, cost);
-            dump_dot_plan(plan);
+        if (cost == best_plan_cost) {
+            if (dump_plans) {
+                output_plan(plan, cost);
+                dump_dot_plan(plan);
+            }
+            save_plan(plan, true);
         }
-        save_plan(plan, true);        
     }
     return p.second;
+}
+
+void PlanReconstructor::write_non_optimal_plans() {
+    for (auto& plans : kept_plans) {
+        if (plans.first == best_plan_cost) 
+            continue;
+        for (auto& plan : plans.second) {    
+            if (dump_plans) {
+                output_plan(plan, plans.first);
+                dump_dot_plan(plan);
+            }
+            save_plan(plan, true);
+        }
+    }
 }
 
 
