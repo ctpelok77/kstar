@@ -43,6 +43,10 @@ void KStar::search() {
     utils::CountdownTimer timer(max_time);
     while (status == IN_PROGRESS || status == INTERRUPTED
            || status == FIRST_PLAN_FOUND) {
+        if (enough_plans_found()) {
+            solution_found = true;
+            break;
+        }
         status = step();
         if (timer.is_expired()) {
             cout << "Time limit reached. Aborting search." << endl;
@@ -175,9 +179,7 @@ void KStar::search() {
         Plan plan;
         search_space.trace_path(g, plan);
         plan_reconstructor->add_plan_explicit_no_check(plan);
-        set_optimal_plan_cost(plan_reconstructor->get_last_added_plan_cost());
-        inc_optimal_plans_count(plan_reconstructor->get_last_added_plan_cost());
-        statistics.inc_plans_found();
+        inc_plans_count(true);
     }
 
     if (dump_json) {
@@ -263,12 +265,9 @@ void KStar::initialize_djkstra() {
     if (verbosity >= Verbosity::NORMAL) {
         cout << "[KSTAR] Adding the first plan" << endl;
     }    
-    bool added = plan_reconstructor->add_plan(*pg_root, simple_plans_only);
-    // cout << "Plan was added: " << added << endl; 
-    assert(added); // The first plan should always be successfully added
-    set_optimal_plan_cost(plan_reconstructor->get_last_added_plan_cost());
-    inc_optimal_plans_count(plan_reconstructor->get_last_added_plan_cost());
-    statistics.inc_plans_found();
+    if (plan_reconstructor->add_plan(*pg_root, simple_plans_only)) {
+        inc_plans_count(true);
+    }
     Node successor;
     pg_succ_generator->get_successor_pg_root(pg_root, successor);
     queue_djkstra.push(successor);
@@ -308,11 +307,17 @@ void KStar::throw_everything() {
     if (verbosity >= Verbosity::NORMAL) {
         cout << "[KSTAR] Before throwing everything we had " << plan_reconstructor->number_of_plans_found() << " plans" << endl;
     }
+
+    // Keeping all optimal plans, throwing away everything else 
     plan_reconstructor->clear();
+    int num_plans_kept = plan_reconstructor->number_of_plans_found();
+    statistics.reset_plans_found(num_plans_kept);
+    statistics.reset_opt_found(num_plans_kept);
+    
+    // statistics.print_detailed_statistics();
 
     num_node_expansions = 0;
-    statistics.reset_plans_found();
-    statistics.reset_opt_found();
+
     queue_djkstra = std::priority_queue<Node>();
 }
 
@@ -351,8 +356,7 @@ bool KStar::djkstra_search() {
             if (verbosity >= Verbosity::NORMAL) {
                 cout << "  added with cost" << plan_reconstructor->get_last_added_plan_cost() << endl;
             }
-            inc_optimal_plans_count(plan_reconstructor->get_last_added_plan_cost());
-            statistics.inc_plans_found();
+            inc_plans_count();
         } else {
             if (verbosity >= Verbosity::NORMAL) {
                 cout << "  Duplicate, not added" << endl;
@@ -387,8 +391,17 @@ bool KStar::djkstra_search() {
     return false;
 }
 
-void KStar::inc_optimal_plans_count(int plan_cost) {
-    if (plan_cost == optimal_solution_cost && plan_cost >= 0) {
+void KStar::inc_plans_count(bool first_plan) {
+    // 
+    int last_added_plan_cost = plan_reconstructor->get_last_added_plan_cost();
+    if (first_plan)
+        optimal_solution_cost = last_added_plan_cost;
+
+    if (last_added_plan_cost < 0)
+        return;
+
+    statistics.inc_plans_found();
+    if (last_added_plan_cost == optimal_solution_cost) {
         statistics.inc_opt_plans();
     }
 }

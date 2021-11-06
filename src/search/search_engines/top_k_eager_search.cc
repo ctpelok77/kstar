@@ -240,6 +240,9 @@ SearchStatus TopKEagerSearch::step() {
             continue;
         }
 
+        if (verbosity >= kstar::Verbosity::VERBOSE) {
+            cout << "Generating successor of g = " << (node.get_real_g() + op->get_cost()) << " for " << op->get_name() << endl;
+        }
         GlobalState succ_state = state_registry.get_successor_state(s, *op);
         if (verbosity >= kstar::Verbosity::NORMAL) {
             if (test_goal(succ_state)) {

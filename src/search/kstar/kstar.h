@@ -12,8 +12,6 @@
 namespace kstar {
 
 class KStar : public top_k_eager_search::TopKEagerSearch {
-    void inc_optimal_plans_count(int plan_cost);
-protected:
     int optimal_solution_cost;
     bool simple_plans_only;
     bool dump_states;
@@ -47,6 +45,8 @@ protected:
     void dump_tree_edge();
     void dump_path_graph();
     void dump_dot() const;
+    void inc_plans_count(bool first_plan=false);
+
     virtual ~KStar() = default;
 public:
     KStar (const options::Options &opts);

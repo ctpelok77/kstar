@@ -48,11 +48,12 @@ public:
     void inc_plans_found(int inc = 1){num_plans_found += inc;};
     void inc_opt_plans(int inc = 1){num_opt_plans += inc;};
 	
-    void reset_plans_found(){num_plans_found = 0;};
-    void reset_opt_found(){num_opt_plans = 0;};
+    void reset_plans_found(int num_plans = 0){ num_plans_found = num_plans; }
+    void reset_opt_found(int num_plans = 0) { num_opt_plans = num_plans; }
 
-    void inc_djkstra_runs(int inc = 1){num_djkstra_runs += inc;};
-    void inc_total_djkstra_generations(int inc = 1){total_djkstra_node_generations += inc;};
+
+    void inc_djkstra_runs(int inc = 1){num_djkstra_runs += inc;}
+    void inc_total_djkstra_generations(int inc = 1){total_djkstra_node_generations += inc;}
 
     // Methods that access statistics.
     int get_expanded() const {return expanded_states; }

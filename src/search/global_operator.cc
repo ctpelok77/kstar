@@ -96,7 +96,7 @@ GlobalOperator::GlobalOperator(istream &in, bool axiom, int index, bool goal_op)
         }
         else {
             name = "goal_op";
-            cost = 1;
+            cost = 0;
             for (pair<int,int> fact: g_goal) {
                GlobalCondition c(fact.first, fact.second);
                preconditions.push_back(c);
