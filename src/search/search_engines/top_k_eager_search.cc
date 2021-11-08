@@ -188,14 +188,14 @@ SearchStatus TopKEagerSearch::step() {
         // We now know that absolute cost bound
         // Updating search bound accordingly
 
-        int optimal_solution_cost = node.get_real_g() - 1;
+        int optimal_solution_cost = node.get_real_g();
         cout << "First plan of cost " << optimal_solution_cost << " is found";
         if (quality_bound < 1.0) {
             cout << endl;
         } else {
             // Updating the search cost bound
-            bound = (int) ( (optimal_solution_cost * quality_bound) + 0.00001) + 2;
-            cout << ", the search bound is updated to " << bound - 1 << endl;
+            bound = (int) ( (optimal_solution_cost * quality_bound) + 0.00001) + 1;
+            cout << ", the search bound is updated to " << bound << endl;
         }
         sort_and_remove(s);
 

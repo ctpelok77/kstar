@@ -249,6 +249,9 @@ void KStar::initialize_djkstra() {
     }
     init_tree_heap(g);
     if (tree_heap[g].empty()) {
+        if (verbosity >= Verbosity::VERBOSE) {
+            cout << "[KSTAR] Empty tree heap, not adding anything to Dijkstra queue" << endl;
+        }
         return;
     }
     // Generate root of path graph
@@ -276,10 +279,16 @@ void KStar::initialize_djkstra() {
 }
 
 bool KStar::enough_plans_found() const {
+    if (verbosity >= Verbosity::VERBOSE) {
+        cout << "[KSTAR] Checking if enough plans were found" << endl;
+    }
     return enough_plans_found_topk() || enough_plans_found_topq();
 }
 
 bool KStar::enough_plans_found_topk() const {
+    if (verbosity >= Verbosity::VERBOSE) {
+        cout << "[KSTAR] Number of plans requested: "<< number_of_plans << ", number of plans found: " << plan_reconstructor->number_of_plans_found() << endl;
+    }
     return ( number_of_plans >0 && (int) plan_reconstructor->number_of_plans_found() >= number_of_plans);
 }
 
