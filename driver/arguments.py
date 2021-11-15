@@ -310,7 +310,7 @@ def parse_args():
             "them by default.")
     driver_other.add_argument(
         "--debug", action="store_true",
-        help="alias for --build=debug32 --validate")
+        help="alias for --build=debug --validate")
     driver_other.add_argument(
         "--validate", action="store_true",
         help='validate plans (implied by --debug); needs "validate" (VAL) on PATH')
