@@ -17,5 +17,5 @@ LOG_FILE=run.log
 
 SOURCE="$( dirname "${BASH_SOURCE[0]}" )"
 #echo $SOURCE
-$SOURCE/fast-downward.py --build release64 $1 $2 --search $RUNOPT > $LOG_FILE
+$SOURCE/fast-downward.py $1 $2 --search $RUNOPT > $LOG_FILE
 

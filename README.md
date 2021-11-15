@@ -4,17 +4,15 @@
 ### Building ###
 
 ```
-## Suggested build for 64bit
-
-./build.py release64
+./build.py
 ```
 
 ### Usage ###
 
 ```
-# ./fast-downward.py --build release64 <domain_file> <problem_file> --search "kstar(heuristic,k=<number-of-plans>)"
+# ./fast-downward.py <domain_file> <problem_file> --search "kstar(heuristic,k=<number-of-plans>)"
 
-./fast-downward.py --build release64 examples/gripper/domain.pddl examples/gripper/prob01.pddl --search "kstar(blind(),k=100)"
+./fast-downward.py examples/gripper/domain.pddl examples/gripper/prob01.pddl --search "kstar(blind(),k=100)"
 
 ```
 * _heurisitic_:  any heuristic provided by Fast Downward  
