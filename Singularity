@@ -6,7 +6,7 @@ From: ctpelok77/kstar:latest
     hostname -f > $SINGULARITY_ROOTFS/etc/build_host
 %runscript
     # This will be called whenever the Singularity container is invoked
-    python3 /workspace/kstar/fast-downward.py --build release64 $@
+    python3 /workspace/kstar/fast-downward.py $@
 
 %post
 
