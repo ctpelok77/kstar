@@ -21,16 +21,16 @@ WORKDIR /workspace/kstar/
 
 # Set up some environment variables.
 ENV CXX g++
-ENV BUILD_COMMIT_ID ab13ab2
+ENV BUILD_COMMIT_ID baf1aef
 
 # Fetch the code at the right commit ID from the Github repo
 RUN curl -L https://github.com/ctpelok77/kstar/archive/${BUILD_COMMIT_ID}.tar.gz | tar xz --strip=1
 
 # Invoke the build script with appropriate options
-RUN python3 ./build.py -j4 release64
+RUN python3 ./build.py 
 
 # Strip the main binary to reduce size
-RUN strip --strip-all builds/release64/bin/downward
+RUN strip --strip-all builds/release/bin/downward
 
 ###############################################################################
 ## Second stage: the image to run the planner
@@ -50,10 +50,10 @@ WORKDIR /workspace/kstar/
 
 # Copy the relevant files from the previous docker build into this build.
 COPY --from=builder /workspace/kstar/fast-downward.py .
-COPY --from=builder /workspace/kstar/builds/release64/bin/ ./builds/release64/bin/
+COPY --from=builder /workspace/kstar/builds/release/bin/ ./builds/release/bin/
 COPY --from=builder /workspace/kstar/driver ./driver
 
 WORKDIR /work
 
-# ENTRYPOINT ["/usr/bin/python3", "/workspace/kstar/fast-downward.py", "--build", "release64"]
+# ENTRYPOINT ["/usr/bin/python3", "/workspace/kstar/fast-downward.py"]
 CMD /bin/bash
