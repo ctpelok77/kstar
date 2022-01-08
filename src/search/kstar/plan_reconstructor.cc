@@ -51,6 +51,7 @@ void PlanReconstructor::clear() {
             }
             continue;
         }
+        cout << "Throwing away " << plans.second.size() <<" found plans of cost " << plans.first << " (optimal cost is " << best_plan_cost << ")" << endl;
         plans.second.clear();
     }
 }
